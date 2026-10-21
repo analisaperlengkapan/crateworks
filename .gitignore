@@ -2,3 +2,7 @@
 **/*.rs.bk
 Cargo.lock.orig
 __pycache__/
+
+# Agent working notes. This repository is public, and the memory files hold
+# unreported findings and a cross-project index; they are not for publishing.
+.openhands/
