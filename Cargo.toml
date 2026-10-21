@@ -15,7 +15,7 @@ edition = "2024"
 rust-version = "1.85"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/analisaperlengkapan/crateworks"
-authors = ["Irhas Abdul Rosyid"]
+authors = ["Yayasan Pesantren Cipansor and contributors"]
 
 [workspace.dependencies]
 xmlkit = { version = "0.1.0", path = "crates/xmlkit" }

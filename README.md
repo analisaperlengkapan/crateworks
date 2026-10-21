@@ -51,7 +51,20 @@ The research behind this workspace, including the measurements that identified
 these gaps, is in [`research/`](research). The scripts that produced the numbers
 are in [`research/tools`](research/tools).
 
+## Contributing
+
+Contributions are welcome, including a single country calendar or one more
+validator. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the rules every crate
+follows and the checks to run before opening a pull request.
+
+Security problems should not be reported in a public issue. See
+[`SECURITY.md`](SECURITY.md) for how to report one privately and for an honest
+account of what these crates do and do not protect against.
+
 ## License
 
 Licensed under either of Apache License, Version 2.0 or MIT license at your
-option.
+option. See [`LICENSE-APACHE`](LICENSE-APACHE), [`LICENSE-MIT`](LICENSE-MIT) and
+[`NOTICE`](NOTICE).
+
+Copyright 2026 Yayasan Pesantren Cipansor and contributors.

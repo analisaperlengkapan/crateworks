@@ -256,7 +256,17 @@ fn unescape(s: &str) -> String {
 struct Parser<'a> {
     src: &'a str,
     pos: usize,
+    /// Nesting depth, capped so a hostile document cannot overflow the stack.
+    depth: usize,
 }
+
+/// The deepest element nesting [`parse`] will accept.
+///
+/// The parser descends one stack frame per element, so an unbounded document
+/// could exhaust the stack and abort the process. Real SOAP, WSDL and ISO 20022
+/// documents nest a few dozen levels at most, so this leaves ample headroom
+/// while keeping a hostile input to a bounded cost.
+pub const MAX_DEPTH: usize = 128;
 
 impl<'a> Parser<'a> {
     fn err<T>(&self, message: impl Into<String>) -> Result<T> {
@@ -376,6 +386,16 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_element(&mut self) -> Result<Element> {
+        if self.depth >= MAX_DEPTH {
+            return self.err(format!("element nesting exceeds {MAX_DEPTH} levels"));
+        }
+        self.depth += 1;
+        let result = self.parse_element_inner();
+        self.depth -= 1;
+        result
+    }
+
+    fn parse_element_inner(&mut self) -> Result<Element> {
         self.expect("<")?;
         let name = self.parse_name()?;
         let attributes = self.parse_attributes()?;
@@ -470,7 +490,11 @@ fn push_text(children: &mut Vec<Node>, text: String) {
 ///
 /// Returns [`Error`] when the input is not well-formed XML.
 pub fn parse(text: &str) -> Result<Element> {
-    let mut p = Parser { src: text, pos: 0 };
+    let mut p = Parser {
+        src: text,
+        pos: 0,
+        depth: 0,
+    };
     loop {
         p.skip_ws();
         if p.starts_with("<?") {
@@ -549,6 +573,22 @@ mod tests {
     fn deep_text_walks_descendants() {
         let root = parse("<a>x<b>y<c>z</c></b></a>").unwrap();
         assert_eq!(root.deep_text(), "xyz");
+    }
+
+    #[test]
+    fn nesting_beyond_the_cap_is_rejected_not_crashed() {
+        // Without the cap this input overflows the stack and aborts the process,
+        // which is a denial of service for anything parsing a document off the
+        // network. It must come back as an ordinary error instead.
+        let deep = "<a>".repeat(MAX_DEPTH + 50) + &"</a>".repeat(MAX_DEPTH + 50);
+        let err = parse(&deep).unwrap_err();
+        assert!(err.message.contains("nesting exceeds"), "{}", err.message);
+    }
+
+    #[test]
+    fn nesting_at_the_cap_still_parses() {
+        let ok = "<a>".repeat(MAX_DEPTH) + &"</a>".repeat(MAX_DEPTH);
+        assert!(parse(&ok).is_ok());
     }
 
     #[test]
