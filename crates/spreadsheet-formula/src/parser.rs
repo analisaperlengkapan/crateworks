@@ -116,6 +116,18 @@ impl BinOp {
 /// # Errors
 ///
 /// Returns [`Error::Lex`] or [`Error::Parse`].
+///
+/// # Example
+///
+/// ```
+/// use spreadsheet_formula::{parse_formula, Expr};
+///
+/// // The leading `=` is optional.
+/// assert_eq!(parse_formula("=1+2").unwrap(), parse_formula("1+2").unwrap());
+/// assert!(matches!(parse_formula("1+2").unwrap(), Expr::Binary { .. }));
+///
+/// assert!(parse_formula("1+").is_err());
+/// ```
 pub fn parse_formula(input: &str) -> Result<Expr, Error> {
     let text = input.strip_prefix('=').unwrap_or(input);
     let tokens = tokenize(text)?;

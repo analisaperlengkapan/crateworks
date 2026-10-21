@@ -334,6 +334,16 @@ impl fmt::Display for Vat {
 /// # Errors
 ///
 /// Returns the reason the number is not a valid VAT number.
+///
+/// # Example
+///
+/// ```
+/// use eu_vat::validate;
+///
+/// assert!(validate("DE 136 695 976").is_ok());
+/// // One digit changed, so the checksum no longer matches.
+/// assert!(validate("DE 136 695 970").is_err());
+/// ```
 pub fn validate(input: &str) -> Result<()> {
     Vat::parse(input).map(|_| ())
 }

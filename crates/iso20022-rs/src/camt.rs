@@ -105,6 +105,23 @@ impl BankStatement {
     ///
     /// Returns [`Error::Xml`] for malformed input, or [`Error::MissingElement`]
     /// when the document has no statement.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use iso20022_rs::camt::BankStatement;
+    ///
+    /// let xml = r#"<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.08">
+    ///   <BkToCstmrStmt><Stmt><Id>STMT-1</Id>
+    ///     <Acct><Id><IBAN>DE89370400440532013000</IBAN></Id></Acct>
+    ///     <Bal><Amt Ccy="EUR">10.00</Amt></Bal>
+    ///   </Stmt></BkToCstmrStmt>
+    /// </Document>"#;
+    ///
+    /// let statement = BankStatement::parse(xml).unwrap();
+    /// assert_eq!(statement.id, "STMT-1");
+    /// assert_eq!(statement.iban.as_deref(), Some("DE89370400440532013000"));
+    /// ```
     pub fn parse(xml: &str) -> Result<Self> {
         let body = crate::document_body(xml)?;
         let stmt = find(&body, "Stmt").ok_or(Error::MissingElement("Stmt"))?;

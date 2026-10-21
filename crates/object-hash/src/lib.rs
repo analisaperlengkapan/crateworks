@@ -206,6 +206,29 @@ pub fn canonical(value: &Value) -> String {
 ///
 /// The digest is stable across runs and machines for equal values. See the
 /// crate documentation for what equal means here.
+///
+/// # Example
+///
+/// ```
+/// use object_hash::{hash, Value};
+///
+/// let left = Value::Map(vec![
+///     ("b".into(), Value::number(2)),
+///     ("a".into(), Value::string("one")),
+/// ]);
+/// // A map's key order does not change the digest.
+/// let right = Value::Map(vec![
+///     ("a".into(), Value::string("one")),
+///     ("b".into(), Value::number(2)),
+/// ]);
+/// assert_eq!(hash(&left), hash(&right));
+///
+/// // An array's order does.
+/// assert_ne!(
+///     hash(&Value::Array(vec![Value::number(1), Value::number(2)])),
+///     hash(&Value::Array(vec![Value::number(2), Value::number(1)])),
+/// );
+/// ```
 #[must_use]
 pub fn hash(value: &Value) -> String {
     sha1::hex(canonical(value).as_bytes())

@@ -28,6 +28,18 @@ pub fn parse(bytes: &[u8]) -> Result<Vec<(String, String)>, Error> {
 /// # Errors
 ///
 /// Returns an error if a `\uXXXX` escape is malformed.
+///
+/// # Example
+///
+/// ```
+/// use javaproperties::parse_str;
+///
+/// let entries = parse_str("a = one\nb: two\n").unwrap();
+/// assert_eq!(entries, vec![
+///     ("a".to_string(), "one".to_string()),
+///     ("b".to_string(), "two".to_string()),
+/// ]);
+/// ```
 pub fn parse_str(text: &str) -> Result<Vec<(String, String)>, Error> {
     let lines = split_lines(text);
     let mut today = Vec::new();

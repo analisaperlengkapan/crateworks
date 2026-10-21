@@ -215,6 +215,17 @@ impl Hijri {
     }
 
     /// The corresponding Gregorian date.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use hijridate::Hijri;
+    ///
+    /// // 1 Ramadan 1447 falls in February 2026.
+    /// let hijri = Hijri::new(1447, 9, 1).unwrap();
+    /// let gregorian = hijri.to_gregorian();
+    /// assert_eq!(gregorian.year(), 2026);
+    /// ```
     #[must_use]
     pub fn to_gregorian(self) -> Gregorian {
         from_julian(self.to_julian())

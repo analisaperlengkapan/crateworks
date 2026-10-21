@@ -112,6 +112,24 @@ impl UsernameToken {
     ///
     /// `nonce` is the raw byte sequence; `created` is the timestamp exactly as
     /// it will be written, because the digest covers that text.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use wssec::UsernameToken;
+    ///
+    /// let token = UsernameToken::digest(
+    ///     "user",
+    ///     "secret",
+    ///     b"nonce bytes".to_vec(),
+    ///     "2026-01-01T00:00:00Z",
+    /// );
+    ///
+    /// let element = token.to_element();
+    /// assert_eq!(element.name, "wsse:UsernameToken");
+    /// // The password never appears in the document in clear text.
+    /// assert!(!element.deep_text().contains("secret"));
+    /// ```
     #[must_use]
     pub fn digest(
         username: impl Into<String>,

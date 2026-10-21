@@ -489,6 +489,19 @@ fn push_text(children: &mut Vec<Node>, text: String) {
 /// # Errors
 ///
 /// Returns [`Error`] when the input is not well-formed XML.
+///
+/// # Example
+///
+/// ```
+/// use xmlkit::parse;
+///
+/// let doc = parse("<a x=\"1\"><b>hi</b></a>").unwrap();
+/// assert_eq!(doc.attr("x"), Some("1"));
+/// assert_eq!(doc.child("b").unwrap().text(), "hi");
+///
+/// // A second root element is not well-formed.
+/// assert!(parse("<a/><b/>").is_err());
+/// ```
 pub fn parse(text: &str) -> Result<Element> {
     let mut p = Parser {
         src: text,

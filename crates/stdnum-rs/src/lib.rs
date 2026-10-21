@@ -116,6 +116,16 @@ pub enum NumberType {
 /// # Errors
 ///
 /// Returns the underlying [`Error`] from the relevant parser.
+///
+/// # Example
+///
+/// ```
+/// use stdnum_rs::{validate, NumberType};
+///
+/// assert!(validate(NumberType::Iban, "DE89370400440532013000").is_ok());
+/// // The last digit of an IBAN is a check digit, so changing it fails.
+/// assert!(validate(NumberType::Iban, "DE89370400440532013001").is_err());
+/// ```
 pub fn validate(kind: NumberType, input: &str) -> Result<()> {
     match kind {
         NumberType::Iban => Iban::parse(input).map(|_| ()),

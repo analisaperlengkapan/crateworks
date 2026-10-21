@@ -468,6 +468,24 @@ pub struct PrayerTimes {
 /// `year`, `month` and `day` are a Gregorian date, `latitude` is positive to the
 /// north, and the result is in UTC. The caller adds its own offset for a local
 /// clock.
+///
+/// # Example
+///
+/// ```
+/// use adhan::{prayer_times, Method, Parameters};
+///
+/// // Jakarta, 1 January 2026. The result is in UTC, so add the local offset
+/// // (UTC+7) to read it as a wall clock.
+/// let times = prayer_times(
+///     2026, 1, 1, -6.2, 106.8,
+///     &Parameters::for_method(Method::MuslimWorldLeague),
+/// );
+///
+/// // Fajr comes before sunrise, which is the one ordering that always holds.
+/// let fajr = times.fajr.expect("Jakarta is far from the polar circles");
+/// let sunrise = times.sunrise.expect("Jakarta is far from the polar circles");
+/// assert!(fajr < sunrise);
+/// ```
 #[must_use]
 pub fn prayer_times(
     year: i32,

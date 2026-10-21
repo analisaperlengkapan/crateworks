@@ -328,6 +328,20 @@ impl Calendar {
     ///
     /// Use this for one-off observances such as election days, which no rule
     /// can express.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use holidays_rs::{Calendar, Date};
+    ///
+    /// let cal = Calendar::indonesia();
+    /// let election = Date::new(2026, 6, 3).unwrap();
+    ///
+    /// // A one-off observance is not in the calendar until it is added.
+    /// assert!(!cal.clone().is_holiday(election));
+    /// let with_election = cal.with_extra(election);
+    /// assert!(with_election.is_holiday(election));
+    /// ```
     #[must_use]
     pub fn with_extra(mut self, date: Date) -> Self {
         self.extra.push(date);

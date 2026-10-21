@@ -32,6 +32,18 @@ pub fn strip_tatweel(text: &str) -> String {
 /// forms, unify the yeh forms, unify the heh forms, and collapse runs of
 /// whitespace. The result is not valid display text: it is a key for looking
 /// things up.
+///
+/// # Example
+///
+/// ```
+/// use arabic::normalize;
+///
+/// // Two spellings of the same name, differing in the alef and a harakat.
+/// assert_eq!(normalize("أَحْمَد"), normalize("احمد"));
+///
+/// // The input is left alone; the normalised form is a separate string.
+/// assert_ne!(normalize("أَحْمَد"), "أَحْمَد");
+/// ```
 #[must_use]
 pub fn normalize(text: &str) -> String {
     let mut out = String::with_capacity(text.len());

@@ -130,6 +130,19 @@ impl Syntax {
 ///
 /// The result is a complete document with a declaration, so it can be written
 /// to a file as is.
+///
+/// # Example
+///
+/// ```
+/// use factur_x::{generate, Syntax};
+///
+/// // A conforming sample invoice; see `test_support`.
+/// let invoice = factur_x::test_support::sample_invoice();
+/// let xml = generate(&invoice, Syntax::Cii);
+///
+/// assert!(xml.starts_with("<?xml"));
+/// assert!(xml.contains(&invoice.number));
+/// ```
 #[must_use]
 pub fn generate(invoice: &Invoice, syntax: Syntax) -> String {
     let root = match syntax {

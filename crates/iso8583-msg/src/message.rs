@@ -145,6 +145,22 @@ impl Message {
     ///
     /// Returns an error if the specification is inconsistent, the input is
     /// empty or truncated, or the bitmap and the data disagree.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use iso8583_msg::{default_ascii, Message};
+    ///
+    /// let spec = default_ascii();
+    /// let mut message = Message::new("0200").unwrap();
+    /// message.set(4, "000000001000").unwrap();
+    ///
+    /// let bytes = message.encode(&spec).unwrap();
+    /// let decoded = Message::decode(&bytes, &spec).unwrap();
+    ///
+    /// assert_eq!(decoded.mti(), "0200");
+    /// assert_eq!(decoded.get(4), Some("000000001000"));
+    /// ```
     pub fn decode(bytes: &[u8], spec: &Spec) -> Result<Self> {
         if bytes.is_empty() {
             return Err(Error::Empty);

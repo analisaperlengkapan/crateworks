@@ -54,6 +54,27 @@ impl Wsdl {
     /// [`Error::NoEndpoint`] when it declares no service address, and
     /// [`Error::MissingElement`] when the operation names no input element, so
     /// the payload has nowhere to go.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use soap_client::Wsdl;
+    ///
+    /// let wsdl = Wsdl::parse(r#"<definitions targetNamespace="urn:x"
+    ///         xmlns="http://schemas.xmlsoap.org/wsdl/">
+    ///     <message name="PingRequest"><part element="tns:Ping"/></message>
+    ///     <portType name="P"><operation name="Ping">
+    ///         <input message="tns:PingRequest"/></operation></portType>
+    ///     <service name="S"><port name="p"><soap:address
+    ///         xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    ///         location="https://example.com/x"/></port></service>
+    /// </definitions>"#).unwrap();
+    ///
+    /// let call = wsdl.request("Ping", "<Value>1</Value>").unwrap();
+    /// assert_eq!(call.url, "https://example.com/x");
+    /// // A name the WSDL does not declare is an error, not an empty request.
+    /// assert!(wsdl.request("Pong", "").is_err());
+    /// ```
     pub fn request(&self, operation: &str, payload: &str) -> Result<Request> {
         self.build(operation, payload)
     }
