@@ -1,0 +1,17 @@
+[package]
+name = "mllp"
+description = "MLLP (Minimal Lower Layer Protocol) framing for HL7 v2 messages, with a streaming decoder."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["mllp", "hl7", "hl7v2", "healthcare", "framing"]
+categories = ["encoding", "parser-implementations", "network-programming"]
+readme = "README.md"
+
+[dependencies]
+
+[lints]
+workspace = true

@@ -1,0 +1,13 @@
+crateworks
+Copyright 2026 Yayasan Pesantren Cipansor and contributors
+
+This product includes software developed by Yayasan Pesantren Cipansor and
+contributors (https://github.com/analisaperlengkapan/crateworks).
+
+The framing characters (start block 0x0B, end block 0x1C, carriage return
+0x0D) and the framing rules follow "Transport Specification: MLLP, Release 1",
+published by Health Level Seven International (https://www.hl7.org/). This
+crate is an independent reimplementation for Rust and contains no code from
+that document.
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
