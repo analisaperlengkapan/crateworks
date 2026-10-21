@@ -37,6 +37,13 @@ name = "iso8583-msg"
 version = "0.1.0"
 
 [[package]]
+name = "pdfa"
+version = "0.1.0"
+dependencies = [
+ "xmlkit",
+]
+
+[[package]]
 name = "soap-client"
 version = "0.1.0"
 dependencies = [

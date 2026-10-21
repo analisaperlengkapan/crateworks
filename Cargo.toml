@@ -13,6 +13,7 @@ members = [
     "crates/arabic",
     "crates/factur-x",
     "crates/wssec",
+    "crates/pdfa",
 ]
 
 [workspace.package]

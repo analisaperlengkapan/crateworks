@@ -1,0 +1,18 @@
+[package]
+name = "pdfa"
+description = "PDF/A conformance: XMP metadata, embedded files, and the Factur-X container for e-invoices."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["pdf", "pdfa", "xmp", "factur-x", "einvoice"]
+categories = ["parser-implementations", "encoding"]
+readme = "README.md"
+
+[dependencies]
+xmlkit.workspace = true
+
+[lints]
+workspace = true
