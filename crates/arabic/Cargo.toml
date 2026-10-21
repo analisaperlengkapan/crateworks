@@ -1,0 +1,17 @@
+[package]
+name = "arabic"
+description = "Arabic text shaping: contextual letter forms, ligatures, harakat handling and normalization."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["arabic", "shaping", "rtl", "ligature", "unicode"]
+categories = ["text-processing", "internationalization"]
+readme = "README.md"
+
+[dependencies]
+
+[lints]
+workspace = true

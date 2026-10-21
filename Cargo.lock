@@ -3,6 +3,10 @@
 version = 4
 
 [[package]]
+name = "arabic"
+version = "0.1.0"
+
+[[package]]
 name = "eu-vat"
 version = "0.1.0"
 
