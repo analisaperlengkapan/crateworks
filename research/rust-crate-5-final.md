@@ -274,3 +274,81 @@ besar kandidat ternyata **sudah terisi**, dan saya hampir membangun duplikat.
   yang sama seperti port Gitea: baca sumbernya, jangan menebak arti sebuah kolom.
 - Regenerasi tabel bersifat idempoten, jadi diff pada berkas hasil generate
   berarti ada rilis upstream baru atau ada kesalahan — bukan perubahan gaya.
+
+---
+
+## Addendum 2026-10-21 (ketiga): putaran probe lanjutan, 40 kandidat
+
+Saya probe 40 kapabilitas lagi dalam empat batch. Hasilnya memperkuat pola yang
+sama: **sebagian besar kandidat ternyata sudah terisi**, dan beberapa nama yang
+terdengar seperti celah ternyata crate yang aktif.
+
+### PENTING: pesaing baru untuk crate yang sudah ada di workspace ini
+
+Riset ini menemukan bahwa dua crate workspace ini sudah punya tetangga:
+
+| Crate workspace | Pesaing yang ditemukan | Ukuran |
+|---|---|---|
+| `iso20022-rs` | `mx20022` (50 recent), `rust_iso20022` (55), `iso20022-common` (**2.362 recent**, 2024), `mx20022-translate` | Ada, tapi semua kecil kecuali `iso20022-common` |
+| `soap-client` | (tidak berubah) `wsdl` 8, `soap` 3, 0 revdeps | Masih paling kosong |
+
+`iso20022-common` 2.362 recent itu perlu diperhatikan: sebelumnya saya mencatat
+"hanya ada satu crate dari 2020". Itu tidak lagi akurat. Kandidat ISO 20022
+tidak lagi kosong, meski belum ada pemain dominan.
+
+### Yang ternyata sudah terisi (jangan dibangun)
+
+| Kapabilitas | Permintaan | Pasokan Rust | Vonis |
+|---|---|---|---|
+| **SWIFT MT103/MT202** | PyPI `mt-940` 499 rb/bln | **`swift-mt-message` 3.881 recent + derive macros, aktif 2026-02** | Terisi. Nama `mt103`/`swift-mt` bebas tapi tidak berguna. |
+| JSONLogic rules engine | npm `json-logic-js` 1,5 jt/mgg, PyPI `json-logic` 2,2 jt/bln | `datalogic-rs` **85 rb recent**, `juspay_jsonlogic` 77 rb, `jsonlogic-rs` 14 rb | Terisi kuat. |
+| Kata ke angka | PyPI `word2number` 2 jt/bln, `number-parser` 622 rb | `text2num` 21.655 recent (multi-bahasa), `words2num2-core` | Terisi. |
+| Konversi satuan | PyPI `pint` 5,2 jt/bln, npm `convert-units` 116 rb/mgg | `uom` **2,6 jt recent** | Terisi kuat. |
+| Transliterasi/ASCII folding | PyPI `text-unidecode` 65 jt/bln | `deunicode` **17 jt recent**, `unidecode` 1,4 jt, `any_ascii` 2,1 jt | Terisi kuat. |
+| Slug URL | PyPI `python-slugify` 64 jt/bln, npm `slugify` 11 jt/mgg | `slug` **8 jt recent**, 157 revdeps | Terisi kuat. |
+| Durasi human-readable | PyPI `humanize` 46 jt/bln | `humantime` **70 jt recent**, 1.359 revdeps | Terisi kuat. |
+| Parsing tanggal natural | PyPI `python-dateutil` 899 jt/bln | `dateparser` 2,1 jt, `parse_datetime` 1,6 jt, `dtparse` 365 rb | Terisi. |
+| Timezone dari koordinat | PyPI `timezonefinder` 5,1 jt/bln | `tzf-rs` 147 rb recent | Terisi. |
+| DICOM medis | PyPI `pydicom` 5,8 jt/bln | `dicom` **307 rb recent**, 13 revdeps | Terisi. |
+| NMEA GPS | PyPI `pynmea2` 112 rb/bln | `nmea-parser` 118 rb, `nmea` 43 rb | Terisi. |
+| EDI X12 | PyPI `pyx12` 308 rb/bln | `edi` 58 rb recent | Terisi. |
+| EDIFACT | PyPI `pydifact` 171 rb/bln | `edifact-rs` 1.931 recent (aktif 2026-10) | Terisi. |
+| OFX | PyPI `ofxparse` 413 rb/bln | `ofx-rs` 2.819 recent | Terisi. |
+| MRZ paspor | PyPI `mrz` 52 rb/bln | `mrz` 6.300 recent | Terisi. |
+| MT940 rekening koran | PyPI `mt-940` 499 rb/bln | `mt940` 2.435 recent, aktif | Terisi. |
+| HL7 v2 | PyPI `hl7apy` 758 rb/bln | `hl7-parser` 6.645 recent, `hl7` 172, `hl7v2` 120 | Ada, tapi lemah. |
+| i18n angka/tanggal | PyPI `babel` 101 jt/bln | `icu` 703 rb recent (ICU4X), `num-format` 14 jt | Terisi. |
+| Nama orang | PyPI `nameparser` 3,1 jt/bln | `human-name` 485 rb recent | Terisi. |
+| Beancount/ledger | PyPI `beancount` 133 rb/bln | `beancount-rs` 12 recent (2026-07) | Kosong tapi permintaan kecil. |
+
+### Celah yang masih nyata, diurutkan
+
+1. **ISO 8583** (pesan transaksi kartu). PyPI `pyiso8583` **403.648/bln**. Di Rust:
+   `iso8583` **62 recent (2017, mati)**, `iso8583-rs` **73 recent (2020, mati)**,
+   `iso8583-codec-rs` 3 recent. Nama `iso8583-msg` dan `iso8583kit` **bebas**.
+   Ini celah terkuat: dua percobaan mati, permintaan nyata di industri pembayaran.
+2. **Teks Arab** (reshaping, harakat, normalisasi). PyPI `arabic-reshaper`
+   **4,8 jt/bln**. Di Rust: `arabic-reshaper` 1.859 recent (2023), `ar-reshaper`
+   9.241 recent (2024), `arabic_text_utils` 46 recent. Permintaan besar, pasokan
+   tua dan terpecah. Nama `arabic` dan `tashkeel` bebas.
+3. **EN 16931 e-invoice** (Factur-X/ZUGFeRD/UBL/XRechnung). PyPI `factur-x`
+   287 rb/bln. Di Rust: `en16931-formats` 5.417 recent (1 revdep, aktif),
+   `en16931` 5.586 recent, `zugferd` 159 recent, `xrechnung` 5 recent.
+   Permintaan sedang dan tumbuh karena regulasi UE.
+4. **Teks Quran** (lookup ayat, halaman mushaf, tajwid). Kecil di semua ekosistem
+   (npm `quran-json` 2.827/mgg, PyPI `quran` 608/bln), Rust `quran` 2 recent
+   (2022). Celah nyata tapi ceruk sempit. Nama `quran-rs`, `tajweed`, `mushaf`
+   bebas.
+
+### Catatan metode
+
+- **Bahkan `mt103` yang terdengar pasti kosong ternyata sudah ada.** Crate
+  `swift-mt-message` muncul hanya setelah saya mencari frasa "swift mt message",
+  bukan nama crate. Mencari berdasarkan **kapabilitas**, bukan nama, itu wajib.
+- Nama crate bebas bukan berarti celahnya nyata: `mt103` bebas, tapi kapabilitas
+  MT103 sudah dikerjakan `swift-mt-message`. Ketersediaan nama adalah syarat
+  perlu, bukan syarat cukup.
+- Pola yang berulang di tiga putaran: **kapabilitas generik hampir selalu sudah
+  terisi; yang kosong adalah kapabilitas yang terikat domain tertentu**
+  (pembayaran kartu, regulasi fiskal UE, teks Arab/Quran). Itu arah yang benar
+  untuk putaran berikutnya.
