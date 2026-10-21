@@ -20,6 +20,7 @@ Every crate here follows the same rules:
 | --- | --- | --- |
 | [`xmlkit`](crates/xmlkit) | Small XML parser, tree, and serialiser | Foundation for the SOAP and ISO 20022 crates; no `quick-xml` dependency needed |
 | [`holidays-rs`](crates/holidays-rs) | Public holiday calendars and working-day arithmetic | `holidays` on crates.io has a single 2023 release and an abandoned repo |
+| [`hijridate`](crates/hijridate) | Hijri/Gregorian conversion on the Umm al-Qura calendar | The name is free, the only Rust Hijri crates are a CLI and a 2018 stub, while `hijri-converter` on PyPI has millions of monthly downloads |
 | [`stdnum-rs`](crates/stdnum-rs) | IBAN, ISBN, EAN/UPC, Luhn and national ID validation | Rust has only fragmented per-country crates and no shared entry point |
 | [`spreadsheet-formula`](crates/spreadsheet-formula) | Spreadsheet formula parser and evaluator | The existing engines are unmaintained and tied to a file format |
 | [`iso20022-rs`](crates/iso20022-rs) | `camt`, `pain` and `pacs` payment messages | The one crate on crates.io is from 2020 and dead |

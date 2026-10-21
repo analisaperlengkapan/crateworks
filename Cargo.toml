@@ -3,6 +3,7 @@ resolver = "3"
 members = [
     "crates/xmlkit",
     "crates/holidays-rs",
+    "crates/hijridate",
     "crates/stdnum-rs",
     "crates/spreadsheet-formula",
     "crates/iso20022-rs",

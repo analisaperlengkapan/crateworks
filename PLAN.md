@@ -73,7 +73,39 @@ work a hostile formula can request.
 lookup functions, iterative recalculation. Cyclic references are detected and
 reported rather than resolved.
 
-## 5. `iso20022-rs`
+## 5. `hijridate`
+
+**Why.** The Hijri calendar cannot be computed from a formula: a month begins at
+the crescent sighting, so software uses a published table. Umm al-Qura is the
+Saudi sighting-based calendar that most software treats as the reference. On
+crates.io the only Hijri crates are `hijri` (a command-line tool, 11 recent
+downloads) and `hijridate`-adjacent stubs; the name `hijridate` itself was free.
+For comparison the PyPI package `hijri-converter` has millions of monthly
+downloads, and `hijridate` (its successor) has more. This crate also fills a hole
+this workspace had already documented: `holidays-rs` deliberately omits
+Indonesian Idul Fitri and Idul Adha because they depend on a decree rather than a
+formula, and the Umm al-Qura table is what those dates are looked up in.
+
+**Covers today.** Hijri to Gregorian and Gregorian to Hijri across Hijri years
+1343 to 1500 (Gregorian 1924 to 2077), taken from the published Umm al-Qura month
+starts. Real month lengths (29 or 30, varying by year), month names, weekday and
+day names, validation that rejects a day past the end of its month, and `Display`
+as `YYYY-MM-DD`. No dependencies.
+
+**Not covered.** Outside the table the crate falls back to the classical
+arithmetic calendar and flags the result with `is_tabular`; those dates can be a
+day or two out. Arabic, Bengali and Turkish month names are not included (only
+English), and there is no time-of-day or prayer-time handling. Most importantly
+the crate is one authority, not every authority: Indonesia (Kemenag), Malaysia
+and others announce their own month starts, so a date here can differ by a day
+from what a country observes. That is a property of the calendar, not a bug.
+
+**How the data is trusted.** The table and the test fixtures are both generated
+from the MIT-licensed `hijridate` Python package, so the tests compare against an
+independent implementation rather than against this crate's own output. See
+`research/tools/gen_hijri_table.py` and the crate `NOTICE` for provenance.
+
+## 6. `iso20022-rs`
 
 **Why.** ISO 20022 is replacing SWIFT MT, and every bank integration needs it.
 The only crate on crates.io is from 2020 and unmaintained.
@@ -88,7 +120,7 @@ transfers so the output cannot disagree with itself.
 validation, and the full generated type set. Amounts use `f64` with the original
 decimal text preserved in `Amount::text`.
 
-## 6. `soap-client`
+## 7. `soap-client`
 
 **Why.** SOAP remains the only interface for many banks, government systems and
 enterprise products, and every SOAP crate on crates.io has zero reverse
@@ -111,7 +143,7 @@ that depends on another crate in this workspace cannot be packaged until that
 dependency is published. Publish bottom-up:
 
 1. `xmlkit`
-2. `holidays-rs`, `stdnum-rs`, `spreadsheet-formula` (independent of the rest)
+2. `holidays-rs`, `hijridate`, `stdnum-rs`, `spreadsheet-formula` (independent of the rest)
 3. `iso20022-rs`, `soap-client` (both depend on `xmlkit`)
 
 ## Verification

@@ -13,6 +13,7 @@ publik tanpa kunci. Butuh Python 3, tanpa dependensi eksternal.
 | `revdeps.py` | **Yang paling penting**: reverse dependencies + aktivitas repo incumbent |
 | `incumbents.py` | Detail pesaing untuk tiap kandidat |
 | `verify2.py` | Verifikasi 30 area tambahan (transit, kesehatan, keuangan, dll) |
+| `gen_hijri_table.py` | Regenerasi tabel Umm al-Qura + fixture tes untuk crate `hijridate`. Butuh `pip install hijridate`. Jalankan dari akar repo: `python3 research/tools/gen_hijri_table.py crates/hijridate` |
 | `namecheck.py` | **Cek dulu sebelum menulis kode**: apakah nama crate masih bebas. `python3 namecheck.py iso20022 xmlkit` |
 
 ## Peringatan operasional

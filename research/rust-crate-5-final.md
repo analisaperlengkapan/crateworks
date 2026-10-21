@@ -212,3 +212,65 @@ terbuka, tapi tidak lagi kosong.
 - Ruang ini bergerak cepat. `sepa` naik dari "sempit" ke penantang aktif dalam
   hitungan bulan, jadi pengukuran perlu diulang sebelum mulai mengerjakan
   kandidat berikutnya.
+
+---
+
+## Addendum 2026-10-21 (kedua): putaran probe kandidat baru
+
+Setelah 6 crate pertama, saya probe 19 kapabilitas lagi dengan cara yang sama
+(permintaan dari npm/PyPI, pasokan dari crates.io). Tujuannya mencari yang layak
+dibangun berikutnya. Hasilnya mengecewakan dalam arti yang berguna: sebagian
+besar kandidat ternyata **sudah terisi**, dan saya hampir membangun duplikat.
+
+### Yang ternyata sudah terisi (jangan dibangun)
+
+| Kapabilitas | Yang saya kira celah | Kenyataannya |
+|---|---|---|
+| Angka ke kata (multi-bahasa) | `num2words` (PyPI 7,8 jt/bln), `inflect` (22 jt/bln) | `num2words` Rust sudah ada dan **sudah multi-bahasa** (French, dll), 94 rb recent. Bukan celah. |
+| Format & parse SQL | `sqlparse` (107 jt/bln), `sqlglot` (72 jt/bln) | `sqlformat` 4,3 jt recent + `sqlparser` 14,8 jt recent, 435 revdeps. Bukan celah. |
+| Ukuran byte ke teks | `bytes` (84 jt/mgg), `pretty-bytes` (19 jt/mgg) | `humansize` 12,5 jt, `bytesize` 21,9 jt, 500 revdeps. Bukan celah. |
+| Durasi ISO 8601 | `iso8601-duration`, `tinyduration` | `iso8601` 6,4 jt, `duration-str` 3,7 jt. Bukan celah. |
+| Fuzzy matching | `rapidfuzz` (116 jt/bln), `thefuzz` | `strsim` 249 jt recent, `fuzzy-matcher` 9,2 jt, `rapidfuzz` Rust 4,3 jt. Bukan celah. |
+| Validasi nomor telepon | `libphonenumber-js` (16 jt/mgg), `phonenumbers` (34 jt/bln) | `phonenumber` 3,2 jt recent, 65 revdeps. Bukan celah. |
+| Barcode | `jsbarcode`, `python-barcode` | `rxing` 212 rb, `barcoders` 162 rb, keduanya aktif. Bukan celah. |
+| Kekuatan sandi | `zxcvbn` | `zxcvbn` Rust 1,8 jt recent. Sudah terisi. |
+| Kartu kredit | `card-validator` | `card-validate` 439 rb recent. Sudah terisi. |
+| Kalender Hijriah **via nama `hijri`** | PyPI `hijri-converter` 2,8 jt/bln | Crate `hijri` Rust cuma **CLI**, 11 recent. Ini yang menipu: namanya mirip, fungsinya bukan library. |
+
+### Kandidat yang lolos, dan yang dipilih
+
+**Dipilih dan sudah dibangun: `hijridate`.**
+
+- Permintaan: PyPI `hijridate` 3,3 jt/bln, `hijri-converter` 2,8 jt/bln,
+  `ummalqura` 1,2 jt/bln. Semua jutaan, bukan ribuan.
+- Pasokan: crate `hijri` (CLI, 11 recent), `hijridate`/`hijri-converter`/
+  `ummalqura`/`islamic-calendar` **semuanya bebas**. Nama `hijri-date` terpakai
+  tapi mati sejak 2023 (857 recent).
+- Kualitas celah: `holidays-rs` di workspace ini sendiri sudah menuliskan bahwa
+  Idul Fitri dan Idul Adha Indonesia tidak dimasukkan karena "bergantung pada
+  keputusan resmi, bukan rumus". Tabel Umm al-Qura adalah tempat tanggal itu
+  dicari. Jadi celah ini sudah terdokumentasi sebelum saya mencarinya.
+- Data tersedia terbuka dan MIT (`dralshehri/hijridate`), jadi tidak perlu
+  menebak tanggal.
+
+**Tetap terbuka, belum dikerjakan:**
+
+- **Ekstraksi tabel dari PDF** (`pdfplumber` 40,7 jt/bln, `tabula-py` 1,2 jt/bln,
+  `camelot-py` 722 rb/bln). Di Rust: `pdfplumber` 40 rb recent (satu pemain,
+  alpha), `pdf-table`/`camelot` bebas. Celah terbesar yang tersisa, tapi
+  algoritmanya berat.
+- **Hunspell murni-Rust**: `spellbook` 140 rb recent sudah ada dan aktif, jadi
+  ini bukan lagi celah bersih. `nspell` (npm) 147 rb/mgg.
+- **vCard**: `vcard`, `vcard-rs`, `vobject`, `vcf` semuanya ada tapi kecil
+  (1,1-1,5 rb recent). Setengah celah, permintaan Rust belum terbukti.
+
+### Catatan metode (koreksi)
+
+- **Nama crate yang mirip bisa menipu.** `hijri` terdengar seperti library
+  kalender; ternyata CLI. Selalu baca deskripsi dan `crate_type`, bukan hanya
+  nama dan angka unduhan.
+- `MONTH_STARTS` di `hijridate` Python menyimpan **RJD** (JDN - 2.400.000), bukan
+  JDN. Saya sempat salah asumsi dan tabelnya menghasilkan tahun -4647. Pelajaran
+  yang sama seperti port Gitea: baca sumbernya, jangan menebak arti sebuah kolom.
+- Regenerasi tabel bersifat idempoten, jadi diff pada berkas hasil generate
+  berarti ada rilis upstream baru atau ada kesalahan — bukan perubahan gaya.
