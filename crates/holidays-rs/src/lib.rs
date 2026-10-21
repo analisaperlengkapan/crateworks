@@ -164,11 +164,19 @@ impl Rule {
                     (resolved.month == month).then_some(resolved)
                 }
             }
-            Self::WeekdayOnOrAfter { month, day, weekday } => {
+            Self::WeekdayOnOrAfter {
+                month,
+                day,
+                weekday,
+            } => {
                 let date = Date::new(year, month, day)?;
                 Some(date.next_or_same_weekday(weekday))
             }
-            Self::WeekdayOnOrBefore { month, day, weekday } => {
+            Self::WeekdayOnOrBefore {
+                month,
+                day,
+                weekday,
+            } => {
                 let date = Date::new(year, month, day)?;
                 let back = (date.weekday() as i64 - weekday as i64).rem_euclid(7) as i32;
                 date.add_days(-back)

@@ -3,7 +3,14 @@ fn main() {
     for &c in Country::ALL {
         let cal = Calendar::new(c);
         for (d, n) in cal.holidays_in(2026) {
-            println!("{}\t{:04}-{:02}-{:02}\t{}", c.name(), d.year, d.month, d.day, n);
+            println!(
+                "{}\t{:04}-{:02}-{:02}\t{}",
+                c.name(),
+                d.year,
+                d.month,
+                d.day,
+                n
+            );
         }
     }
 }

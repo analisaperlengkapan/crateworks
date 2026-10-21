@@ -668,7 +668,10 @@ static SPAIN: &[Holiday] = &[
     h("Viernes Santo", Rule::EasterOffset(-2)),
     h("Fiesta del Trabajo", Rule::Fixed { month: 5, day: 1 }),
     h("Asunción de la Virgen", Rule::Fixed { month: 8, day: 15 }),
-    h("Fiesta Nacional de España", Rule::Fixed { month: 10, day: 12 }),
+    h(
+        "Fiesta Nacional de España",
+        Rule::Fixed { month: 10, day: 12 },
+    ),
     h("Todos los Santos", Rule::Fixed { month: 11, day: 1 }),
     h("Día de la Constitución", Rule::Fixed { month: 12, day: 6 }),
     h("Inmaculada Concepción", Rule::Fixed { month: 12, day: 8 }),
@@ -699,10 +702,19 @@ static PORTUGAL: &[Holiday] = &[
     h("Dia do Trabalhador", Rule::Fixed { month: 5, day: 1 }),
     h("Corpo de Deus", Rule::EasterOffset(60)),
     h("Dia de Portugal", Rule::Fixed { month: 6, day: 10 }),
-    h("Assunção de Nossa Senhora", Rule::Fixed { month: 8, day: 15 }),
-    h("Implantação da República", Rule::Fixed { month: 10, day: 5 }),
+    h(
+        "Assunção de Nossa Senhora",
+        Rule::Fixed { month: 8, day: 15 },
+    ),
+    h(
+        "Implantação da República",
+        Rule::Fixed { month: 10, day: 5 },
+    ),
     h("Todos os Santos", Rule::Fixed { month: 11, day: 1 }),
-    h("Restauração da Independência", Rule::Fixed { month: 12, day: 1 }),
+    h(
+        "Restauração da Independência",
+        Rule::Fixed { month: 12, day: 1 },
+    ),
     h("Imaculada Conceição", Rule::Fixed { month: 12, day: 8 }),
     h("Natal", Rule::Fixed { month: 12, day: 25 }),
 ];
@@ -716,7 +728,10 @@ static BELGIUM: &[Holiday] = &[
     h("Onze-Lieve-Heer-Hemelvaart", Rule::EasterOffset(39)),
     h("Pinkstermaandag", Rule::EasterOffset(50)),
     h("Nationale feestdag", Rule::Fixed { month: 7, day: 21 }),
-    h("Onze-Lieve-Vrouw-Hemelvaart", Rule::Fixed { month: 8, day: 15 }),
+    h(
+        "Onze-Lieve-Vrouw-Hemelvaart",
+        Rule::Fixed { month: 8, day: 15 },
+    ),
     h("Allerheiligen", Rule::Fixed { month: 11, day: 1 }),
     h("Wapenstilstand", Rule::Fixed { month: 11, day: 11 }),
     h("Kerstmis", Rule::Fixed { month: 12, day: 25 }),
@@ -749,14 +764,26 @@ static POLAND: &[Holiday] = &[
     h("Wielkanoc", Rule::EasterOffset(0)),
     h("Poniedziałek Wielkanocny", Rule::EasterOffset(1)),
     h("Święto Pracy", Rule::Fixed { month: 5, day: 1 }),
-    h("Święto Konstytucji Trzeciego Maja", Rule::Fixed { month: 5, day: 3 }),
+    h(
+        "Święto Konstytucji Trzeciego Maja",
+        Rule::Fixed { month: 5, day: 3 },
+    ),
     h("Zielone Świątki", Rule::EasterOffset(49)),
     h("Boże Ciało", Rule::EasterOffset(60)),
-    h("Wniebowzięcie Najświętszej Maryi Panny", Rule::Fixed { month: 8, day: 15 }),
+    h(
+        "Wniebowzięcie Najświętszej Maryi Panny",
+        Rule::Fixed { month: 8, day: 15 },
+    ),
     h("Wszystkich Świętych", Rule::Fixed { month: 11, day: 1 }),
-    h("Narodowe Święto Niepodległości", Rule::Fixed { month: 11, day: 11 }),
+    h(
+        "Narodowe Święto Niepodległości",
+        Rule::Fixed { month: 11, day: 11 },
+    ),
     h("Boże Narodzenie", Rule::Fixed { month: 12, day: 25 }),
-    h("Drugi dzień Bożego Narodzenia", Rule::Fixed { month: 12, day: 26 }),
+    h(
+        "Drugi dzień Bożego Narodzenia",
+        Rule::Fixed { month: 12, day: 26 },
+    ),
 ];
 
 /// Swedish public holidays. Midsummer Day and All Saints' Day are the
@@ -927,7 +954,10 @@ static CANADA: &[Holiday] = &[
             nth: 1,
         },
     ),
-    h("National Day for Truth and Reconciliation", Rule::Fixed { month: 9, day: 30 }),
+    h(
+        "National Day for Truth and Reconciliation",
+        Rule::Fixed { month: 9, day: 30 },
+    ),
     h(
         "Thanksgiving",
         Rule::NthWeekday {
@@ -951,7 +981,14 @@ static NEW_ZEALAND: &[Holiday] = &[
     h("Good Friday", Rule::EasterOffset(-2)),
     h("Easter Monday", Rule::EasterOffset(1)),
     h("ANZAC Day", Rule::Fixed { month: 4, day: 25 }),
-    h("King's Birthday", Rule::NthWeekday { month: 6, weekday: 1, nth: 1 }),
+    h(
+        "King's Birthday",
+        Rule::NthWeekday {
+            month: 6,
+            weekday: 1,
+            nth: 1,
+        },
+    ),
     h(
         "Labour Day",
         Rule::NthWeekday {
@@ -1261,7 +1298,10 @@ mod tests {
     fn ireland_saint_patrick_moves_to_monday() {
         let cal = Calendar::ireland();
         // 17 March 2024 was a Sunday, so the bank holiday was Monday the 18th.
-        assert_eq!(cal.holiday_name(d(2024, 3, 18)), Some("Saint Patrick's Day"));
+        assert_eq!(
+            cal.holiday_name(d(2024, 3, 18)),
+            Some("Saint Patrick's Day")
+        );
         assert_eq!(cal.holiday_name(d(2024, 3, 17)), None);
     }
 
