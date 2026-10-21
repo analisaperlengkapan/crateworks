@@ -63,8 +63,7 @@ account of what these crates do and do not protect against.
 
 ## License
 
-Licensed under either of Apache License, Version 2.0 or MIT license at your
-option. See [`LICENSE-APACHE`](LICENSE-APACHE), [`LICENSE-MIT`](LICENSE-MIT) and
-[`NOTICE`](NOTICE).
+Licensed under the Apache License, Version 2.0. See
+[`LICENSE-APACHE`](LICENSE-APACHE) and [`NOTICE`](NOTICE).
 
 Copyright 2026 Yayasan Pesantren Cipansor and contributors.

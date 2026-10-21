@@ -76,11 +76,7 @@ Do not open a public issue for a security problem. See [`SECURITY.md`](SECURITY.
 
 ## License
 
-By contributing you agree that your contribution is licensed under either of
-
-- Apache License, Version 2.0 ([`LICENSE-APACHE`](LICENSE-APACHE))
-- MIT license ([`LICENSE-MIT`](LICENSE-MIT))
-
-at the option of the user, matching the rest of the workspace. There is no
-contributor licence agreement to sign. Add yourself to the contributors list in
-the pull request if you would like to be credited.
+By contributing you agree that your contribution is licensed under the Apache
+License, Version 2.0 ([`LICENSE-APACHE`](LICENSE-APACHE)), matching the rest of
+the workspace. There is no contributor licence agreement to sign. Add yourself
+to the contributors list in the pull request if you would like to be credited.

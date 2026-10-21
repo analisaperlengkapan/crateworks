@@ -35,5 +35,5 @@ WSDL operation into a ready-to-send request, and extract a service's endpoint an
 operations. The HTTP call and WS-Security are left to the caller.
 
 Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
-workspace. Licensed under Apache-2.0 or MIT, copyright Yayasan Pesantren
-Cipansor and contributors.
+workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
+Pesantren Cipansor and contributors.

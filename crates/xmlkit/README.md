@@ -15,5 +15,5 @@ faithfully. Namespace prefixes are preserved and `local_name` strips them for
 matching, which is what a SOAP or ISO 20022 reader needs.
 
 Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
-workspace. Licensed under Apache-2.0 or MIT, copyright Yayasan Pesantren
-Cipansor and contributors.
+workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
+Pesantren Cipansor and contributors.

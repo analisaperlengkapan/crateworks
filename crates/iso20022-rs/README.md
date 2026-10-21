@@ -21,5 +21,5 @@ assert_eq!(s.closing_balance(), 125.0);
 computed from the transfers so the output is internally consistent.
 
 Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
-workspace. Licensed under Apache-2.0 or MIT, copyright Yayasan Pesantren
-Cipansor and contributors.
+workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
+Pesantren Cipansor and contributors.

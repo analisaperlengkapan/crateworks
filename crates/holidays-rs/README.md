@@ -19,5 +19,5 @@ where a weekend holiday moves forward to Monday.
 Covered: Indonesia, United States, United Kingdom, Germany, France.
 
 Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
-workspace. Licensed under Apache-2.0 or MIT, copyright Yayasan Pesantren
-Cipansor and contributors.
+workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
+Pesantren Cipansor and contributors.
