@@ -1,0 +1,13 @@
+crateworks
+Copyright 2026 Yayasan Pesantren Cipansor and contributors
+
+This product includes software developed by Yayasan Pesantren Cipansor and
+contributors (https://github.com/analisaperlengkapan/crateworks).
+
+The parsing rules follow java.util.Properties and were checked against the
+javaproperties Python package by John T. Wodder II
+(https://github.com/jwodder/javaproperties), which is distributed under the MIT
+licence. The test fixtures are outputs of that package. This crate is an
+independent implementation for Rust and shares no code with it.
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
