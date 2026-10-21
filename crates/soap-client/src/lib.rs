@@ -38,9 +38,16 @@
 
 #![forbid(unsafe_code)]
 
+/// The README, compiled as a doctest so its example cannot drift from the API.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+pub struct ReadmeDoctests;
+
+pub mod call;
 pub mod envelope;
 pub mod wsdl;
 
+pub use call::Request;
 pub use envelope::{Envelope, Fault, Version};
 pub use wsdl::{Operation, PortType, Service, Wsdl};
 
@@ -64,6 +71,10 @@ pub enum Error {
         /// Namespace that was found.
         found: String,
     },
+    /// The WSDL has no operation with that name.
+    UnknownOperation(String),
+    /// The WSDL declares no service address, so there is nothing to call.
+    NoEndpoint,
 }
 
 impl Display for Error {
@@ -79,6 +90,8 @@ impl Display for Error {
                     "{element} is in namespace {found:?}, which is not the SOAP namespace"
                 )
             }
+            Self::UnknownOperation(name) => write!(f, "the WSDL has no operation named {name}"),
+            Self::NoEndpoint => f.write_str("the WSDL declares no service endpoint"),
         }
     }
 }

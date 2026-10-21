@@ -7,6 +7,7 @@
 
 use crate::{Error, Result, child_local, find, find_all};
 use crateworks_xml::{Element, local_name};
+use std::collections::BTreeMap;
 
 /// One operation exposed by a service.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -14,10 +15,15 @@ pub struct Operation {
     /// Operation name.
     pub name: String,
     /// Name of the element the request body should contain.
+    ///
+    /// This is the element named by the input message's `part`, which is what a
+    /// document-style call must wrap. When a message names only a type, as
+    /// RPC-style services do, the message name is reported instead.
     pub input: Option<String>,
     /// Name of the element the response body will contain.
     pub output: Option<String>,
-    /// The `soapAction` header value, when the binding declares one.
+    /// The `soapAction` header value, taken from the binding when the port type
+    /// does not carry one inline.
     pub soap_action: Option<String>,
 }
 
@@ -67,6 +73,45 @@ impl Wsdl {
         }
         let target_namespace = root.attr("targetNamespace").map(str::to_string);
 
+        // A message's `part` names the element that appears in the body, so the
+        // messages are indexed first and the operations resolved against them.
+        let mut messages: BTreeMap<String, String> = BTreeMap::new();
+        let mut message_elements = Vec::new();
+        find_all(&root, "message", &mut message_elements);
+        for message in message_elements {
+            let Some(name) = message.attr("name") else {
+                continue;
+            };
+            if let Some(part) = message
+                .children
+                .iter()
+                .filter_map(as_element)
+                .find(|e| local_name(&e.name) == "part")
+                && let Some(element) = part.attr("element")
+            {
+                messages.insert(name.to_string(), strip_prefix(element));
+            }
+        }
+
+        // The `soapAction` usually lives on the binding operation, so the
+        // bindings are indexed by operation name before the port types are read.
+        let mut actions: BTreeMap<String, String> = BTreeMap::new();
+        let mut binding_elements = Vec::new();
+        find_all(&root, "binding", &mut binding_elements);
+        for binding in binding_elements {
+            for op in binding.children.iter().filter_map(as_element) {
+                if local_name(&op.name) != "operation" {
+                    continue;
+                }
+                if let Some(action) =
+                    child_local(op, "operation").and_then(|e| e.attr("soapAction"))
+                    && let Some(name) = op.attr("name")
+                {
+                    actions.insert(name.to_string(), action.to_string());
+                }
+            }
+        }
+
         let mut port_type_elements = Vec::new();
         find_all(&root, "portType", &mut port_type_elements);
         // WSDL 2 names the same construct "interface".
@@ -80,17 +125,24 @@ impl Wsdl {
                     continue;
                 }
                 let op_name = op.attr("name").unwrap_or_default().to_string();
+                // The `message` attribute names a message; the element inside
+                // the body is that message's part element.
+                let resolve = |reference: &str| -> String {
+                    let local = strip_prefix(reference);
+                    messages.get(&local).cloned().unwrap_or(local)
+                };
                 let input = op
                     .attr("input")
                     .or_else(|| find(op, "input").and_then(|e| e.attr("message")))
-                    .map(strip_prefix);
+                    .map(resolve);
                 let output = op
                     .attr("output")
                     .or_else(|| find(op, "output").and_then(|e| e.attr("message")))
-                    .map(strip_prefix);
+                    .map(resolve);
                 let soap_action = child_local(op, "operation")
                     .and_then(|e| e.attr("soapAction"))
-                    .map(str::to_string);
+                    .map(str::to_string)
+                    .or_else(|| actions.get(&op_name).cloned());
                 operations.push(Operation {
                     name: op_name,
                     input,
@@ -249,7 +301,8 @@ mod tests {
         assert_eq!(pt.name, "PricePortType");
         assert_eq!(pt.operations.len(), 2);
         assert_eq!(pt.operations[0].name, "GetPrice");
-        assert_eq!(pt.operations[0].input.as_deref(), Some("GetPriceRequest"));
+        // The message is resolved to the element that goes in the body.
+        assert_eq!(pt.operations[0].input.as_deref(), Some("GetPrice"));
         assert_eq!(pt.operations[0].output.as_deref(), Some("GetPriceResponse"));
     }
 
@@ -257,9 +310,42 @@ mod tests {
     fn finds_an_operation_by_name() {
         let w = Wsdl::parse(WSDL).unwrap();
         let op = w.operation("ListPrices").unwrap();
+        // This WSDL never defines the ListPrices messages, so the message name
+        // itself is the fallback answer.
         assert_eq!(op.input.as_deref(), Some("ListPricesRequest"));
         assert!(w.operation("DoesNotExist").is_none());
         assert_eq!(w.operations().len(), 2);
+    }
+
+    #[test]
+    fn soap_action_comes_from_the_binding() {
+        let w = Wsdl::parse(WSDL).unwrap();
+        assert_eq!(
+            w.operation("GetPrice").unwrap().soap_action.as_deref(),
+            Some("urn:shop/GetPrice")
+        );
+        // An operation with no binding entry stays empty rather than guessed at.
+        assert_eq!(w.operation("ListPrices").unwrap().soap_action, None);
+    }
+
+    #[test]
+    fn falls_back_to_the_message_name_when_no_element_is_named() {
+        // An RPC-style message names a type rather than an element, so the
+        // message name is the best answer available.
+        let xml = r#"<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+                xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+            <message name="AddRequest">
+              <part name="a" type="xsd:int"/>
+            </message>
+            <portType name="Calc">
+              <operation name="Add"><input message="AddRequest"/></operation>
+            </portType>
+        </definitions>"#;
+        let w = Wsdl::parse(xml).unwrap();
+        assert_eq!(
+            w.operation("Add").unwrap().input.as_deref(),
+            Some("AddRequest")
+        );
     }
 
     #[test]
