@@ -1,5 +1,5 @@
 [package]
-name = "iso20022"
+name = "iso20022-rs"
 description = "ISO 20022 payment messages: parse and build camt, pain and pacs documents."
 version.workspace = true
 edition.workspace = true
@@ -12,7 +12,7 @@ categories = ["parser-implementations", "finance"]
 readme = "README.md"
 
 [dependencies]
-crateworks-xml.workspace = true
+xmlkit.workspace = true
 
 [lints]
 workspace = true

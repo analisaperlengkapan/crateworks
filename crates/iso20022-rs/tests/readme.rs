@@ -2,7 +2,7 @@
 
 #[test]
 fn readme_examples() {
-    use iso20022::camt::BankStatement;
+    use iso20022_rs::camt::BankStatement;
 
     let xml = r#"<Document><BkToCstmrStmt><Stmt>
   <Id>S1</Id>

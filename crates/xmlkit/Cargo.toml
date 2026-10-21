@@ -1,5 +1,5 @@
 [package]
-name = "crateworks-xml"
+name = "xmlkit"
 description = "Minimal, allocation-friendly XML reading and writing used across the crateworks workspace."
 version.workspace = true
 edition.workspace = true
@@ -7,7 +7,7 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-keywords = ["xml", "parser", "writer", "no-std"]
+keywords = ["xml", "parser", "writer", "soap", "wsdl"]
 categories = ["parser-implementations", "encoding"]
 readme = "README.md"
 

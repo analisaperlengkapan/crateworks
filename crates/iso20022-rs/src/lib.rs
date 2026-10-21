@@ -11,7 +11,7 @@
 //! # Example
 //!
 //! ```
-//! use iso20022::camt::BankStatement;
+//! use iso20022_rs::camt::BankStatement;
 //!
 //! let xml = r#"<?xml version="1.0"?>
 //! <Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.08">
@@ -50,7 +50,7 @@ pub use amount::{Amount, Currency};
 
 use std::fmt::{self, Display};
 
-use crateworks_xml::{Element, local_name};
+use xmlkit::{Element, local_name};
 
 /// A failure while reading a message.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -85,8 +85,8 @@ impl Display for Error {
 
 impl std::error::Error for Error {}
 
-impl From<crateworks_xml::Error> for Error {
-    fn from(e: crateworks_xml::Error) -> Self {
+impl From<xmlkit::Error> for Error {
+    fn from(e: xmlkit::Error) -> Self {
         Self::Xml(e.to_string())
     }
 }
@@ -101,7 +101,7 @@ pub(crate) fn find<'a>(element: &'a Element, name: &str) -> Option<&'a Element> 
         return Some(element);
     }
     for child in &element.children {
-        if let crateworks_xml::Node::Element(e) = child
+        if let xmlkit::Node::Element(e) = child
             && let Some(found) = find(e, name)
         {
             return Some(found);
@@ -119,7 +119,7 @@ pub(crate) fn find_all<'a>(element: &'a Element, name: &str, out: &mut Vec<&'a E
         return;
     }
     for child in &element.children {
-        if let crateworks_xml::Node::Element(e) = child {
+        if let xmlkit::Node::Element(e) = child {
             find_all(e, name, out);
         }
     }
@@ -149,14 +149,14 @@ pub(crate) fn optional_text(element: &Element, name: &str) -> Option<String> {
 /// Returns [`Error::Xml`] for malformed input or [`Error::MissingElement`] when
 /// the document has no body.
 pub(crate) fn document_body(xml: &str) -> Result<Element> {
-    let root = crateworks_xml::parse(xml)?;
+    let root = xmlkit::parse(xml)?;
     if local_name(&root.name) != "Document" {
         return Err(Error::UnsupportedMessage(root.name));
     }
     root.children
         .iter()
         .find_map(|n| match n {
-            crateworks_xml::Node::Element(e) => Some(e.clone()),
+            xmlkit::Node::Element(e) => Some(e.clone()),
             _ => None,
         })
         .ok_or(Error::MissingElement("Document body"))
@@ -168,7 +168,7 @@ mod tests {
 
     #[test]
     fn find_ignores_namespace_prefixes() {
-        let root = crateworks_xml::parse(
+        let root = xmlkit::parse(
             r#"<ns:Doc xmlns:ns="urn:x"><ns:Body><ns:Id>7</ns:Id></ns:Body></ns:Doc>"#,
         )
         .unwrap();
@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn find_all_collects_in_order() {
-        let root = crateworks_xml::parse("<r><a>1</a><b><a>2</a></b><a>3</a></r>").unwrap();
+        let root = xmlkit::parse("<r><a>1</a><b><a>2</a></b><a>3</a></r>").unwrap();
         let mut found = Vec::new();
         find_all(&root, "a", &mut found);
         let texts: Vec<String> = found.iter().map(|e| e.deep_text()).collect();
@@ -187,7 +187,7 @@ mod tests {
 
     #[test]
     fn required_text_reports_missing_and_empty() {
-        let root = crateworks_xml::parse("<r><a>  </a></r>").unwrap();
+        let root = xmlkit::parse("<r><a>  </a></r>").unwrap();
         assert_eq!(required_text(&root, "a"), Err(Error::MissingElement("a")));
         assert_eq!(required_text(&root, "b"), Err(Error::MissingElement("b")));
     }

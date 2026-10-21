@@ -98,8 +98,8 @@ impl Display for Error {
 
 impl std::error::Error for Error {}
 
-impl From<crateworks_xml::Error> for Error {
-    fn from(e: crateworks_xml::Error) -> Self {
+impl From<xmlkit::Error> for Error {
+    fn from(e: xmlkit::Error) -> Self {
         Self::Xml(e.to_string())
     }
 }
@@ -108,15 +108,12 @@ impl From<crateworks_xml::Error> for Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Finds the first descendant whose local name matches.
-pub(crate) fn find<'a>(
-    element: &'a crateworks_xml::Element,
-    name: &str,
-) -> Option<&'a crateworks_xml::Element> {
-    if crateworks_xml::local_name(&element.name) == name {
+pub(crate) fn find<'a>(element: &'a xmlkit::Element, name: &str) -> Option<&'a xmlkit::Element> {
+    if xmlkit::local_name(&element.name) == name {
         return Some(element);
     }
     for child in &element.children {
-        if let crateworks_xml::Node::Element(e) = child
+        if let xmlkit::Node::Element(e) = child
             && let Some(found) = find(e, name)
         {
             return Some(found);
@@ -127,16 +124,16 @@ pub(crate) fn find<'a>(
 
 /// Collects every descendant whose local name matches, in document order.
 pub(crate) fn find_all<'a>(
-    element: &'a crateworks_xml::Element,
+    element: &'a xmlkit::Element,
     name: &str,
-    out: &mut Vec<&'a crateworks_xml::Element>,
+    out: &mut Vec<&'a xmlkit::Element>,
 ) {
-    if crateworks_xml::local_name(&element.name) == name {
+    if xmlkit::local_name(&element.name) == name {
         out.push(element);
         return;
     }
     for child in &element.children {
-        if let crateworks_xml::Node::Element(e) = child {
+        if let xmlkit::Node::Element(e) = child {
             find_all(e, name, out);
         }
     }
@@ -144,16 +141,16 @@ pub(crate) fn find_all<'a>(
 
 /// Finds a direct child by *local* name, ignoring any namespace prefix.
 ///
-/// [`crateworks_xml::Element::child`] matches the qualified name, so it would
+/// [`xmlkit::Element::child`] matches the qualified name, so it would
 /// need `"soap:binding"` and would miss a document that binds the SOAP
 /// namespace to a different prefix. A WSDL is written with whatever prefix the
 /// author chose, so matching on the local name is the only portable option.
 pub(crate) fn child_local<'a>(
-    element: &'a crateworks_xml::Element,
+    element: &'a xmlkit::Element,
     name: &str,
-) -> Option<&'a crateworks_xml::Element> {
+) -> Option<&'a xmlkit::Element> {
     element.children.iter().find_map(|n| match n {
-        crateworks_xml::Node::Element(e) if crateworks_xml::local_name(&e.name) == name => Some(e),
+        xmlkit::Node::Element(e) if xmlkit::local_name(&e.name) == name => Some(e),
         _ => None,
     })
 }
@@ -164,7 +161,7 @@ pub(crate) fn child_local<'a>(
 /// A full namespace resolver needs the whole ancestor chain, so this looks at
 /// the element's own `xmlns:*` attributes, which is where the declaration
 /// normally sits on a SOAP message.
-pub(crate) fn namespace_of(element: &crateworks_xml::Element) -> Option<String> {
+pub(crate) fn namespace_of(element: &xmlkit::Element) -> Option<String> {
     let (prefix, _) = element.name.split_once(':')?;
     element.attr(&format!("xmlns:{prefix}")).map(str::to_string)
 }
@@ -172,7 +169,7 @@ pub(crate) fn namespace_of(element: &crateworks_xml::Element) -> Option<String> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crateworks_xml::parse;
+    use xmlkit::parse;
 
     #[test]
     fn find_and_find_all_ignore_prefixes() {

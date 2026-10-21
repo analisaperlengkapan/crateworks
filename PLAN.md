@@ -2,10 +2,10 @@
 
 The order in which the crates in this workspace were built, what each one
 covers today, and what is deliberately left out. The dependency order matters:
-`crateworks-xml` is the foundation that `iso20022` and `soap-client` build on,
+`xmlkit` is the foundation that `iso20022-rs` and `soap-client` build on,
 so it had to be correct first.
 
-## 1. `crateworks-xml` (foundation)
+## 1. `xmlkit` (foundation)
 
 **Why first.** Both the ISO 20022 and SOAP crates need to read XML, and pulling
 in a large parser would have made them heavy. This is a small, dependency-free
@@ -73,7 +73,7 @@ work a hostile formula can request.
 lookup functions, iterative recalculation. Cyclic references are detected and
 reported rather than resolved.
 
-## 5. `iso20022`
+## 5. `iso20022-rs`
 
 **Why.** ISO 20022 is replacing SWIFT MT, and every bank integration needs it.
 The only crate on crates.io is from 2020 and unmaintained.
@@ -110,9 +110,9 @@ guessed at.
 that depends on another crate in this workspace cannot be packaged until that
 dependency is published. Publish bottom-up:
 
-1. `crateworks-xml`
+1. `xmlkit`
 2. `holidays-rs`, `stdnum-rs`, `spreadsheet-formula` (independent of the rest)
-3. `iso20022`, `soap-client` (both depend on `crateworks-xml`)
+3. `iso20022-rs`, `soap-client` (both depend on `xmlkit`)
 
 ## Verification
 

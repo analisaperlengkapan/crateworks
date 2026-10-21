@@ -72,7 +72,7 @@ impl Amount {
     ///
     /// Returns [`Error::InvalidValue`] when the currency attribute is absent or
     /// malformed, or when the text is not a number.
-    pub fn from_element(element: &crateworks_xml::Element) -> Result<Self> {
+    pub fn from_element(element: &xmlkit::Element) -> Result<Self> {
         let currency = element.attr("Ccy").ok_or(Error::InvalidValue {
             element: "Amt",
             found: "missing Ccy attribute".into(),
@@ -106,7 +106,7 @@ impl Display for Amount {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crateworks_xml::parse;
+    use xmlkit::parse;
 
     #[test]
     fn parses_amount_with_currency() {

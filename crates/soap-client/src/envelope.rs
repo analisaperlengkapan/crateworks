@@ -4,8 +4,8 @@
 //! expressed, so [`Version`] selects the right one.
 
 use crate::{Error, Result, find, namespace_of};
-use crateworks_xml::{Element, escape_attr, escape_text};
 use std::fmt::Write as _;
+use xmlkit::{Element, escape_attr, escape_text};
 
 /// The SOAP protocol version.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -165,8 +165,8 @@ impl Envelope {
     /// when the root is not an `Envelope` in a SOAP namespace, or
     /// [`Error::MissingBody`] when the body is absent.
     pub fn parse(xml: &str) -> Result<Self> {
-        let root = crateworks_xml::parse(xml)?;
-        if crateworks_xml::local_name(&root.name) != "Envelope" {
+        let root = xmlkit::parse(xml)?;
+        if xmlkit::local_name(&root.name) != "Envelope" {
             return Err(Error::NotASoapEnvelope);
         }
         let namespace = namespace_of(&root).unwrap_or_default();
@@ -184,7 +184,7 @@ impl Envelope {
             .children
             .iter()
             .filter_map(|n| match n {
-                crateworks_xml::Node::Element(e) => Some(e.to_string()),
+                xmlkit::Node::Element(e) => Some(e.to_string()),
                 _ => None,
             })
             .collect::<String>();

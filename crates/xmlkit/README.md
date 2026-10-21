@@ -1,9 +1,9 @@
-# crateworks-xml
+# xmlkit
 
 A small XML parser, tree and serialiser with no dependencies.
 
 ```rust
-use crateworks_xml::{parse, local_name};
+use xmlkit::{parse, local_name};
 
 let doc = parse(r#"<ns:Doc xmlns:ns="urn:x"><ns:Id>7</ns:Id></ns:Doc>"#).unwrap();
 assert_eq!(local_name(&doc.name), "Doc");

@@ -6,8 +6,8 @@
 //! and per operation the input and output element names.
 
 use crate::{Error, Result, child_local, find, find_all};
-use crateworks_xml::{Element, local_name};
 use std::collections::BTreeMap;
+use xmlkit::{Element, local_name};
 
 /// One operation exposed by a service.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -67,7 +67,7 @@ impl Wsdl {
     /// [`Error::MissingElement`] when the root is not a `definitions`
     /// element.
     pub fn parse(xml: &str) -> Result<Self> {
-        let root = crateworks_xml::parse(xml)?;
+        let root = xmlkit::parse(xml)?;
         if local_name(&root.name) != "definitions" {
             return Err(Error::MissingElement("definitions"));
         }
@@ -230,9 +230,9 @@ impl Wsdl {
     }
 }
 
-fn as_element(node: &crateworks_xml::Node) -> Option<&Element> {
+fn as_element(node: &xmlkit::Node) -> Option<&Element> {
     match node {
-        crateworks_xml::Node::Element(e) => Some(e),
+        xmlkit::Node::Element(e) => Some(e),
         _ => None,
     }
 }

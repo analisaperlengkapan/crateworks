@@ -7,7 +7,7 @@
 
 use crate::amount::Amount;
 use crate::{Error, Result, find, find_all, optional_text, required_text};
-use crateworks_xml::Element;
+use xmlkit::Element;
 
 /// Whether a statement entry increases or decreases the balance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

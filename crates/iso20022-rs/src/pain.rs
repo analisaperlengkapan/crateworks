@@ -10,7 +10,7 @@ use std::fmt::Write as _;
 use crate::amount::Amount;
 use crate::camt::CreditDebit;
 use crate::{Error, Result, find, find_all, optional_text, required_text};
-use crateworks_xml::Element;
+use xmlkit::Element;
 
 /// One payment instruction inside a batch.
 #[derive(Debug, Clone, PartialEq)]
@@ -240,7 +240,7 @@ fn format_decimal(value: f64) -> String {
 
 /// Escapes text for XML content.
 fn escape(s: &str) -> String {
-    crateworks_xml::escape_text(s)
+    xmlkit::escape_text(s)
 }
 
 /// Whether a control sum matches the sum of the entries it covers.

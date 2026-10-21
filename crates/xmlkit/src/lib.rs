@@ -1,6 +1,6 @@
 //! Minimal XML reading and writing.
 //!
-//! This crate exists because `iso20022` and `soap-client` both need the same
+//! This crate exists because `iso20022-rs` and `soap-client` both need the same
 //! small amount of XML handling, and neither needs a full DOM. It deliberately
 //! covers a subset of XML: elements, attributes, text, CDATA, comments,
 //! processing instructions and the five predefined entities plus numeric
@@ -16,7 +16,7 @@
 //! # Example
 //!
 //! ```
-//! use crateworks_xml::{Element, parse};
+//! use xmlkit::{Element, parse};
 //!
 //! let root = parse("<a x=\"1\"><b>hi</b></a>").unwrap();
 //! assert_eq!(root.name, "a");

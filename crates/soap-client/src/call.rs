@@ -8,7 +8,7 @@
 use crate::envelope::{Envelope, Version};
 use crate::wsdl::Wsdl;
 use crate::{Error, Result};
-use crateworks_xml::{escape_attr, escape_text};
+use xmlkit::{escape_attr, escape_text};
 
 /// A SOAP call, ready for an HTTP client to POST.
 ///

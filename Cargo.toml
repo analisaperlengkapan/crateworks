@@ -1,11 +1,11 @@
 [workspace]
 resolver = "3"
 members = [
-    "crates/crateworks-xml",
+    "crates/xmlkit",
     "crates/holidays-rs",
     "crates/stdnum-rs",
     "crates/spreadsheet-formula",
-    "crates/iso20022",
+    "crates/iso20022-rs",
     "crates/soap-client",
 ]
 
@@ -18,7 +18,7 @@ repository = "https://github.com/analisaperlengkapan/crateworks"
 authors = ["Irhas Abdul Rosyid"]
 
 [workspace.dependencies]
-crateworks-xml = { version = "0.1.0", path = "crates/crateworks-xml" }
+xmlkit = { version = "0.1.0", path = "crates/xmlkit" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

@@ -3,25 +3,21 @@
 version = 4
 
 [[package]]
-name = "crateworks-xml"
-version = "0.1.0"
-
-[[package]]
 name = "holidays-rs"
 version = "0.1.0"
 
 [[package]]
-name = "iso20022"
+name = "iso20022-rs"
 version = "0.1.0"
 dependencies = [
- "crateworks-xml",
+ "xmlkit",
 ]
 
 [[package]]
 name = "soap-client"
 version = "0.1.0"
 dependencies = [
- "crateworks-xml",
+ "xmlkit",
 ]
 
 [[package]]
@@ -30,4 +26,8 @@ version = "0.1.0"
 
 [[package]]
 name = "stdnum-rs"
+version = "0.1.0"
+
+[[package]]
+name = "xmlkit"
 version = "0.1.0"
