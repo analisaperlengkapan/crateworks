@@ -352,3 +352,108 @@ tidak lagi kosong, meski belum ada pemain dominan.
   terisi; yang kosong adalah kapabilitas yang terikat domain tertentu**
   (pembayaran kartu, regulasi fiskal UE, teks Arab/Quran). Itu arah yang benar
   untuk putaran berikutnya.
+
+---
+
+## Addendum 2026-10-21 (keempat): 5 kandidat final
+
+Saya probe ~45 kapabilitas lagi dalam lima batch, dengan penekanan pada area
+yang **belum pernah** saya sentuh: protokol keuangan, transit, bioinformatika,
+kimia, otomotif, kode medis, dan pemrosesan aksara non-Latin.
+
+### Yang gugur di putaran ini (jangan dibangun)
+
+| Kapabilitas | Permintaan | Kenapa gugur |
+|---|---|---|
+| Transliterasi Kiril | PyPI `cyrtranslit` 103 rb/bln | **`transliteratio` ada** (236 recent, aktif 2026-10-19, sudah mencakup tabel ISO **dan** GOST), plus `translit` 2.651, `iuliia`, `cranberry`. Terisi. |
+| Segmentasi kata Thai | PyPI `pythainlp` 658 rb/bln | `kham-core` (464 recent, murni Rust), `thaibreak` 125, `nlpo3` 5.155. Terisi. |
+| QR pembayaran EMVCo | npm `qrcode-generator` 2,9 jt/mgg | `raast-qr` 227 recent (#![no_std]), `promptparse` 232, `brcode` 62, `pix-brcode-parser`. Terisi. |
+| FIX protocol | PyPI `quickfix` 25 rb/bln | Keluarga `minifix*` (2026-10-08) + `quickfix` binding 162 rb recent. Ada. |
+| ACH/NACHA | PyPI `ach` 11 rb/bln | Permintaan kecil (`nacha` PyPI 444/bln). Tidak sepadan. |
+| GTFS transit | PyPI `gtfs-realtime-bindings` 647 rb/bln | `gtfs-structures` 24 rb recent + `gtfs-rt`. Terisi. |
+| Shapefile GIS | PyPI `pyshp` 3,6 jt/bln | `shapefile` 160 rb recent, 37 revdeps. Terisi. |
+| FASTA/FASTQ/VCF bio | PyPI `biopython` 4,4 jt/bln | `bio` 114 rb recent, `noodles` 113 rb, 141 revdeps. Terisi kuat. |
+| SMILES kimia | PyPI `rdkit` 4,7 jt/bln | `purr` 13 rb, `chemcore`, `rdkit` binding. Setengah terisi, butuh FFI. |
+| CAN DBC otomotif | PyPI `cantools` 881 rb/bln | `can-dbc` 175 rb recent, 13 revdeps. Terisi. |
+| ICD-10/SNOMED/FHIR | PyPI `fhir.resources` 2,5 jt/bln | `snomed` 900, `loinc` 227, `fhir` 530 (semua aktif 2026-10). Terisi. |
+| Pinyin Mandarin | PyPI `pypinyin` 1,6 jt/bln | `pinyin` 297 rb recent, 34 revdeps. Terisi. |
+| Segmentasi kata Mandarin | PyPI `jieba` 4,8 jt/bln | `jieba-rs` **1,77 jt recent**, 59 revdeps. Terisi kuat. |
+| Hanzi ringkas/tradisional | PyPI `opencc` 650 rb/bln | `zhconv` 20 rb recent + `opencc-rs`. Terisi. |
+| Kana/romaji Jepang | PyPI `pykakasi` 2,2 jt/bln | `kakasi` 10,5 rb recent, `furigana`, `romaji`. Terisi. |
+| Hangul Korea | PyPI `hangul-romanize` 93 rb/bln | `hangul` 4.750 recent. Terisi. |
+| XBRL | PyPI `xbrl` 19 rb/bln | `xbrl-rs` 258 recent (aktif 2026-10). Terisi. |
+| SMPP SMS | PyPI `smpplib` 55 rb/bln | `smpp34` 2.762 recent (murni Rust, aktif). Terisi. |
+| RADIUS/Diameter | PyPI `pyrad` 256 rb/bln | `radius` 15 rb recent, `diameter` 512. Terisi. |
+
+### 5 kandidat final
+
+Diurutkan berdasarkan rasio permintaan terhadap pasokan, lalu kejelasan celah.
+
+**1. ISO 8583 — pesan transaksi kartu (ATM/EDC/switching)**
+- Permintaan: PyPI `pyiso8583` **403.648/bln**.
+- Pasokan: `iso8583` 62 recent (2017, mati), `iso8583-rs` 73 recent (2020, mati),
+  `iso8583-codec-rs` 3 recent, `iso8583-core` 12 recent (2026-02). **Empat
+  percobaan, semuanya ≤73 recent.** Tidak ada yang dipakai.
+- Nama: `iso8583-msg` **bebas**, `iso8583kit` **bebas**.
+- Kenapa cocok: spesifikasi publik dan stabil, table-driven (bitmap + tipe data
+  fixed/LLVAR/LLLVAR), tanpa masalah "otoritas mana". Paling mirip `hijridate`
+  dalam hal bentuk kerja, tapi pasarnya jauh lebih besar.
+
+**2. Teks Arab — reshaping, harakat, normalisasi**
+- Permintaan: PyPI `arabic-reshaper` **4,8 jt/bln**; npm `arabic-persian-reshaper`
+  42.084/mgg + `arabic-reshaper` 14.329/mgg.
+- Pasokan: `ar-reshaper` 9.241 recent (2024), `arabic-reshaper` 1.859 (2023),
+  `arabic_text_utils` 46, `dhad` 86, `arabic-normalize` 9. **Terpecah dan tua;
+  tidak ada yang dominan.** Yang terbesar (9 rb) pun 25x lebih kecil dari pinyin.
+- Nama: `arabic` **bebas**, `tashkeel` **bebas**.
+- Kenapa cocok: permintaan terbesar di antara semua celah yang saya temukan, dan
+  bersinergi dengan `hijridate` (satu domain: teks Arab + kalender Hijriah).
+
+**3. EN 16931 e-invoice — Factur-X / ZUGFeRD / UBL / XRechnung**
+- Permintaan: PyPI `factur-x` **286.877/bln**.
+- Pasokan: `en16931-formats` 5.417 recent (1 revdep, aktif), `en16931` 5.586,
+  `zugferd` 159, `xrechnung` 5. **Pemain tunggal dan masih kecil.**
+- Nama: `factur-x` **bebas**.
+- Kenapa cocok: regulasi UE (EN 16931 wajib untuk pengadaan publik) memaksa
+  adopsi. Butuh `xmlkit` dari workspace ini, jadi sinergi internal.
+
+**4. Validasi nomor PPN/PPN EU (VAT)**
+- Permintaan: npm `jsvat` **50.847/mgg**; `python-stdnum` (yang memuatnya)
+  **5,08 jt/bln**.
+- Pasokan: crate `vat` **4 recent (2016, mati)**, tidak ada lagi. Nama `eu-vat`
+  **bebas**, `vat-validator` **bebas**.
+- Kenapa cocok: **sinergi langsung dengan `stdnum-rs`** yang sudah ada — ini
+  penambahan modul, bukan crate dari nol. Checksum per negara + format, murni
+  tabel aturan, std-only. Pekerjaan paling ringan dari lima ini.
+
+**5. Transliterasi aksara Indic (Devanagari dkk.)**
+- Permintaan: PyPI `indic-transliteration` **69.267/bln**; npm `sanscript`
+  84/mgg.
+- Pasokan: **NOL.** Tidak ada crate transliterasi Indic sama sekali di Rust
+  (`indic-transliteration`, `devanagari`, `sanscript`, `indic` semua bebas dan
+  tidak ada padanannya).
+- Nama: `indic-transliteration` **bebas**, `devanagari` **bebas**, `sanscript`
+  **bebas**.
+- Kenapa cocok: celah paling bersih — benar-benar kosong, bukan "ada tapi tua".
+  Permintaan sedang tapi nyata. Catatan penting: transliterasi Kiril **sudah
+  terisi** (`transliteratio` mencakup ISO/GOST), jadi jangan generalisasi ke
+  "semua transliterasi kosong"; yang kosong spesifik Indic.
+
+### Catatan tambahan: celah Indonesia tanpa pesaing
+
+`pph21`, `bpjs`, `pajak`, `ppn`, `efaktur` **semuanya bebas** dengan **nol**
+pesaing di crates.io. Masalahnya: tidak ada paket npm/PyPI yang bisa dipakai
+mengukur permintaan (semuanya `None`), jadi ini "bangun dulu, mudah-mudahan
+dipakai" — bukan celah terukur. Tetap relevan untuk konteks cipansor/pesantren,
+tapi saya tidak memasukkannya ke lima besar karena permintaannya belum terbukti.
+
+### Catatan metode
+
+- **"Tidak ada crate" lebih kuat daripada "ada crate tapi tua".** Kiril tampak
+  kosong sampai saya mencari frasa "gost transliteration" dan menemukan
+  `transliteratio` yang aktif. Indic tetap kosong bahkan setelah dicari.
+- Pencarian harus memakai **frasa kapabilitas**, bukan nama crate. `iso8583-core`
+  dan `swift-mt-message` tidak muncul dari pencarian nama.
+- Pola tiga putaran ini konsisten: **generik terisi, terikat-domain kosong.**
+  Lima kandidat di atas semuanya terikat domain (pembayaran kartu, aksara Arab,
+  regulasi fiskal UE, aksara Indic).
