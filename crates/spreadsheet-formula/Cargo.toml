@@ -1,0 +1,17 @@
+[package]
+name = "spreadsheet-formula"
+description = "Parser and evaluator for spreadsheet formulas, independent of any particular file format."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["excel", "spreadsheet", "formula", "parser", "evaluator"]
+categories = ["parser-implementations", "text-processing"]
+readme = "README.md"
+
+[dependencies]
+
+[lints]
+workspace = true

@@ -1,0 +1,17 @@
+[package]
+name = "holidays-rs"
+description = "Public holiday calendars for multiple countries, with fixed, Easter-relative and nth-weekday rules."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["holiday", "calendar", "business-day", "date", "regional"]
+categories = ["date-and-time"]
+readme = "README.md"
+
+[dependencies]
+
+[lints]
+workspace = true

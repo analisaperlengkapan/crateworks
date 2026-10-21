@@ -1,0 +1,17 @@
+[package]
+name = "crateworks-xml"
+description = "Minimal, allocation-friendly XML reading and writing used across the crateworks workspace."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["xml", "parser", "writer", "no-std"]
+categories = ["parser-implementations", "encoding"]
+readme = "README.md"
+
+[dependencies]
+
+[lints]
+workspace = true

@@ -1,0 +1,28 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/crateworks-xml",
+    "crates/holidays-rs",
+    "crates/stdnum-rs",
+    "crates/spreadsheet-formula",
+    "crates/iso20022",
+    "crates/soap-client",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/analisaperlengkapan/crateworks"
+authors = ["Irhas Abdul Rosyid"]
+
+[workspace.dependencies]
+crateworks-xml = { version = "0.1.0", path = "crates/crateworks-xml" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }

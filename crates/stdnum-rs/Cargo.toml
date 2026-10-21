@@ -1,0 +1,17 @@
+[package]
+name = "stdnum-rs"
+description = "Validation of national identification numbers, VAT numbers, IBANs and other standard numbers."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["validation", "iban", "vat", "tax-id", "checksum"]
+categories = ["data-structures", "value-formatting"]
+readme = "README.md"
+
+[dependencies]
+
+[lints]
+workspace = true
