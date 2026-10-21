@@ -457,3 +457,109 @@ tapi saya tidak memasukkannya ke lima besar karena permintaannya belum terbukti.
 - Pola tiga putaran ini konsisten: **generik terisi, terikat-domain kosong.**
   Lima kandidat di atas semuanya terikat domain (pembayaran kartu, aksara Arab,
   regulasi fiskal UE, aksara Indic).
+
+---
+
+## Addendum 2026-10-21 (kelima): dependensi kritis, dan tiga koreksi
+
+Fokus putaran ini berbeda: bukan "kapabilitas apa yang dipakai pengguna akhir",
+melainkan **dependensi kritis** — lapisan yang harus ada sebelum crate lain bisa
+berfungsi. Caranya sama (permintaan dari PyPI/npm, pasokan dari crates.io dengan
+`recent_downloads` + reverse dependencies), tetapi yang dicari adalah
+infrastruktur, bukan alat.
+
+### Tiga koreksi terhadap catatan sebelumnya
+
+| Klaim lama | Kenyataannya (diukur hari ini) |
+|---|---|
+| **Indic transliteration: "NOL"** | **Salah.** `shlesha` **3.394 recent** (2026-07-06, "extensible transliteration library with hub"), `vidyut-lipi` 636, `lipilekhika` 31, `transliterator` 3. Jadi ada pemain, meski kecil. Nama `indic`, `devanagari`, `sanscript`, `itrans`, `velthuis`, `aksharamukha` tetap bebas. |
+| **Package URL (purl) tampak kosong** | **Salah.** `purl` **1.623.677 recent**, `packageurl` 148.497, `purl_validator` 1.361. Sudah terisi kuat. (PyPI `packageurl-python` 32 jt/bln.) |
+| **IPP/CUPS printing kosong** | **Salah.** `ipp` **25.800 recent** (2026-08-12, "asynchronous IPP print protocol"), `cups-rs` 9.105, `cups` 179. Sudah terisi. Yang masih kosong hanya `ipp-client` (2 recent). |
+
+Pelajaran yang sama terulang: **nama crate yang mirip menipu, dan pencarian harus
+memakai frasa kapabilitas.** `purl-rs` ternyata CLI HTTP, bukan Package URL.
+
+### Yang ternyata sudah terisi (jangan dibangun)
+
+| Kapabilitas | Permintaan | Pasokan Rust | Vonis |
+|---|---|---|---|
+| XML Signature + XML Encryption | `xmlsec` 8,5 jt/bln, `signxml` 2,3 jt/bln | `xml-sec` **43.682 recent** (2026-10-21), `bergshamra-dsig` 187 rb, `bergshamra-enc` 101 rb | Terisi kuat |
+| PKCS#11 / HSM | - | `cryptoki` **1,43 jt recent**, 10 revdeps | Terisi kuat |
+| Kerberos / GSSAPI | - | `krb5` 432 recent (2026-10-16, pure Rust), `kerberos-parser` 129 rb | Terisi |
+| LDAP | - | `ldap3` **1,34 jt recent**, 10 revdeps | Terisi kuat |
+| eBPF / pcap | - | `rbpf` 62 rb, `pcap-file` 2,88 jt, `pcap` 1,13 jt | Terisi |
+| XSD / RELAX NG / Schematron | - | `uppsala` **230.774 recent** (XSD), `relax-ng` 2.327, `schematron-engine` 2.234 | Terisi |
+| XSLT / XPath | - | `xrust` 13.923, `oxixml-xpath` 23.739 | Terisi |
+| HDF5 / NetCDF | - | `hdf5-metno` 714 rb, `hdf5-pure` 121 rb, `netcdf` 54 rb | Terisi |
+| COBOL copybook / EBCDIC | - | `copybook` 220, `copybook-charset` 596 (2026-09-17) | Ada, kecil |
+| COBOL copybook / EBCDIC | - | keluarga `copybook-*` aktif 2026-09 | Ada |
+| Modbus / OPC UA / DNP3 | - | `modbus` 34 rb, `async-opcua` 104 rb, `dnp3` 16.967 | Terisi |
+| Unicode collation | - | `feruca` 14.615, `colligo` 7.782, `icu_collator` 5,36 jt | Terisi |
+| DICOM + jaringan DIMSE | - | `dicom` 307 rb, `dicom-ul` 336 rb | Terisi |
+| SM2/SM3/SM4 (Tiongkok) | `gmssl` 116 rb/bln | `gmcrypto-core` 1.889 (2026-10-09, pure Rust) | Ada, tipis |
+| GOST (Rusia) | `gostcrypto` 12 rb/bln | `gost-crypto` 288, `kuznyechik` 15.423, `magma` 13.765 | Ada |
+
+### Dua celah dependensi kritis yang nyata
+
+**A. PDF/A + XMP conformance.** Ini **separuh yang hilang dari `factur-x`** yang
+sudah ada di workspace ini. `factur-x` menghasilkan XML-nya; untuk benar-benar
+mengirim faktur, XML itu harus ditanam di PDF/A-3 dengan metadata XMP yang benar.
+Tanpa itu, crate kita hanya berguna separuh.
+
+- Permintaan: PyPI `pikepdf` **9,48 jt/bln**, `pypdf` **126 jt/bln**,
+  `reportlab` **66 jt/bln**, `ocrmypdf` 1,08 jt/bln.
+- Pasokan: `lopdf` 12,55 jt recent dan `pdf-writer` 3,44 jt recent memang besar,
+  **tetapi keduanya penulis PDF tingkat rendah tanpa konsep PDF/A.** Yang
+  menangani kepatuhan: `pdf-compliance` **235 recent**, `pdfpurr` 1.669,
+  `page_validation` 716, `pdfluent` 138. Tidak ada yang dipakai.
+- Nama `pdfa` dan `pdf-a` **bebas**.
+- Catatan: bagian *checker*-nya (aturan profil PDF/A di atas PDF yang sudah
+  diurai) jauh lebih mudah daripada penulisnya, dan itu tepat yang disediakan
+  veraPDF. Bisa dibangun di atas `lopdf` atau `pdf-writer`.
+
+**B. WS-Security untuk SOAP.** Ini **separuh yang hilang dari `soap-client`** di
+workspace ini. Setiap endpoint SOAP bank, pemerintah, dan SAP mewajibkan
+WS-Security (UsernameToken, X.509 signing, timestamp). Tanpa itu `soap-client`
+tidak bisa bicara dengan mereka.
+
+- Permintaan: PyPI `zeep` **29,4 jt/bln**, `xmlsec` 8,5 jt/bln, `signxml`
+  2,3 jt/bln.
+- Pasokan: `xml-sec` 43.682 recent sudah menyediakan XMLDSig, XMLEnc, dan C14N
+  sebagai fondasinya. **WS-Security sendiri kosong:** `parco-ws-security` **11
+  recent** satu-satunya percobaan. Nama `wssec` **bebas**.
+- Ini dependensi kritis yang paling jelas: fondasinya sudah ada, lapisan di
+  atasnya belum.
+
+### Tiga celah domain yang masih nyata
+
+**C. HL7 v2 + MLLP.** Cara setiap rumah sakit dan laboratorium bertukar data.
+- Permintaan: PyPI `hl7apy` **758 rb/bln**.
+- Pasokan terpecah dan lemah: `hl7-parser` 6.645 recent (2025-02, deskripsinya
+  mengaku "does not do" sebagian), `hl7v2-parser` 106 (3 revdeps), `hl7` 172,
+  `hl7-v2` 62, `hl7-mllp` 76, `hl7v2-mllp` 166, `vyna-hl7-mllp` 249. **Tidak ada
+  pemimpin**, dan lapisan transport MLLP tersebar di tiga crate kecil.
+- Sinergi: format berdelimiter, sangat mirip `iso8583-msg` yang sudah ada.
+
+**D. Transliterasi aksara Indic.** (Dikoreksi: `shlesha` 3.394 recent ada, jadi
+ini bukan lagi kosong — tetapi 3,4 rb masih kecil.)
+- Permintaan: PyPI `indic-transliteration` 69.267/bln.
+- Pasokan: `shlesha` 3.394, `vidyut-lipi` 636, `lipilekhika` 31.
+- Nama bebas: `indic`, `devanagari`, `sanscript`, `itrans`, `velthuis`.
+- Sinergi: kerja tabel murni, seperti `arabic`.
+
+**E. ZPL II (printer label Zebra).** Gudang dan logistik.
+- Permintaan: PyPI `zpl` 46.313/bln, `zebra` 13.050/bln.
+- Pasokan: `zpl_toolchain_core` 311, `zpl` 159, `zpl-builder` 154, semuanya
+  kecil dan tidak ada yang dominan.
+- Nama `epl2` **bebas**. Bahasa perintah berbasis teks, mudah.
+
+### Catatan metode (kelima)
+
+- Reverse dependencies tetap sinyal terbaik, tetapi **crate besar tidak sama
+  dengan celah tertutup**: `lopdf` 12,55 jt recent tidak berarti PDF/A terisi,
+  karena `lopdf` tidak mengurus kepatuhan sama sekali. Tanyakan *lapisan* mana
+  yang terisi, bukan *kategori* mana.
+- Pola empat putaran tetap: **generik terisi, terikat-domain kosong.** Yang baru
+  di putaran ini: **lapisan kepatuhan/standar di atas fondasi yang sudah ada**
+  juga kosong (`pdfa` di atas `lopdf`, `wssec` di atas `xml-sec`). Itu arah
+  paling produktif untuk putaran berikutnya.
