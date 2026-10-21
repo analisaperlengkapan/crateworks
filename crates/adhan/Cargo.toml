@@ -1,0 +1,17 @@
+[package]
+name = "adhan"
+description = "Prayer times from a date and coordinates: Fajr, sunrise, Dhuhr, Asr, Maghrib and Isha, by the usual calculation methods."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["adhan", "prayer-times", "salah", "islamic", "astronomy"]
+categories = ["date-and-time", "science"]
+readme = "README.md"
+
+[dependencies]
+
+[lints]
+workspace = true

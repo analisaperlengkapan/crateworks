@@ -1,0 +1,85 @@
+count	input	pairs
+1	a=b\n	a	b
+1	a = b\n	a	b
+1	a:b\n	a	b
+1	a b\n	a	b
+1	a\tb\n	a	b
+1	a\x0cb\n	a	b
+1	  a  =  b  \n	a	b  
+1	\ta=b\n	a	b
+1	=b\n		b
+1	a=\n	a	
+1	a\n	a	
+1	=\n		
+1	:\n		
+1	 = \n		
+1	# comment\na=b\n	a	b
+1	! comment\na=b\n	a	b
+1	   # indented comment\n a=b\n	a	b
+1	\n\n a=b \n\n	a	b 
+1	\r\n a=b \r\n	a	b 
+1	a=b\\\n  c\n	a	bc
+1	a=b\\\nc\n	a	bc
+1	a=one\\\n   two\\\n   three\n	a	onetwothree
+1	a\\\n=b\n	a	b
+1	a=\\\n\n	a	
+1	a=b\\tc\\n	a	b\tc\n
+1	a=b\\r\\n	a	b\r\n
+1	a=\\f	a	\x0c
+1	a=\\\\b	a	\\b
+1	k\\=ey=value	k=ey	value
+1	k\\:ey:value	k:ey	value
+1	a=b\\\\	a	b\\
+1	path=C:\\\\dir\\\\file	path	C:\\dir\\file
+1	eq=a\\=b	eq	a=b
+1	sp=a\\ b	sp	a b
+1	colon=a\\:b	colon	a:b
+1	hash=a\\#b	hash	a#b
+1	bang=a\\!b	bang	a!b
+1	a=\\u0041\\u0042	a	AB
+1	k\\u0065y=val	key	val
+1	a=\\u00e9	a	\xe9
+1	a=\\u4e2d\\u6587	a	\u4e2d\u6587
+1	a=\\U0041	a	U0041
+1	a=\\u00E9	a	\xe9
+2	a=1\na=2\n	a	1	a	2
+3	a=1\nb=2\na=3\n	a	1	b	2	a	3
+1	key   value\n	key	value
+1	key = value\n	key	value
+1	key : value\n	key	value
+1	key\t:\tvalue\n	key	value
+1	a=b\\	a	b
+1	a=b\\\n	a	b
+1	a  =  b\n	a	b
+1	a   :b\n	a	b
+1	a=b	a	b
+1	a	a	
+1	  a  =  b	a	b
+1	a\x0c=\x0cb\n	a	b
+1	a= \n	a	
+1	a :\n	a	
+2	a=b\r\nc=d\n	a	b	c	d
+2	a=b\rc=d\r	a	b	c	d
+1	a=\\u0041\\\n\\u0042\n	a	AB
+1	   =value\n		value
+1	a=b=c\n	a	b=c
+1	a:b:c\n	a	b:c
+1	a b=c\n	a	b=c
+1	a=\\n	a	\n
+1	a=\\r	a	\r
+1	a=\\t	a	\t
+1	a=\\f	a	\x0c
+1	a=\\q	a	q
+1	a=\\ 	a	 
+1	a=\\=	a	=
+1	\\u006b\\u0065\\u0079 = value	key	value
+1	# a=b\nc=d\n	c	d
+1	   \n a=b\n	a	b
+1	a\\\\\\=b=c	a\\=b	c
+1	a\\\\=b	a\\	b
+1	a\\\\\\\\=b	a\\\\	b
+1	key\\\\u0041=value	key\\u0041	value
+1	x\\\\=y	x\\	y
+1	  =  \n		
+1	a==b\n	a	=b
+1	a::b\n	a	:b

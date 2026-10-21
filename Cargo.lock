@@ -3,6 +3,10 @@
 version = 4
 
 [[package]]
+name = "adhan"
+version = "0.1.0"
+
+[[package]]
 name = "arabic"
 version = "0.1.0"
 
@@ -37,11 +41,19 @@ name = "iso8583-msg"
 version = "0.1.0"
 
 [[package]]
+name = "object-hash"
+version = "0.1.0"
+
+[[package]]
 name = "pdfa"
 version = "0.1.0"
 dependencies = [
  "xmlkit",
 ]
+
+[[package]]
+name = "properties"
+version = "0.1.0"
 
 [[package]]
 name = "soap-client"

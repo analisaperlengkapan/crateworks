@@ -1,0 +1,17 @@
+[package]
+name = "object-hash"
+description = "A stable hash of a structured value: the same value always hashes the same, whatever order its fields are in."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["hash", "hashing", "cache-key", "etag", "content-addressing"]
+categories = ["algorithms", "cryptography"]
+readme = "README.md"
+
+[dependencies]
+
+[lints]
+workspace = true

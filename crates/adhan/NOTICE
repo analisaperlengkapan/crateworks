@@ -1,0 +1,13 @@
+crateworks
+Copyright 2026 Yayasan Pesantren Cipansor and contributors
+
+This product includes software developed by Yayasan Pesantren Cipansor and
+contributors (https://github.com/analisaperlengkapan/crateworks).
+
+The astronomy follows the method in Jean Meeus, "Astronomical Algorithms", as
+used by the adhan library by Batoul Apps and contributors
+(https://github.com/batoulapps/adhan-js), which is distributed under the MIT
+licence. The test fixtures are outputs of that library. This crate is an
+independent implementation for Rust and shares no code with it.
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).

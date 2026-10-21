@@ -14,6 +14,9 @@ members = [
     "crates/factur-x",
     "crates/wssec",
     "crates/pdfa",
+    "crates/adhan",
+    "crates/object-hash",
+    "crates/properties",
 ]
 
 [workspace.package]

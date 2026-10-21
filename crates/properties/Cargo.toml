@@ -1,0 +1,17 @@
+[package]
+name = "properties"
+description = "Java .properties files: escapes, line continuations and the ISO-8859-1 default, read the way java.util.Properties reads them."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["properties", "java", "configuration", "i18n", "parser"]
+categories = ["parser-implementations", "config"]
+readme = "README.md"
+
+[dependencies]
+
+[lints]
+workspace = true
