@@ -177,6 +177,94 @@ pub(crate) mod checksum {
         Ok(())
     }
 
+    /// Enforces an exact length on a string that may contain non-digits.
+    pub(crate) fn expect_len_str(s: &str, expected: usize) -> Result<()> {
+        if s.chars().count() != expected {
+            return Err(Error::WrongLength {
+                expected,
+                found: s.chars().count(),
+            });
+        }
+        Ok(())
+    }
+
+    /// Whether `day`/`month` is a real date. The year is not known, so
+    /// February always allows 29.
+    pub(crate) fn is_plausible_day_month(day: u32, month: u32) -> bool {
+        if !(1..=12).contains(&month) {
+            return false;
+        }
+        let max = match month {
+            2 => 29,
+            4 | 6 | 9 | 11 => 30,
+            _ => 31,
+        };
+        (1..=max).contains(&day)
+    }
+
+    /// Whether `year`/`month`/`day` is a real calendar date.
+    pub(crate) fn is_real_date(year: u32, month: u32, day: u32) -> bool {
+        if day < 1 || !(1..=12).contains(&month) {
+            return false;
+        }
+        let leap = (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+        let max = match month {
+            2 if leap => 29,
+            2 => 28,
+            4 | 6 | 9 | 11 => 30,
+            _ => 31,
+        };
+        day <= max
+    }
+
+    /// Days since 1970-01-01 for a proleptic Gregorian date.
+    ///
+    /// This is the standard civil-from-days transform run backwards, which lets
+    /// a birth date be compared against today without pulling in a date crate.
+    fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
+        let year = if month <= 2 { year - 1 } else { year };
+        let era = if year >= 0 { year } else { year - 399 } / 400;
+        let year_of_era = year - era * 400;
+        let day_of_year = (153 * (if month > 2 { month - 3 } else { month + 9 }) + 2) / 5 + day - 1;
+        let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+        era * 146_097 + day_of_era - 719_468
+    }
+
+    /// Days since 1970-01-01 for today, in UTC.
+    fn today_days() -> i64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |elapsed| (elapsed.as_secs() / 86_400) as i64)
+    }
+
+    /// Whether the date is today or earlier.
+    ///
+    /// Identifiers encode a birth date, and a number cannot belong to someone
+    /// who has not been born yet. The comparison uses UTC, so a number can be
+    /// rejected for at most one day around midnight.
+    pub(crate) fn is_not_in_the_future(year: u32, month: u32, day: u32) -> bool {
+        days_from_civil(i64::from(year), i64::from(month), i64::from(day)) <= today_days()
+    }
+
+    /// Whether the first day of `year` has already arrived.
+    pub(crate) fn year_has_started(year: u32) -> bool {
+        days_from_civil(i64::from(year), 1, 1) <= today_days()
+    }
+
+    /// Whether `digits` satisfies the ISO 7064 Mod 11, 10 check.
+    ///
+    /// This is the check used by the German tax identification number. A valid
+    /// number runs the recurrence over every digit and lands on one.
+    pub(crate) fn iso7064_mod_11_10_is_valid(digits: &[u8]) -> bool {
+        let mut check = 5u32;
+        for &d in digits {
+            // A running value of zero is treated as ten.
+            let carried = if check == 0 { 10 } else { check };
+            check = ((carried * 2) % 11 + u32::from(d)) % 10;
+        }
+        check == 1
+    }
+
     /// The check digit that completes a GS1 payload, used by EAN, UPC and
     /// ISBN-13.
     ///
