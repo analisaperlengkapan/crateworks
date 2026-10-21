@@ -21,7 +21,7 @@
 //! does not: it hands the base64 *text* to the digest, so its digest is taken
 //! over 24 bytes of ASCII rather than the 16 random bytes, and it base64 encodes
 //! the result a second time in the element. A server written against the
-//! specification rejects that. [`Password::digest_with_text_nonce`] reproduces
+//! specification rejects that. [`digest_with_text_nonce`] reproduces
 //! the other behaviour for the rare server that was written to match it.
 
 use xmlkit::Element;

@@ -10,7 +10,7 @@
 //! # Scope
 //!
 //! * [`parse`] builds an [`Element`] tree from a string.
-//! * [`Element::to_string`] (via [`Display`](std::fmt::Display)) writes it back.
+//! * [`Element`]'s [`Display`] impl writes it back.
 //! * Namespaces are preserved as part of the element name; nothing is resolved.
 //!
 //! # Example

@@ -37,7 +37,7 @@
 //! is a separate job that needs a PDF library; [`generate`] gives you the XML to
 //! embed. Code list validation and the country profiles that extend EN 16931,
 //! such as XRechnung and the French CTC profile, are also out of scope. See
-//! [`validate`] for exactly which rules are checked.
+//! [`validate::validate`] for exactly which rules are checked.
 //!
 //! # Field numbers
 //!

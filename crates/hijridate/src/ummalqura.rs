@@ -12,10 +12,10 @@
 /// The lowest Julian day number in the table.
 pub const JDN_BASE: u32 = 2423999;
 
-/// The first Hijri year covered by [`MONTH_STARTS`].
+/// The first Hijri year covered by the month table.
 pub const FIRST_HIJRI_YEAR: i32 = 1343;
 
-/// The last Hijri year covered by [`MONTH_STARTS`].
+/// The last Hijri year covered by the month table.
 pub const LAST_HIJRI_YEAR: i32 = 1500;
 
 /// First day of each Hijri month from 1343-01 to 1500-12, plus one extra entry

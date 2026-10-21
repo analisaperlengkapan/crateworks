@@ -169,7 +169,7 @@ fn write_literal_string(value: &str, out: &mut String) {
 
 /// A string as PDF reads it back, undoing the escapes.
 ///
-/// The reverse of [`write_literal_string`], needed because a value copied from
+/// The reverse of `write_literal_string`, needed because a value copied from
 /// the original document arrives escaped and a checksum comparison must see the
 /// text rather than its escaped spelling.
 #[must_use]
