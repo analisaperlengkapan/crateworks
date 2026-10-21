@@ -65,6 +65,6 @@ account of what these crates do and do not protect against.
 ## License
 
 Licensed under the Apache License, Version 2.0. See
-[`LICENSE-APACHE`](LICENSE-APACHE) and [`NOTICE`](NOTICE).
+[`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
 
 Copyright 2026 Yayasan Pesantren Cipansor and contributors.
