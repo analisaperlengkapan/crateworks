@@ -2,7 +2,7 @@
 
 #[test]
 fn readme_examples() {
-    use properties::parse;
+    use javaproperties::parse;
 
     let pairs = parse(b"name = cipansor\ncity\\:bandung = west java\n").unwrap();
     assert_eq!(pairs[0], ("name".to_string(), "cipansor".to_string()));

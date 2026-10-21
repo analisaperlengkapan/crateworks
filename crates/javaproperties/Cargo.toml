@@ -1,5 +1,5 @@
 [package]
-name = "properties"
+name = "javaproperties"
 description = "Java .properties files: escapes, line continuations and the ISO-8859-1 default, read the way java.util.Properties reads them."
 version.workspace = true
 edition.workspace = true

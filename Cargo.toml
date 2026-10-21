@@ -16,7 +16,7 @@ members = [
     "crates/pdfa",
     "crates/adhan",
     "crates/object-hash",
-    "crates/properties",
+    "crates/javaproperties",
 ]
 
 [workspace.package]

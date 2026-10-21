@@ -1,4 +1,4 @@
-# properties
+# javaproperties
 
 Reading Java `.properties` files.
 
@@ -8,7 +8,7 @@ This is the format behind `application.properties` in every Spring service and
 and getting them wrong is quiet.
 
 ```rust
-use properties::parse;
+use javaproperties::parse;
 
 let pairs = parse(b"name = cipansor\ncity\\:bandung = west java\n").unwrap();
 assert_eq!(pairs[0], ("name".to_string(), "cipansor".to_string()));

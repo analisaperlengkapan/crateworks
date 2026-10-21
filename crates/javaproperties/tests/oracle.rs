@@ -11,7 +11,7 @@
 //! wrong: escaped separators, continuation, unicode escapes, duplicate keys and
 //! the ISO-8859-1 default.
 
-use properties::{Properties, parse};
+use javaproperties::{Properties, parse};
 
 /// A case from the corpus, encoded as an escaped string.
 ///
@@ -160,7 +160,7 @@ fn the_default_encoding_is_iso_8859_1() {
 fn text_that_was_already_decoded_is_read_as_is() {
     // The same bytes as UTF-8 text now mean something else, which is the whole
     // reason `parse_str` exists separately from `parse`.
-    let pairs = properties::parse_str("name=é\n").unwrap();
+    let pairs = javaproperties::parse_str("name=é\n").unwrap();
     assert_eq!(pairs[0], ("name".to_string(), "é".to_string()));
 }
 

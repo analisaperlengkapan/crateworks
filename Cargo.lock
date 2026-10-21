@@ -41,6 +41,10 @@ name = "iso8583-msg"
 version = "0.1.0"
 
 [[package]]
+name = "javaproperties"
+version = "0.1.0"
+
+[[package]]
 name = "object-hash"
 version = "0.1.0"
 
@@ -50,10 +54,6 @@ version = "0.1.0"
 dependencies = [
  "xmlkit",
 ]
-
-[[package]]
-name = "properties"
-version = "0.1.0"
 
 [[package]]
 name = "soap-client"
