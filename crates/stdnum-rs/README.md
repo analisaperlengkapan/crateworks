@@ -15,4 +15,5 @@ identifiers covered: Indonesian NPWP and NIK, Brazilian CPF and CNPJ, Spanish
 DNI and NIE, German tax ID, Polish PESEL, Indian Aadhaar.
 
 Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
-workspace. Licensed under Apache-2.0 or MIT.
+workspace. Licensed under Apache-2.0 or MIT, copyright Yayasan Pesantren
+Cipansor and contributors.

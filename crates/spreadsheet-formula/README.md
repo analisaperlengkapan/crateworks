@@ -24,4 +24,5 @@ references, absolute references, sheet qualifiers, text concatenation, and
 comparison operators.
 
 Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
-workspace. Licensed under Apache-2.0 or MIT.
+workspace. Licensed under Apache-2.0 or MIT, copyright Yayasan Pesantren
+Cipansor and contributors.

@@ -136,3 +136,79 @@ belum terbukti.
 Sebelum mulai, ulangi dua pemeriksaan ini karena ruangnya bergerak cepat:
 `cargo search <nama>` dan GitHub `search?q=<topik>+language:rust`, lalu cek
 tab reverse dependencies di crates.io untuk incumbent yang Anda incar.
+
+---
+
+# Addendum (2026-10-21, pemeriksaan nama dan kompetitor)
+
+Ditambahkan setelah kandidat di atas mulai dikerjakan. Bagian ini tidak
+mengubah penilaian di atas, hanya menambahkan dua hal yang belum diperiksa
+waktu itu: **ketersediaan nama di crates.io** dan **pergerakan kompetitor**.
+
+## 1. Ketersediaan nama (belum pernah diperiksa sebelumnya)
+
+Semua nama kandidat diukur lewat `GET https://crates.io/api/v1/crates/<nama>`.
+404 berarti bebas. Hasil yang mengubah keputusan:
+
+| Nama | Status | Catatan |
+|---|---|---|
+| `iso20022` | **TERPAKAI** | keithnoguchi/iso20022-rs, dibuat 2020-03-11, terakhir 2020-03-16, 21 recent. Mati, tapi nama tetap terpakai |
+| `iso20022-rs` | bebas | dipilih |
+| `crateworks-xml` | bebas | diganti demi alasan desain, bukan bentrok |
+| `holidays-rs` | bebas | nama polos `holidays` terpakai mapbox-jp (2023) |
+| `stdnum-rs` | bebas | nama polos `stdnum` terpakai hey-jj (2026-07) |
+| `soap-client` | bebas | nama polos `soap`/`wsdl` terpakai |
+| `spreadsheet-formula` | bebas | nama polos `spreadsheet`/`formula` terpakai |
+| `sepa` | terpakai | hupe1980/sepa |
+
+**Kesalahan yang ditemukan: kandidat 4 (`iso20022`) tidak bisa di-publish
+dengan nama itu.** Nama sudah diambil crate mati sejak 2020. Ini seharusnya
+masuk pemeriksaan sejak awal: **cek ketersediaan nama adalah langkah pertama,
+bukan langkah terakhir.** Mengganti nama setelah publish tidak mungkin.
+
+Pelajaran soal konvensi `-rs`: akhiran itu dipakai **ketika nama polosnya sudah
+terpakai**. `holidays` dan `stdnum` keduanya terpakai, jadi `holidays-rs` dan
+`stdnum-rs` adalah keputusan yang benar, bukan kekurangan nama. `iso20022-rs`
+mengikuti pola yang sama.
+
+`crateworks-xml` diganti jadi `xmlkit` bukan karena bentrok, tapi karena crate
+fondasi akan muncul di manifest setiap pengguna. Prefiks merek di situ memaksa
+orang menulis `crateworks` di daftar dependensi mereka tanpa manfaat.
+
+## 2. Pergerakan kompetitor sejak pengukuran pertama
+
+| Crate | Status terbaru | Dampak |
+|---|---|---|
+| `sepa` | v0.9.0, 1.595 recent, update **2026-10-13** (8 hari lalu) | **Naik kelas.** Deskripsinya sekarang "SEPA identifiers and ISO 20022 payment messages: builders, bank-report". Ini tepat sasaran kandidat 4 dan bergerak cepat |
+| `stdnum` | v0.2.0, 16 recent, dibuat 2026-07-01 | masih baru, 0 bintang. Deskripsinya persis kandidat 2 |
+| `iso20022` | 21 recent, mati sejak 2020 | tidak berubah |
+| `calamine` | 5,67 juta recent, v0.37.0, update 2026-10-18 | sisi baca/tulis xlsx tetap kuat, mesin hitungnya tetap kosong |
+
+**Yang berubah dari penilaian awal:** `sepa` sekarang bukan "kecil dan sempit"
+lagi. Dengan 1.595 recent dan rilis 8 hari lalu, ia penantang serius di ruang
+ISO 20022, bukan pemain pinggiran. Penilaian "tidak ada yang menguasai" masih
+benar, tetapi tingkat kesulitannya naik.
+
+`stdnum` (hey-jj) baru 3 bulan dan masih 0 bintang, jadi kandidat 2 masih
+terbuka, tapi tidak lagi kosong.
+
+## 3. Yang tidak berubah
+
+- **SOAP tetap paling kosong.** `wsdl` 8 recent, `soap` 3 recent, `rsoap` 46
+  recent, dan **0 reverse dependencies** di seluruh ruang. Celah terlebar,
+  permintaan Rust paling belum terbukti.
+- **Mesin formula spreadsheet tetap kosong.** `formula` (2022, mati),
+  `xlformula_engine` (2023, mati), `formula-lang` (0 bintang). Sisi
+  baca/tulis sudah bagus, yang hilang tetap mesin hitungnya.
+- **`holidays` tetap 1 versi dari 2023** dengan repo mati.
+
+## 4. Catatan metode
+
+- Reverse dependencies tetap sinyal terbaik. Unduhan mentah menyesatkan: crate
+  mati seperti `spreadsheet` (2016) masih punya 5.725 unduhan total.
+- Pemeriksaan ketersediaan nama sebaiknya dijalankan **sebelum** menulis kode,
+  untuk semua kandidat sekaligus. Hasilnya jarang berubah, jadi sekali periksa
+  cukup sampai ada kandidat baru.
+- Ruang ini bergerak cepat. `sepa` naik dari "sempit" ke penantang aktif dalam
+  hitungan bulan, jadi pengukuran perlu diulang sebelum mulai mengerjakan
+  kandidat berikutnya.

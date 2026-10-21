@@ -13,6 +13,7 @@ publik tanpa kunci. Butuh Python 3, tanpa dependensi eksternal.
 | `revdeps.py` | **Yang paling penting**: reverse dependencies + aktivitas repo incumbent |
 | `incumbents.py` | Detail pesaing untuk tiap kandidat |
 | `verify2.py` | Verifikasi 30 area tambahan (transit, kesehatan, keuangan, dll) |
+| `namecheck.py` | **Cek dulu sebelum menulis kode**: apakah nama crate masih bebas. `python3 namecheck.py iso20022 xmlkit` |
 
 ## Peringatan operasional
 
@@ -23,3 +24,6 @@ publik tanpa kunci. Butuh Python 3, tanpa dependensi eksternal.
   Pisahkan keduanya, maksimal 32 per panggilan.
 - `revdeps.py` adalah pengukur permintaan Rust yang sebenarnya. Angka unduhan
   PyPI/npm mengukur permintaan di Python/JS, bukan di Rust.
+- **Jalankan `namecheck.py` sebelum menulis kode, bukan sesudah.** Nama crate
+  tidak bisa diganti setelah publish. `iso20022` tampak seperti celah yang jelas
+  sampai ketahuan namanya sudah dipakai crate yang mati sejak 2020.
