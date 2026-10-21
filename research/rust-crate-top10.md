@@ -1,150 +1,150 @@
-# Top 10 kandidat crate Rust (verifikasi ulang, 2026-10-21)
+# Top 10 Rust crate candidates (re-verification, 2026-10-21)
 
-Putaran kedua. Semua angka diambil dari API registry hari ini. Metrik pasokan
-tetap `recent_downloads` crates.io (90 hari), tetapi kali ini setiap kandidat
-juga dicek di GitHub (`api.github.com/search/repositories`) untuk menemukan
-proyek WIP, dan angka permintaan diambil ulang dari pypistats + npm.
+Second round. Every figure was read from the registry APIs today. The supply
+metric is still crates.io `recent_downloads` (90 days), but this time each
+candidate was also checked on GitHub
+(`api.github.com/search/repositories`) to find WIP projects, and the demand
+figures were refetched from pypistats and npm.
 
-## Koreksi penting terhadap analisis putaran pertama
+## Important corrections to the first round
 
-Tiga klaim putaran pertama saya ternyata salah setelah diperiksa ulang:
+Three claims from the first round turned out to be wrong on re-checking:
 
-1. **Ekstraksi tabel PDF BUKAN celah.** Saya menyebutnya "tidak ada sama
-   sekali" karena pencarian crates.io kosong. Padahal di GitHub ada minimal 5
-   proyek aktif: `pdfsink-rs` (24 bintang, update 2026-10-13),
-   `tablers` (15 bintang, 2026-10-19), `bolivar`, `distillpdf`, `pdfni`.
-   Di crates.io juga ada `pdf-text-extract` (34,6 rb recent) dan
-   `pdfsink-rs` (6,9 rb recent). Kandidat ini saya keluarkan dari daftar.
-2. **CycloneDX SBOM bukan celah.** `cyclonedx-bom` punya 1,34 juta recent
-   downloads dan aktif (2026-03). Saya hampir salah menilai karena hanya
-   melihat crate `cyclonedx` yang kosong.
-3. **XML Signature bukan celah.** `bergshamra-dsig` 186 rb recent dan
-   `xml-sec` 43 rb recent (pure Rust, 2026-10). Sudah terisi.
+1. **PDF table extraction is NOT a gap.** I called it "nothing at all" because a
+   crates.io search came back empty. In fact GitHub has at least 5 active
+   projects: `pdfsink-rs` (24 stars, updated 2026-10-13), `tablers` (15 stars,
+   2026-10-19), `bolivar`, `distillpdf`, `pdfni`. crates.io also has
+   `pdf-text-extract` (34.6K recent) and `pdfsink-rs` (6.9K recent). I removed
+   this candidate from the list.
+2. **CycloneDX SBOM is not a gap.** `cyclonedx-bom` has 1.34 million recent
+   downloads and is active (2026-03). I nearly misjudged it by looking only at
+   the empty `cyclonedx` crate.
+3. **XML Signature is not a gap.** `bergshamra-dsig` 186K recent and `xml-sec`
+   43K recent (pure Rust, 2026-10). Already served.
 
-Pelajaran metodologis: `recent_downloads` rendah TIDAK sama dengan tidak ada
-pesaing. Crate baru yang belum dipublikasikan atau yang dipakai lewat path
-dependency tidak terlihat di registry. GitHub search wajib untuk kandidat
-teratas.
+Methodological lesson: low `recent_downloads` does NOT mean no competitor. A new
+crate that is not yet published, or that is used through a path dependency, is
+invisible in the registry. A GitHub search is mandatory for the top candidates.
 
-## Daftar 10
+## The list of 10
 
-Diurutkan berdasarkan kekuatan kombinasi (permintaan nyata x kekosongan Rust x
-kelayakan dikerjakan). "Nama bebas" sudah diverifikasi lewat API crates.io.
+Ordered by the combined strength (real demand x Rust emptiness x feasibility).
+"Name free" was verified through the crates.io API.
 
-### 1. `holidays-rs` - kalender hari libur nasional
-- Permintaan: PyPI `holidays` 26,9 juta/bulan, `workalendar` 957 rb/bulan.
-- Rust sekarang: `holidays` 7,8 rb recent (v0.1.0, 2023), `public-holidays`
-  v0.0.0. GitHub: `mapbox-jp/holidays-rs` 7 bintang (2024).
-- Kenapa layak: datanya sudah terbuka (python-holidays, workalendar,
-  date-holidays semuanya open source), jadi ini pekerjaan pemetaan data, bukan
-  riset algoritma. Nama `holidays-rs`, `holiday-calendar`, `multicalendar`,
-  `world-holidays` semuanya bebas.
-- Kesulitan: rendah. Ini pilihan paling aman.
+### 1. `holidays-rs` - public holiday calendars
+- Demand: PyPI `holidays` 26.9 million/month, `workalendar` 957K/month.
+- Rust today: `holidays` 7.8K recent (v0.1.0, 2023), `public-holidays` v0.0.0.
+  GitHub: `mapbox-jp/holidays-rs` 7 stars (2024).
+- Why it is worth it: the data is already open (python-holidays, workalendar and
+  date-holidays are all open source), so this is data mapping, not algorithm
+  research. The names `holidays-rs`, `holiday-calendar`, `multicalendar` and
+  `world-holidays` are all free.
+- Difficulty: low. The safest choice.
 
-### 2. `soap-client` - klien SOAP/WSDL
-- Permintaan: PyPI `zeep` 29,4 juta/bulan, `suds-py3` 771 rb/bulan. npm
-  `soap` 453 rb/minggu.
-- Rust sekarang: praktis kosong. `wsdl` 8 recent (2023), `soap` 3 recent,
-  `rsoap` 46 recent, `soap-server` 195 recent. Tidak ada klien matang.
-- Kenapa layak: bank, pemerintah, dan sistem ERP masih penuh SOAP. Tidak ada
-  alternatif sama sekali, jadi ini celah paling lebar di daftar.
-- Kesulitan: sedang-tinggi (perlu generasi kode dari WSDL, WS-Security, MTOM).
-- Nama bebas: `soap-client`, `wsdl-client`, `soap-rs`, `rustsoap`.
+### 2. `soap-client` - SOAP/WSDL client
+- Demand: PyPI `zeep` 29.4 million/month, `suds-py3` 771K/month. npm `soap`
+  453K/week.
+- Rust today: practically empty. `wsdl` 8 recent (2023), `soap` 3 recent,
+  `rsoap` 46 recent, `soap-server` 195 recent. No mature client.
+- Why it is worth it: banks, government and ERP systems are still full of SOAP.
+  There is no alternative at all, so this is the widest gap on the list.
+- Difficulty: medium to high (needs code generation from WSDL, WS-Security, MTOM).
+- Names free: `soap-client`, `wsdl-client`, `soap-rs`, `rustsoap`.
 
-### 3. `stdnum-rs` - validasi nomor identitas/VAT/pajak multi-negara
-- Permintaan: PyPI `python-stdnum` 5,08 juta/bulan.
-- Rust sekarang: `stdnum` cuma 16 recent. Terpecah-pecah: `dni` (Spanyol),
-  `idnr` (Jerman), `ssn` (AS), `amka` (Yunani), `br_tax_id` (Brasil),
-  `idsmith`, `vat_id_validator` 5,3 rb. Tidak ada payung yang menyatukan.
-- Kenapa layak: setiap negara butuh validasi NIK/NPWP/VAT dan sekarang setiap
-  proyek menulis sendiri. Sangat cocok untuk kontribusi bertahap, satu negara
-  per pull request.
-- Kesulitan: sedang, tapi sangat terukur dan mudah diuji.
-- Nama bebas: `stdnum-rs`, `checkdigits`, `national-id`, `vatcheck`.
+### 3. `stdnum-rs` - multi-country national ID/VAT/tax number validation
+- Demand: PyPI `python-stdnum` 5.08 million/month.
+- Rust today: `stdnum` only 16 recent. Fragmented: `dni` (Spain), `idnr`
+  (Germany), `ssn` (USA), `amka` (Greece), `br_tax_id` (Brazil), `idsmith`,
+  `vat_id_validator` 5.3K. No umbrella crate unifies them.
+- Why it is worth it: every country needs NIK/NPWP/VAT validation and every
+  project writes it itself. Very well suited to incremental contribution, one
+  country per pull request.
+- Difficulty: medium, but very measurable and easy to test.
+- Names free: `stdnum-rs`, `checkdigits`, `national-id`, `vatcheck`.
 
-### 4. `spreadsheet-formula` - evaluator formula spreadsheet
-- Permintaan: npm `exceljs` 10,8 juta/minggu, `xlsx` 7,2 juta/minggu; PyPI
-  `openpyxl` 283 juta/bulan.
-- Rust sekarang: `formula` 20 recent (mati 2022), `xlformula_engine` 2,4 rb
-  (mati 2023), `formula-lang` 190 recent, `xlstream` 47 recent. Semua mati atau
-  belum matang. Tidak ada yang mengevaluasi formula lengkap.
-- Kenapa layak: `calamine` dan `rust_xlsxwriter` sudah bagus untuk baca/tulis
-  berkas, tetapi keduanya berhenti di situ. Yang hilang adalah mesin
-  evaluasinya.
-- Kesulitan: sedang-tinggi. Mulai dari subset fungsi dulu.
-- Nama bebas: `spreadsheet-formula`, `excel-formula`, `formula-eval`,
+### 4. `spreadsheet-formula` - spreadsheet formula evaluator
+- Demand: npm `exceljs` 10.8 million/week, `xlsx` 7.2 million/week; PyPI
+  `openpyxl` 283 million/month.
+- Rust today: `formula` 20 recent (dead since 2022), `xlformula_engine` 2.4K
+  (dead since 2023), `formula-lang` 190 recent, `xlstream` 47 recent. All dead
+  or immature. Nothing evaluates the full formula language.
+- Why it is worth it: `calamine` and `rust_xlsxwriter` are already good at
+  reading and writing files, but both stop there. What is missing is the
+  evaluation engine.
+- Difficulty: medium to high. Start with a subset of functions.
+- Names free: `spreadsheet-formula`, `excel-formula`, `formula-eval`,
   `calcengine`.
 
-### 5. `en16931-rs` - e-invoice Eropa (ZUGFeRD/Factur-X, UBL, PEPPOL)
-- Permintaan: PyPI `factur-x` 287 rb/bulan. Regulasi: XRechnung sudah wajib
-  untuk faktur B2G di Jerman, dan negara Uni Eropa lain menyusul.
-- Rust sekarang: `en16931-formats` 5,5 rb recent (WIP, repo cuma 3 bintang),
+### 5. `en16931-rs` - European e-invoicing (ZUGFeRD/Factur-X, UBL, PEPPOL)
+- Demand: PyPI `factur-x` 287K/month. Regulation: XRechnung is already mandatory
+  for B2G invoices in Germany, and other European Union countries are following.
+- Rust today: `en16931-formats` 5.5K recent (WIP, repo has only 3 stars),
   `zugferd` 159 recent.
-- Kenapa layak: permintaannya didorong kewajiban hukum, bukan selera. Pasar
-  yang tumbuh sendiri tanpa perlu meyakinkan siapa pun.
-- Kesulitan: sedang (pemodelan data + aturan bisnis, bukan algoritma sulit).
-- Nama bebas: `en16931-rs`, `e-invoice`, `facturx`, `zugferd-rs`.
+- Why it is worth it: the demand is driven by legal obligation, not preference.
+  A market that grows on its own without having to convince anyone.
+- Difficulty: medium (data modelling plus business rules, not a hard algorithm).
+- Names free: `en16931-rs`, `e-invoice`, `facturx`, `zugferd-rs`.
 
-### 6. `plantuml-rs` - renderer PlantUML
-- Permintaan: PyPI `plantuml` 333 rb/bulan, npm `plantuml-encoder` 133
-  rb/minggu.
-- Rust sekarang: `puml` 97 recent, `plantuml-little` 671 recent. Perhatikan:
-  Mermaid di Rust sudah terisi (`mermaid-rs-renderer` 160 rb recent, `merman`
-  137 rb recent) — jadi PlantUML adalah satu-satunya yang kosong.
-- Kesulitan: sedang-tinggi (butuh mesin tata letak diagram).
-- Nama bebas: `plantuml-rs`, `plantuml-render`.
+### 6. `plantuml-rs` - PlantUML renderer
+- Demand: PyPI `plantuml` 333K/month, npm `plantuml-encoder` 133K/week.
+- Rust today: `puml` 97 recent, `plantuml-little` 671 recent. Note: Mermaid in
+  Rust is already served (`mermaid-rs-renderer` 160K recent, `merman` 137K
+  recent) — so PlantUML is the only one left empty.
+- Difficulty: medium to high (needs a diagram layout engine).
+- Names free: `plantuml-rs`, `plantuml-render`.
 
 ### 7. `musicxml-rs` - MusicXML
-- Permintaan: PyPI `music21` 522 rb/bulan.
-- Rust sekarang: `musicxml` 1,8 rb recent (2024). Untuk MIDI sudah ada
-  `midly` (176 rb recent), tetapi MusicXML kosong.
-- Kesulitan: sedang. Skemanya besar tetapi jelas.
-- Nama bebas: `musicxml-rs`, `music-notation`.
+- Demand: PyPI `music21` 522K/month.
+- Rust today: `musicxml` 1.8K recent (2024). For MIDI there is already `midly`
+  (176K recent), but MusicXML is empty.
+- Difficulty: medium. The schema is large but clear.
+- Names free: `musicxml-rs`, `music-notation`.
 
-### 8. `subtitles` - toolkit subtitle SRT/ASS/VTT
-- Permintaan: PyPI `srt` 970 rb/bulan, `pysubs2` 193 rb/bulan; npm
-  `srt-parser-2` 87 rb/minggu.
-- Rust sekarang: semuanya mati. `subparse` 4,8 rb recent (terakhir 2021),
-  `srt` 599 recent (2017), `ass-parser` 134 recent, `srt-parser` 269 recent.
-- Kenapa layak: kebutuhan sehari-hari (media, pipeline video, alat AI), dan
-  semuanya ditinggalkan. Ini kandidat dengan usaha terendah per nilai.
-- Kesulitan: rendah-sedang. Cocok untuk rilis pertama yang cepat.
-- Nama bebas: `subtitles`, `subtitle-parser`.
+### 8. `subtitles` - SRT/ASS/VTT subtitle toolkit
+- Demand: PyPI `srt` 970K/month, `pysubs2` 193K/month; npm `srt-parser-2`
+  87K/week.
+- Rust today: all dead. `subparse` 4.8K recent (last 2021), `srt` 599 recent
+  (2017), `ass-parser` 134 recent, `srt-parser` 269 recent.
+- Why it is worth it: an everyday need (media, video pipelines, AI tooling), and
+  everything has been abandoned. This is the candidate with the lowest effort per
+  value.
+- Difficulty: low to medium. Good for a fast first release.
+- Names free: `subtitles`, `subtitle-parser`.
 
-### 9. `libdav`-alternatif / `caldav-client` - klien CalDAV + CardDAV
-- Permintaan: PyPI `caldav` 542 rb/bulan, `vdirsyncer` 27 rb/bulan.
-- Rust sekarang: `libdav` 14,5 rb recent adalah satu-satunya pemain serius,
-  dan itu batasnya. `caldav` 47 recent (2018), `carddav` 9 recent (2018).
-- Kesulitan: sedang.
-- Nama bebas: `dav-client`.
+### 9. `libdav` alternative / `caldav-client` - CalDAV + CardDAV client
+- Demand: PyPI `caldav` 542K/month, `vdirsyncer` 27K/month.
+- Rust today: `libdav` 14.5K recent is the only serious player, and that is the
+  extent of it. `caldav` 47 recent (2018), `carddav` 9 recent (2018).
+- Difficulty: medium.
+- Name free: `dav-client`.
 
-### 10. `iso20022` - pesan pembayaran ISO 20022 (pain/pacs/camt)
-- Permintaan: PyPI `sepaxml` 312 rb/bulan; MT940/MT103 masih dipakai luas di
-  perbankan. Migrasi SWIFT ke ISO 20022 menambah dorongan.
-- Rust sekarang: `sepa` 1,6 rb recent, `mt940` 2,4 rb recent, `camt053` 220
-  recent, `iso20022` 21 recent (mati 2020). WIP: `mx20022` (7 bintang),
-  `quackiso` (6 bintang).
-- Kesulitan: sedang. Skema XSD-nya publik dan bisa di-generate.
-- Nama bebas: `iso20022-rs`, `sepa-rs`, `pain-rs`, `camt`.
+### 10. `iso20022` - ISO 20022 payment messages (pain/pacs/camt)
+- Demand: PyPI `sepaxml` 312K/month; MT940/MT103 are still widely used in
+  banking. The SWIFT migration to ISO 20022 adds pressure.
+- Rust today: `sepa` 1.6K recent, `mt940` 2.4K recent, `camt053` 220 recent,
+  `iso20022` 21 recent (dead since 2020). WIP: `mx20022` (7 stars), `quackiso`
+  (6 stars).
+- Difficulty: medium. The XSD schemas are public and can be generated from.
+- Names free: `iso20022-rs`, `sepa-rs`, `pain-rs`, `camt`.
 
-## Yang sengaja saya keluarkan
+## What I deliberately removed
 
-- Ekstraksi tabel PDF - ramai WIP di GitHub (lihat koreksi di atas).
-- CycloneDX SBOM, XML Signature, JSON-LD, HAR, Mermaid, XLSX, DOCX, PDF
-  generik, OCR, browser automation, job queue, state machine, OAuth - sudah
-  ada pemain aktif dengan puluhan ribu sampai jutaan recent downloads.
-- Hunspell murni-Rust - `spellbook` sudah 140 rb recent, jadi bukan celah
-  kosong meski masih bisa diperbaiki.
-- PII redaction, embeddings/vector DB - sudah terisi.
+- PDF table extraction - busy WIP on GitHub (see the corrections above).
+- CycloneDX SBOM, XML Signature, JSON-LD, HAR, Mermaid, XLSX, DOCX, generic PDF,
+  OCR, browser automation, job queues, state machines, OAuth - all have active
+  players with tens of thousands to millions of recent downloads.
+- Pure-Rust Hunspell - `spellbook` is already 140K recent, so it is not an empty
+  gap, even if it could still be improved.
+- PII redaction, embeddings/vector DBs - already served.
 
-## Saran langkah berikutnya
+## Suggested next steps
 
-Mulai dari nomor 1 atau 8 untuk membangun reputasi cepat dengan risiko rendah,
-lalu naik ke nomor 2 atau 4 yang nilainya paling besar tetapi paling berat.
+Start with 1 or 8 to build reputation quickly at low risk, then move to 2 or 4,
+which are worth the most but are the heaviest.
 
-Sebelum mulai, lakukan dua hal untuk kandidat yang dipilih:
-1. `cargo search <nama>` dan cek GitHub `search?q=<topik>+language:rust` lagi,
-   karena ruang ini bergerak cepat.
-2. Cek apakah ada crate yang sudah di-`yank` atau repo yang diarsipkan tetapi
-   belum digantikan; itu peluang adopsi tercepat karena pengguna sudah ada dan
-   sedang mencari.
+Before starting, do two things for the candidate you pick:
+1. Run `cargo search <name>` and check GitHub
+   `search?q=<topic>+language:rust` again, because this space moves fast.
+2. Check whether a crate has been `yank`ed or a repo archived without a
+   replacement; that is the fastest adoption opportunity, because the users
+   already exist and are looking.

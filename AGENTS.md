@@ -143,11 +143,11 @@ PLAN.md                 build history and per-crate scope
 
 ## Documentation language
 
-Everything a user or contributor reads is in **English**: crate and root
-READMEs, doc comments, `AGENTS.md`, `CONTRIBUTING.md`, `PLAN.md`, and commit
-messages. The one exception is `research/`, which is the owner's working notes
-and is written in Indonesian. Leave those as they are, and do not mirror their
-style into anything published.
+Everything in this repository is written in **English**: crate and root READMEs,
+doc comments, `AGENTS.md`, `CONTRIBUTING.md`, `PLAN.md`, `research/`, commit
+messages, and the messages and status strings printed by the scripts. The owner's
+first language is Indonesian, but the audience for a published crate is
+international, so the documents are English and the chat can be Indonesian.
 
 Comments explain why, not what: state a non-obvious invariant, a workaround, or a
 deliberate trade-off. Do not restate the code or narrate the change history.

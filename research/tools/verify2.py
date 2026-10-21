@@ -61,10 +61,10 @@ for area, names in AREAS.items():
     found=[(v['recent'],k,v) for k,v in res.items() if v]
     found.sort(reverse=True)
     print(f"### {area}")
-    if not found: print("    (semua nama BEBAS / tidak ada crate)")
+    if not found: print("    (all names free / no crate)")
     for rec,k,v in found:
         print(f"    {k:<22} rec={rec:>10,} dl={v['dl']:>11,} v{str(v['ver'])[:8]:<8} {v['upd']} :: {v['desc'][:60]}")
     free=[k for k,v in res.items() if not v]
-    if free: print(f"    NAMA BEBAS: {', '.join(free)}")
+    if free: print(f"    FREE NAMES: {', '.join(free)}")
     sys.stdout.flush()
 json.dump(out, open('verify2.json','w'), indent=1)

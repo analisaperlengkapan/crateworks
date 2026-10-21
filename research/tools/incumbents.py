@@ -35,6 +35,6 @@ for a,names in AREAS.items():
     for n in names:
         r=crate(n); out[a][n]=r
         if r: print(f"    {r['name']:<18} rec={r['recent']:>9,} dl={r['dl']:>10,} v{str(r['ver'])[:8]:<8} {r['upd']}  repo={r['repo']}")
-        else:  print(f"    {n:<18} (tidak ada)")
+        else:  print(f"    {n:<18} (none)")
         time.sleep(0.3)
 json.dump(out,open('incumbents.json','w'),indent=1)
