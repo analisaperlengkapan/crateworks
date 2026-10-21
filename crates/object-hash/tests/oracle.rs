@@ -162,6 +162,21 @@ fn value_for(name: &str) -> Value {
             Value::Array(vec![Value::Number(1.0), Value::Number(2.0)]),
             Value::Array(vec![Value::Number(3.0)]),
         ]),
+        "set-scalar-dup" => Value::Set(vec![Value::Number(1.0), Value::Number(1.0)]),
+        "set-nested-dup" => Value::Set(vec![
+            Value::Array(vec![Value::Number(1.0), Value::Number(2.0)]),
+            Value::Array(vec![Value::Number(1.0), Value::Number(2.0)]),
+        ]),
+        "set-nan-dup" => Value::Set(vec![Value::Number(f64::NAN), Value::Number(f64::NAN)]),
+        "map-dup-key" => Value::Map(vec![
+            ("a".into(), Value::Number(1.0)),
+            ("a".into(), Value::Number(2.0)),
+        ]),
+        "map-dup-key3" => Value::Map(vec![
+            ("a".into(), Value::Number(1.0)),
+            ("b".into(), Value::Number(9.0)),
+            ("a".into(), Value::Number(2.0)),
+        ]),
         "mixed-nest" => Value::Map(vec![(
             "list".into(),
             Value::Array(vec![
@@ -177,7 +192,7 @@ fn value_for(name: &str) -> Value {
 #[test]
 fn every_fixture_case_has_the_same_canonical_form_and_digest() {
     let cases = cases();
-    assert!(cases.len() > 50, "only {} cases", cases.len());
+    assert!(cases.len() > 55, "only {} cases", cases.len());
 
     let mut failures = Vec::new();
     for case in &cases {

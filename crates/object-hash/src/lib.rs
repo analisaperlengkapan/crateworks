@@ -120,6 +120,18 @@ impl Value {
         Self::Number(number.into())
     }
 
+    /// Whether this value is a scalar.
+    ///
+    /// Scalars are the values a JavaScript `Set` deduplicates; arrays and maps
+    /// it compares by identity instead. Nothing outside the crate needs this,
+    /// but it is the distinction the encoding turns on.
+    pub(crate) fn is_scalar(&self) -> bool {
+        matches!(
+            self,
+            Self::Null | Self::Bool(_) | Self::Number(_) | Self::String(_)
+        )
+    }
+
     /// The digest of this value, as lowercase hexadecimal SHA-1.
     #[must_use]
     pub fn hash(&self) -> String {

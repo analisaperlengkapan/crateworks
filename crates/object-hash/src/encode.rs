@@ -20,6 +20,7 @@
 //! - Every string carries its length, so no two different structures can write
 //!   the same bytes by accident.
 
+use std::collections::HashSet;
 use std::fmt::Write as _;
 
 use crate::Value;
@@ -49,26 +50,94 @@ pub(crate) fn write(value: &Value, out: &mut String) {
 
 /// Numbers, written the way JavaScript writes them.
 ///
-/// That means an integral float loses its point (`100`, not `100.0`), the two
-/// infinities and not-a-number have names, and negative zero is `0` because
-/// `String(-0)` is `"0"`.
+/// This is the part of the encoding that is easiest to get subtly wrong. Rust
+/// and JavaScript both print the shortest text that reads back as the same
+/// number, but they disagree about *where* to put the decimal point. For
+/// `1e21` Rust prints twenty-two digits; JavaScript prints `1e+21`. For `1e-7`
+/// Rust prints `0.0000001`; JavaScript prints `1e-7`. Getting this wrong makes
+/// every large or small number hash differently from the reference, silently.
+///
+/// So the rules from the ECMAScript specification are followed directly rather
+/// than Rust's `Display`. The number is first reduced to its significant digits
+/// and an exponent, which is the form both languages agree on, and then the
+/// specification's four cases decide the layout.
+///
+/// The specials: `NaN`, `Infinity` and `-Infinity` are named, and negative zero
+/// is `0`, because `String(-0)` is `"0"`.
 fn write_number(number: f64, out: &mut String) {
     out.push_str("number:");
+    out.push_str(&number_to_string(number));
+}
+
+/// The text JavaScript's `String(number)` would produce.
+fn number_to_string(number: f64) -> String {
     if number.is_nan() {
-        out.push_str("NaN");
-    } else if number == f64::INFINITY {
-        out.push_str("Infinity");
-    } else if number == f64::NEG_INFINITY {
-        out.push_str("-Infinity");
-    } else if number == 0.0 {
-        // Covers -0.0 as well: the reference prints it as "0".
-        out.push('0');
-    } else if number.fract() == 0.0 && number.abs() < 1e21 {
-        // An integral value in the range JavaScript prints without an exponent.
-        let _ = write!(out, "{}", number as i128);
-    } else {
-        let _ = write!(out, "{number}");
+        return "NaN".to_string();
     }
+    if number == f64::INFINITY {
+        return "Infinity".to_string();
+    }
+    if number == f64::NEG_INFINITY {
+        return "-Infinity".to_string();
+    }
+    if number == 0.0 {
+        // Covers -0.0: JavaScript prints it as "0".
+        return "0".to_string();
+    }
+
+    let sign = if number < 0.0 { "-" } else { "" };
+    // `{:e}` gives the shortest digits that read back as the same number, in the
+    // form `1.23456e7`, which is the one piece both languages agree on.
+    let scientific = format!("{:e}", number.abs());
+    let (mantissa, exponent) = scientific.split_once('e').expect("scientific form");
+    let exponent: i32 = exponent.parse().expect("exponent");
+
+    let mut digits: String = mantissa.chars().filter(|c| *c != '.').collect();
+    while digits.len() > 1 && digits.ends_with('0') {
+        digits.pop();
+    }
+
+    let digits = digits.as_str();
+    let count = digits.len() as i32;
+    // Where the decimal point sits, as JavaScript counts it.
+    let point = exponent + 1;
+
+    if count <= point && point <= 21 {
+        // Whole number: the digits then enough zeros to reach the point.
+        let mut text = String::from(digits);
+        text.extend(std::iter::repeat_n('0', (point - count) as usize));
+        format!("{sign}{text}")
+    } else if 0 < point && point <= 21 {
+        // The point falls inside the digits.
+        let split = point as usize;
+        format!("{sign}{}.{}", &digits[..split], &digits[split..])
+    } else if -6 < point && point <= 0 {
+        // Below one: a leading zero, then the point's zeros, then the digits.
+        let mut text = String::from("0.");
+        text.extend(std::iter::repeat_n('0', (-point) as usize));
+        text.push_str(digits);
+        format!("{sign}{text}")
+    } else if count == 1 {
+        // One digit in exponential form.
+        format!(
+            "{sign}{digits}e{}{}",
+            exponent_sign(point - 1),
+            (point - 1).abs()
+        )
+    } else {
+        format!(
+            "{sign}{}.{}e{}{}",
+            &digits[..1],
+            &digits[1..],
+            exponent_sign(point - 1),
+            (point - 1).abs()
+        )
+    }
+}
+
+/// JavaScript writes a plus sign on a non-negative exponent.
+fn exponent_sign(exponent: i32) -> char {
+    if exponent < 0 { '-' } else { '+' }
 }
 
 /// Strings carry their length, counted in UTF-16 code units.
@@ -90,6 +159,18 @@ fn write_array(items: &[Value], out: &mut String) {
     }
 }
 
+/// Compare two strings the way JavaScript's default sort does.
+///
+/// JavaScript compares strings by UTF-16 code unit. Comparing the UTF-8 bytes
+/// instead agrees for everything in the basic plane but not above it: an emoji
+/// starts at U+D83D, which is below U+FFFF, while its UTF-8 bytes start at 0xF0,
+/// which is above. Sorting a set holding both an emoji and U+FFFF would put them
+/// in the wrong order and change the digest. The UTF-16 units have to be built
+/// to get this right.
+fn utf16_cmp(a: &str, b: &str) -> std::cmp::Ordering {
+    a.encode_utf16().cmp(b.encode_utf16())
+}
+
 /// Sets and maps are unordered, so their entries are sorted.
 ///
 /// This is where the encoding stops being obvious. The reference sorts them by
@@ -109,7 +190,7 @@ fn write_unordered(entries: Vec<String>, out: &mut String) {
         return;
     }
     let mut sorted = entries;
-    sorted.sort();
+    sorted.sort_by(|a, b| utf16_cmp(a, b));
     let _ = write!(out, "array:{count}:");
     for entry in sorted {
         write_string(&entry, out);
@@ -117,19 +198,47 @@ fn write_unordered(entries: Vec<String>, out: &mut String) {
 }
 
 /// A set ignores the order of its entries.
+///
+/// Scalar entries are deduplicated, because a JavaScript `Set` does that: it
+/// keeps one of each distinct value. Arrays and maps are not, because in
+/// JavaScript they are compared by identity, and two equal-looking arrays are
+/// still two different objects. That asymmetry is the reference's, not a choice
+/// made here.
 fn write_set(items: &[Value], out: &mut String) {
-    write_unordered(items.iter().map(canonical).collect(), out);
+    let mut seen = HashSet::new();
+    let entries = items
+        .iter()
+        .filter_map(|item| {
+            if item.is_scalar() {
+                let written = canonical(item);
+                if !seen.insert(written.clone()) {
+                    return None;
+                }
+                Some(written)
+            } else {
+                Some(canonical(item))
+            }
+        })
+        .collect();
+    write_unordered(entries, out);
 }
 
 /// A map is written in key order, whatever order it was built in.
 ///
-/// Each entry is written as a two-element array of the key and the value, and
-/// the entries are sorted by that written form. Sorting by the written form
-/// rather than by the key matters: `z` sorts before `a10`, because the length
-/// prefix is part of the string, and sorting by the key would put them the other
-/// way round.
+/// A repeated key keeps the last value, because that is what a JavaScript `Map`
+/// does, and the entries are sorted by their written form rather than by the key.
+/// Sorting by the written form is what makes the order stable for keys whose own
+/// order would not settle it, and it is the reference's behaviour.
 fn write_map(entries: &[(String, Value)], out: &mut String) {
-    let serialized = entries
+    let mut kept: Vec<(&String, &Value)> = Vec::with_capacity(entries.len());
+    for (key, value) in entries {
+        match kept.iter_mut().find(|(existing, _)| *existing == key) {
+            Some(existing) => existing.1 = value,
+            None => kept.push((key, value)),
+        }
+    }
+
+    let serialized = kept
         .iter()
         .map(|(key, value)| {
             let mut entry = String::from("array:2:");
@@ -232,6 +341,63 @@ mod tests {
         let array_forward = Value::Array(vec![one.clone(), two.clone()]);
         let array_backward = Value::Array(vec![two, one]);
         assert_ne!(canonical(&array_forward), canonical(&array_backward));
+    }
+
+    #[test]
+    fn a_set_drops_repeated_scalars_but_not_repeated_arrays() {
+        // A JavaScript Set keeps one of each distinct scalar.
+        assert_eq!(
+            canonical(&Value::Set(vec![Value::Number(1.0), Value::Number(1.0)])),
+            "set:array:1:number:1"
+        );
+        assert_eq!(
+            canonical(&Value::Set(vec![
+                Value::Number(f64::NAN),
+                Value::Number(f64::NAN)
+            ])),
+            "set:array:1:number:NaN"
+        );
+        // Two equal arrays are still two objects, so both are kept.
+        let array = Value::Array(vec![Value::Number(1.0), Value::Number(2.0)]);
+        let two_arrays = Value::Set(vec![array.clone(), array]);
+        assert!(canonical(&two_arrays).starts_with("set:array:2:"));
+    }
+
+    #[test]
+    fn entries_are_ordered_by_utf16_code_unit() {
+        // An emoji begins at U+D83D, below U+FFFF, so it sorts first. Its UTF-8
+        // bytes begin at 0xF0, above the UTF-8 bytes of U+FFFF, so a byte
+        // comparison would put them the other way round.
+        let emoji_first = Value::Set(vec![
+            Value::String("\u{ffff}z".into()),
+            Value::String("\u{1f600}".into()),
+        ]);
+        let emoji_last = Value::Set(vec![
+            Value::String("\u{1f600}".into()),
+            Value::String("\u{ffff}z".into()),
+        ]);
+        assert_eq!(canonical(&emoji_first), canonical(&emoji_last));
+        let written = canonical(&emoji_first);
+        let emoji_at = written.find('\u{1f600}').expect("emoji present");
+        let max_at = written.find('\u{ffff}').expect("U+FFFF present");
+        assert!(
+            emoji_at < max_at,
+            "emoji should sort before U+FFFF: {written}"
+        );
+    }
+
+    #[test]
+    fn a_repeated_map_key_keeps_the_last_value() {
+        let repeated = Value::Map(vec![
+            ("a".into(), Value::Number(1.0)),
+            ("b".into(), Value::Number(9.0)),
+            ("a".into(), Value::Number(2.0)),
+        ]);
+        let resolved = Value::Map(vec![
+            ("a".into(), Value::Number(2.0)),
+            ("b".into(), Value::Number(9.0)),
+        ]);
+        assert_eq!(canonical(&repeated), canonical(&resolved));
     }
 
     #[test]

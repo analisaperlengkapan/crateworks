@@ -50,3 +50,8 @@ set-ints	set:array:3:array:3:string:8:number:1string:8:number:2string:8:number:3
 set-order	set:array:3:array:3:string:8:number:1string:8:number:2string:8:number:3	6fe707e40188eef8e00806ecd389953108417721
 set-strings	set:array:3:array:3:string:10:string:1:astring:10:string:1:bstring:10:string:1:c	abb9029bf3abd6671c5f261723f845c5cfbdeece
 set-nested	set:array:2:array:2:string:16:array:1:number:3string:24:array:2:number:1number:2	49b9d70ec39fa76a7ea90c6e48b2d340aa6d4320
+set-scalar-dup	set:array:1:number:1	65a7a89ef36021d77900b9cf95948545f4c212d2
+set-nested-dup	set:array:2:array:2:string:24:array:2:number:1number:2string:24:array:2:number:1number:2	f6bc28d71259bba5a3a56617580e15b90d7c2c6d
+set-nan-dup	set:array:1:number:NaN	078d0655a7139939832bcd28c62ae318fe02f2c0
+map-dup-key	map:array:1:array:2:string:1:anumber:2	f971cec170c848838242933c0e05a8ca0e3022c1
+map-dup-key3	map:array:2:array:2:string:26:array:2:string:1:anumber:2string:26:array:2:string:1:bnumber:9	70f5e26ebfe8468e47d4c2aba02fd0ac3e84ec90
