@@ -95,7 +95,8 @@ There is also a corpus of 4,000 values built at random - nesting arrays, sets an
 maps, numbers at both ends of the range, strings holding emoji, CJK and U+FFFF,
 repeated keys and entries - with the reference's canonical form and digest for
 each. It is what found the number formatting and the UTF-16 ordering; the
-curated cases had missed both.
+curated cases had missed both. The generator that built it is in
+`scripts/fuzz/object-hash/`, so the corpus can be rebuilt and extended.
 
 One ordering rule is worth stating because it is not obvious: entries of a set or
 map are ordered by UTF-16 code unit, as JavaScript orders strings, not by UTF-8

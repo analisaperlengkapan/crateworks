@@ -58,6 +58,14 @@ For a validator, prefer a table of known-good and known-bad inputs transcribed
 from an authority. For a calendar, assert against dates published by the
 country concerned, not against whatever the code currently returns.
 
+Where a crate has to match a reference implementation exactly, hand-picked cases
+are not enough on their own. The `object-hash`, `adhan` and `javaproperties`
+crates each carry a random corpus generated against their reference, and each one
+found a real divergence that the curated cases had passed. If you add such a
+corpus, commit the generator with it, under `scripts/fuzz/`, so the corpus can be
+rebuilt rather than guessed at. The generators are development tools: they are not
+built by CI and are never a dependency of a crate.
+
 ### Documentation
 
 If you change behaviour, update the crate's `README.md`. The README of each

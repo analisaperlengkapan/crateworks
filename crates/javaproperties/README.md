@@ -50,7 +50,8 @@ built from the format's own punctuation: separators, escapes, `\uXXXX` sequences
 line continuations, comments, all four line endings and the ISO-8859-1 default
 all mixed into the same document. All 6,084 agree.
 
-The random corpus is generated with a fixed seed, so it can be rebuilt exactly,
+The random corpus is generated with a fixed seed by `scripts/fuzz/javaproperties/`,
+so it can be rebuilt exactly,
 and the cases where two rules meet are the ones it exists for: a key that ends in
 a backslash just before a comment, a `\uXXXX` split across a continuation, a
 separator that is also an escaped character. Those are where the obvious

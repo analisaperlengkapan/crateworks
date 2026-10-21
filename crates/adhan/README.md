@@ -87,7 +87,8 @@ On top of that grid there is a corpus of **6,000 random cases**: latitudes
 weighted to the polar circles, longitudes near the date line, all thirteen
 methods, both schools, all three high latitude rules, all three rounding modes,
 and manual adjustments from five minutes before to five minutes after. It is
-generated deterministically, so it can be rebuilt exactly.
+generated deterministically, so it can be rebuilt exactly; the generator is in
+`scripts/fuzz/adhan/`.
 
 That corpus found two real gaps the grid had missed, because the grid used no
 adjustments and only the default rounding:
