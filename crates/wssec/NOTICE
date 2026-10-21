@@ -1,0 +1,12 @@
+crateworks
+Copyright 2026 Yayasan Pesantren Cipansor and contributors
+
+This product includes software developed by Yayasan Pesantren Cipansor and
+contributors (https://github.com/analisaperlengkapan/crateworks).
+
+The WS-Security header structure and the password digest were checked against
+zeep by Mathieu Leplatre and contributors (https://github.com/mvantellingen/python-zeep),
+which is distributed under the MIT licence, and against the OASIS WS-Security
+UsernameToken Profile 1.1. This crate is an independent implementation for Rust.
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).

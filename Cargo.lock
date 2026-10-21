@@ -52,5 +52,12 @@ name = "stdnum-rs"
 version = "0.1.0"
 
 [[package]]
+name = "wssec"
+version = "0.1.0"
+dependencies = [
+ "xmlkit",
+]
+
+[[package]]
 name = "xmlkit"
 version = "0.1.0"

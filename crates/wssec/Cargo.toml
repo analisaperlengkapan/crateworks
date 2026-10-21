@@ -1,0 +1,18 @@
+[package]
+name = "wssec"
+description = "WS-Security headers: UsernameToken, timestamp, and password digests, for SOAP services that require them."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["soap", "ws-security", "wsse", "authentication", "xml"]
+categories = ["web-programming", "authentication"]
+readme = "README.md"
+
+[dependencies]
+xmlkit.workspace = true
+
+[lints]
+workspace = true
