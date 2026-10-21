@@ -45,12 +45,16 @@ last, which is what Java does.
 
 Against Python's `javaproperties` package, which replicates
 `java.util.Properties` and is itself tested against Java. The corpus is a
-hand-written set that pins each rule above, plus **four thousand random cases**
-built from the format's own punctuation. All 4,030 agree.
+hand-written set that pins each rule above, plus **six thousand random cases**
+built from the format's own punctuation: separators, escapes, `\uXXXX` sequences,
+line continuations, comments, all four line endings and the ISO-8859-1 default
+all mixed into the same document. All 6,084 agree.
 
-Agreeing with a reference matters more than agreeing with yourself here: several
-of these rules are counter-intuitive enough that the obvious implementation is
-wrong, and the random corpus is what catches the cases where two rules meet.
+The random corpus is generated with a fixed seed, so it can be rebuilt exactly,
+and the cases where two rules meet are the ones it exists for: a key that ends in
+a backslash just before a comment, a `\uXXXX` split across a continuation, a
+separator that is also an escaped character. Those are where the obvious
+implementation and the reference part ways.
 
 Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan

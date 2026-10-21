@@ -13,6 +13,6 @@ fn readme_examples() {
         &Parameters::for_method(Method::MuslimWorldLeague).with_madhab(Madhab::Shafi),
     );
 
-    let (hour, minute) = times.dhuhr.unwrap();
+    let (hour, minute, _second) = times.dhuhr.unwrap();
     assert_eq!(format!("{hour:02}:{minute:02}"), "09:06");
 }

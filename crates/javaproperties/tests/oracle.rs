@@ -1,7 +1,7 @@
 //! Comparison against Python's `javaproperties` package.
 //!
 //! The corpus is two files: a hand-written set that pins each rule, and a
-//! four-thousand-case random set built from the format's own punctuation, which
+//! six-thousand-case random set built from the format's own punctuation, which
 //! is what finds the interactions between the rules that no one thinks to write
 //! down.
 //!
@@ -102,7 +102,7 @@ fn read_cases(text: &str) -> Vec<Case> {
 #[test]
 fn every_corpus_case_matches_javaproperties() {
     let cases = cases();
-    assert!(cases.len() > 4_000, "only {} cases", cases.len());
+    assert!(cases.len() > 6_000, "only {} cases", cases.len());
 
     let mut failures = Vec::new();
     for case in &cases {

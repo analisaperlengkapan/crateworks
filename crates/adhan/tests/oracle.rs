@@ -20,16 +20,17 @@ struct Case {
     madhab: Madhab,
     rule: HighLatitudeRule,
     /// The six times as ISO strings, or `None` when the reference had none.
-    times: [Option<(i64, u32)>; 6],
+    times: [Option<(i64, u32, u32)>; 6],
 }
 
 /// Parses an ISO timestamp into the UTC hour and minute.
-fn parse_iso(text: &str) -> Option<(i64, u32)> {
+fn parse_iso(text: &str) -> Option<(i64, u32, u32)> {
     // "2026-01-01T04:57:00.000Z"
     let t = text.split('T').nth(1)?;
     let hour: i64 = t.get(0..2)?.parse().ok()?;
     let minute: u32 = t.get(3..5)?.parse().ok()?;
-    Some((hour, minute))
+    let second: u32 = t.get(6..8)?.parse().ok()?;
+    Some((hour, minute, second))
 }
 
 fn method_from(name: &str) -> Method {
@@ -219,12 +220,12 @@ fn a_later_fajr_angle_gives_an_earlier_fajr() {
 }
 
 /// Minutes since midnight, for comparing two clock times across a wrap.
-fn minutes(time: (i64, u32)) -> i64 {
+fn minutes(time: (i64, u32, u32)) -> i64 {
     time.0 * 60 + i64::from(time.1)
 }
 
 /// The length of a span that may wrap past midnight.
-fn span(from: (i64, u32), to: (i64, u32)) -> i64 {
+fn span(from: (i64, u32, u32), to: (i64, u32, u32)) -> i64 {
     (minutes(to) - minutes(from)).rem_euclid(24 * 60)
 }
 
@@ -258,8 +259,8 @@ fn isha_defined_by_an_interval_is_exactly_that_interval_after_sunset() {
         39.8262,
         &Parameters::for_method(Method::UmmAlQura),
     );
-    let (mh, mm) = times.maghrib.unwrap();
-    let (ih, im) = times.isha.unwrap();
+    let (mh, mm, _) = times.maghrib.unwrap();
+    let (ih, im, _) = times.isha.unwrap();
     let sunset_minutes = mh * 60 + i64::from(mm);
     let isha_minutes = ih * 60 + i64::from(im);
     let difference = (isha_minutes - sunset_minutes).rem_euclid(24 * 60);

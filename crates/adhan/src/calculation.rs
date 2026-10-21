@@ -138,17 +138,17 @@ impl Method {
             Self::MuslimWorldLeague => {
                 parameters.fajr_angle = 18.0;
                 parameters.isha_angle = 17.0;
-                parameters.dhuhr_minutes = 1.0;
+                parameters.method_minutes[DHUHR] = 1.0;
             }
             Self::Egyptian => {
                 parameters.fajr_angle = 19.5;
                 parameters.isha_angle = 17.5;
-                parameters.dhuhr_minutes = 1.0;
+                parameters.method_minutes[DHUHR] = 1.0;
             }
             Self::Karachi => {
                 parameters.fajr_angle = 18.0;
                 parameters.isha_angle = 18.0;
-                parameters.dhuhr_minutes = 1.0;
+                parameters.method_minutes[DHUHR] = 1.0;
             }
             Self::UmmAlQura => {
                 parameters.fajr_angle = 18.5;
@@ -157,21 +157,21 @@ impl Method {
             Self::Dubai => {
                 parameters.fajr_angle = 18.2;
                 parameters.isha_angle = 18.2;
-                parameters.sunrise_minutes = -3.0;
-                parameters.dhuhr_minutes = 3.0;
-                parameters.asr_minutes = 3.0;
-                parameters.maghrib_minutes = 3.0;
+                parameters.method_minutes[SUNRISE] = -3.0;
+                parameters.method_minutes[DHUHR] = 3.0;
+                parameters.method_minutes[ASR] = 3.0;
+                parameters.method_minutes[MAGHRIB] = 3.0;
             }
             Self::MoonsightingCommittee => {
                 parameters.fajr_angle = 18.0;
                 parameters.isha_angle = 18.0;
-                parameters.dhuhr_minutes = 5.0;
-                parameters.maghrib_minutes = 3.0;
+                parameters.method_minutes[DHUHR] = 5.0;
+                parameters.method_minutes[MAGHRIB] = 3.0;
             }
             Self::NorthAmerica => {
                 parameters.fajr_angle = 15.0;
                 parameters.isha_angle = 15.0;
-                parameters.dhuhr_minutes = 1.0;
+                parameters.method_minutes[DHUHR] = 1.0;
             }
             Self::Kuwait => {
                 parameters.fajr_angle = 18.0;
@@ -184,7 +184,7 @@ impl Method {
             Self::Singapore => {
                 parameters.fajr_angle = 20.0;
                 parameters.isha_angle = 18.0;
-                parameters.dhuhr_minutes = 1.0;
+                parameters.method_minutes[DHUHR] = 1.0;
                 parameters.rounding = Rounding::Up;
             }
             Self::Tehran => {
@@ -195,16 +195,24 @@ impl Method {
             Self::Turkey => {
                 parameters.fajr_angle = 18.0;
                 parameters.isha_angle = 17.0;
-                parameters.sunrise_minutes = -7.0;
-                parameters.dhuhr_minutes = 5.0;
-                parameters.asr_minutes = 4.0;
-                parameters.maghrib_minutes = 7.0;
+                parameters.method_minutes[SUNRISE] = -7.0;
+                parameters.method_minutes[DHUHR] = 5.0;
+                parameters.method_minutes[ASR] = 4.0;
+                parameters.method_minutes[MAGHRIB] = 7.0;
             }
             Self::Other => {}
         }
         parameters
     }
 }
+
+/// The positions in `method_minutes` and the caller's adjustments, in order.
+const FAJR: usize = 0;
+const SUNRISE: usize = 1;
+const DHUHR: usize = 2;
+const ASR: usize = 3;
+const MAGHRIB: usize = 4;
+const ISHA: usize = 5;
 
 /// How seconds are handled when a time is reported.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -241,7 +249,8 @@ pub struct Parameters {
     pub high_latitude_rule: HighLatitudeRule,
     /// How seconds are rounded.
     pub rounding: Rounding,
-    /// Minutes added to Fajr, which no method sets but a caller may.
+    /// Minutes added to Fajr by the caller, on top of whatever the method
+    /// applies. Zero unless the caller sets it.
     pub fajr_minutes: f64,
     /// Minutes added to sunrise.
     pub sunrise_minutes: f64,
@@ -253,6 +262,14 @@ pub struct Parameters {
     pub maghrib_minutes: f64,
     /// Minutes added to Isha.
     pub isha_minutes: f64,
+    /// The minutes each method applies on its own.
+    ///
+    /// Kept apart from the `*_minutes` fields above because the reference keeps
+    /// them apart: its `methodAdjustments` come from the method and its
+    /// `adjustments` from the caller, and a caller adding two minutes to Dhuhr
+    /// under a method that already adds five gets seven, not two. Folding them
+    /// into one field would make that impossible to express.
+    method_minutes: [f64; 6],
 }
 
 impl Default for Parameters {
@@ -272,6 +289,7 @@ impl Default for Parameters {
             asr_minutes: 0.0,
             maghrib_minutes: 0.0,
             isha_minutes: 0.0,
+            method_minutes: [0.0; 6],
         }
     }
 }
@@ -295,6 +313,19 @@ impl Parameters {
     pub fn with_high_latitude_rule(mut self, rule: HighLatitudeRule) -> Self {
         self.high_latitude_rule = rule;
         self
+    }
+
+    /// The minutes to add to a time: the caller's own, plus the method's.
+    fn added_minutes(&self, prayer: usize) -> f64 {
+        let caller = match prayer {
+            FAJR => self.fajr_minutes,
+            SUNRISE => self.sunrise_minutes,
+            DHUHR => self.dhuhr_minutes,
+            ASR => self.asr_minutes,
+            MAGHRIB => self.maghrib_minutes,
+            _ => self.isha_minutes,
+        };
+        caller + self.method_minutes[prayer]
     }
 }
 
@@ -377,20 +408,34 @@ impl DayTime {
         }
     }
 
-    /// The hour and minute on a 24-hour clock.
+    /// The hour, minute and second on a 24-hour clock.
     ///
     /// A time before midnight or after the next one is reduced into the day, so
     /// a caller reading the clock sees the right reading; the reference does the
     /// same, and a time that crosses midnight is expected to be offset by the
     /// caller's own timezone anyway.
-    pub(crate) fn components(self) -> Option<(i64, u32)> {
+    ///
+    /// The seconds are always whole: the reference floors the floating-point
+    /// hour to whole seconds before it starts, and nothing after that
+    /// reintroduces a fraction. With `Rounding::None` the second is the real one,
+    /// which is the only way to see the reference's own answer exactly.
+    pub(crate) fn components(self) -> Option<(i64, u32, u32)> {
         if !self.is_valid() {
             return None;
         }
-        let total_minutes = (self.seconds / 60.0).round() as i64;
-        let day_minutes = 24 * 60;
-        let normalized = total_minutes.rem_euclid(day_minutes);
-        Some((normalized / 60, (normalized % 60) as u32))
+        // Floored, not truncated toward zero. The reference keeps whole
+        // milliseconds of an absolute instant and reads the clock off that, so a
+        // time before midnight - a negative reading here - lands on the second
+        // below, not the one above. Truncating instead is a second out, and only
+        // shows with `Rounding::None` at high latitude.
+        let total_seconds = self.seconds.floor() as i64;
+        let day_seconds = 24 * 60 * 60;
+        let normalized = total_seconds.rem_euclid(day_seconds);
+        Some((
+            normalized / 3600,
+            ((normalized % 3600) / 60) as u32,
+            (normalized % 60) as u32,
+        ))
     }
 }
 
@@ -405,17 +450,17 @@ impl DayTime {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PrayerTimes {
     /// Fajr, before sunrise.
-    pub fajr: Option<(i64, u32)>,
+    pub fajr: Option<(i64, u32, u32)>,
     /// Sunrise.
-    pub sunrise: Option<(i64, u32)>,
+    pub sunrise: Option<(i64, u32, u32)>,
     /// Dhuhr, after the sun passes the meridian.
-    pub dhuhr: Option<(i64, u32)>,
+    pub dhuhr: Option<(i64, u32, u32)>,
     /// Asr.
-    pub asr: Option<(i64, u32)>,
+    pub asr: Option<(i64, u32, u32)>,
     /// Maghrib, at sunset.
-    pub maghrib: Option<(i64, u32)>,
+    pub maghrib: Option<(i64, u32, u32)>,
     /// Isha, after twilight.
-    pub isha: Option<(i64, u32)>,
+    pub isha: Option<(i64, u32, u32)>,
 }
 
 /// Computes the prayer times for a date and location.
@@ -487,27 +532,27 @@ pub fn prayer_times(
 
     PrayerTimes {
         fajr: fajr
-            .plus_minutes(parameters.fajr_minutes)
+            .plus_minutes(parameters.added_minutes(FAJR))
             .rounded(parameters.rounding)
             .components(),
         sunrise: sunrise
-            .plus_minutes(parameters.sunrise_minutes)
+            .plus_minutes(parameters.added_minutes(SUNRISE))
             .rounded(parameters.rounding)
             .components(),
         dhuhr: transit
-            .plus_minutes(parameters.dhuhr_minutes)
+            .plus_minutes(parameters.added_minutes(DHUHR))
             .rounded(parameters.rounding)
             .components(),
         asr: asr
-            .plus_minutes(parameters.asr_minutes)
+            .plus_minutes(parameters.added_minutes(ASR))
             .rounded(parameters.rounding)
             .components(),
         maghrib: maghrib
-            .plus_minutes(parameters.maghrib_minutes)
+            .plus_minutes(parameters.added_minutes(MAGHRIB))
             .rounded(parameters.rounding)
             .components(),
         isha: isha
-            .plus_minutes(parameters.isha_minutes)
+            .plus_minutes(parameters.added_minutes(ISHA))
             .rounded(parameters.rounding)
             .components(),
     }
@@ -652,18 +697,21 @@ mod tests {
     #[test]
     fn rounding_follows_the_rule() {
         let time = DayTime::from_hours(12.0 + 20.0 / 3600.0);
-        assert_eq!(time.rounded(Rounding::Nearest).components(), Some((12, 0)));
-        assert_eq!(time.rounded(Rounding::Up).components(), Some((12, 1)));
-        assert_eq!(time.rounded(Rounding::None).components(), Some((12, 0)));
+        assert_eq!(
+            time.rounded(Rounding::Nearest).components(),
+            Some((12, 0, 0))
+        );
+        assert_eq!(time.rounded(Rounding::Up).components(), Some((12, 1, 0)));
+        assert_eq!(time.rounded(Rounding::None).components(), Some((12, 0, 20)));
     }
 
     #[test]
     fn a_time_outside_the_day_keeps_its_clock_but_moves_the_day() {
         // A negative hour is the previous day, 24 or more the next; the clock
         // reading is what the caller sees, so both reduce.
-        assert_eq!(DayTime::from_hours(-0.5).components(), Some((23, 30)));
-        assert_eq!(DayTime::from_hours(25.5).components(), Some((1, 30)));
-        assert_eq!(DayTime::from_hours(12.0).components(), Some((12, 0)));
+        assert_eq!(DayTime::from_hours(-0.5).components(), Some((23, 30, 0)));
+        assert_eq!(DayTime::from_hours(25.5).components(), Some((1, 30, 0)));
+        assert_eq!(DayTime::from_hours(12.0).components(), Some((12, 0, 0)));
         // A time that does not exist, such as a sunrise the sun never has, is
         // reported as absent rather than as an arbitrary reading.
         assert_eq!(DayTime::from_hours(f64::NAN).components(), None);

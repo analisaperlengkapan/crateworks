@@ -18,7 +18,7 @@
 //! let times = prayer_times(2026, 10, 21, 21.4225, 39.8262, &parameters);
 //!
 //! // The result is in UTC. Add three hours for the local clock.
-//! let (hour, _minute) = times.dhuhr.unwrap();
+//! let (hour, _minute, _second) = times.dhuhr.unwrap();
 //! assert_eq!((hour + 3) % 24, 12, "local Dhuhr is a little after noon");
 //! assert!(times.fajr < times.sunrise);
 //! assert!(times.sunrise < times.dhuhr);

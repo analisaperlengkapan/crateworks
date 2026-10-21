@@ -16,7 +16,7 @@ let times = prayer_times(
     &Parameters::for_method(Method::MuslimWorldLeague).with_madhab(Madhab::Shafi),
 );
 
-let (hour, minute) = times.dhuhr.unwrap();
+let (hour, minute, _second) = times.dhuhr.unwrap();
 println!("Dhuhr at {hour:02}:{minute:02} UTC");
 ```
 
@@ -27,7 +27,10 @@ not guess one from a longitude: a place can be an hour or more from its solar
 time, sometimes for political reasons. The caller adds the offset, which keeps a
 wrong local time the caller's decision rather than a surprise.
 
-The six times are returned as whole hours and minutes. Nothing here formats them,
+The six times are returned as whole hours, minutes and seconds. The seconds are
+there because `Rounding::None` keeps them and the reference does the same; under
+the default `Rounding::Nearest` the second is always zero. Nothing here formats
+them,
 reads a clock, or knows about time zones; that is the caller's business.
 
 ## The two choices that actually matter
@@ -79,6 +82,26 @@ curve, which is implemented as it defines it.
 The results are compared against the `adhan` JavaScript library, the
 implementation most prayer apps use, over a grid of dates, locations, methods,
 schools and high latitude rules: **37,440 times, all matching**.
+
+On top of that grid there is a corpus of **6,000 random cases**: latitudes
+weighted to the polar circles, longitudes near the date line, all thirteen
+methods, both schools, all three high latitude rules, all three rounding modes,
+and manual adjustments from five minutes before to five minutes after. It is
+generated deterministically, so it can be rebuilt exactly.
+
+That corpus found two real gaps the grid had missed, because the grid used no
+adjustments and only the default rounding:
+
+* The default is `Rounding::Nearest`, which zeroes the seconds, so a whole-minute
+  result looked correct. `Rounding::None` keeps the second the reference's own
+  arithmetic produces, and the times now carry seconds so it can be reported.
+* The minutes a method applies on its own are separate from the minutes the
+  caller adds, and the reference adds them together. Folding the two into one
+  field made "two minutes on top of the method's five" impossible to express.
+
+One more: at high latitude with `Rounding::None`, a Fajr that falls before
+midnight UTC came out a second late, because truncating toward zero is not the
+same as flooring when the reading is negative.
 
 That comparison also settled two things worth recording. The `adhan` Python port
 is wrong for eastern longitudes, giving Jakarta's Dhuhr about fourteen hours off,
