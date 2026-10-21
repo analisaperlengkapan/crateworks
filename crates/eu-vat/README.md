@@ -43,7 +43,7 @@ The country rules are a transcription of the MIT-compatible parts of
 contributors, which in turn follows each authority's published specification.
 The test fixtures were generated from python-stdnum, so the tests compare
 against an independent implementation rather than against this crate's own
-output. See [`NOTICE`](NOTICE).
+output. See [`NOTICE`](https://github.com/analisaperlengkapan/crateworks/blob/main/crates/eu-vat/NOTICE).
 
 Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan

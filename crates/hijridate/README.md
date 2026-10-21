@@ -40,7 +40,7 @@ authority publishes its own.
 The month-start table and the test fixtures are generated from the
 [`hijridate`](https://github.com/dralshehri/hijridate) Python package by Mohammed
 Alshehri, which is MIT licensed and reproduces the Umm al-Qura calendar as
-published by the Saudi authorities. See [`NOTICE`](NOTICE).
+published by the Saudi authorities. See [`NOTICE`](https://github.com/analisaperlengkapan/crateworks/blob/main/crates/hijridate/NOTICE).
 
 Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan

@@ -140,11 +140,22 @@ guessed at.
 
 `cargo package` resolves a `path` dependency against the registry, so a crate
 that depends on another crate in this workspace cannot be packaged until that
-dependency is published. Publish bottom-up:
+dependency is published. Publish bottom-up. The check is `cargo publish
+--dry-run -p <crate>`: it fails with "no matching package named `xmlkit` found"
+for every crate in the second group until `xmlkit` is on the registry. There is
+no flag that gets around this, `--no-verify` included, because the failure is in
+resolving the dependency rather than in building it.
 
 1. `xmlkit`
-2. `holidays-rs`, `hijridate`, `stdnum-rs`, `spreadsheet-formula` (independent of the rest)
-3. `iso20022-rs`, `soap-client` (both depend on `xmlkit`)
+2. `iso20022-rs`, `soap-client`, `wssec`, `factur-x`, `pdfa` (each depends on `xmlkit`)
+3. Everything else is independent and can go in any order: `holidays-rs`,
+   `hijridate`, `stdnum-rs`, `spreadsheet-formula`, `eu-vat`, `iso8583-msg`,
+   `arabic`, `adhan`, `object-hash`, `javaproperties`.
+
+The other rule is that a published version cannot be overwritten. `0.1.0` is
+spent the moment it is uploaded, so a mistake in the first upload of a crate
+costs the `0.1.0` number and the fix goes out as `0.1.1`. Check with
+`cargo publish --dry-run` first.
 
 ## Verification
 
