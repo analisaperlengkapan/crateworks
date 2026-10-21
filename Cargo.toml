@@ -11,6 +11,7 @@ members = [
     "crates/eu-vat",
     "crates/iso8583-msg",
     "crates/arabic",
+    "crates/factur-x",
 ]
 
 [workspace.package]

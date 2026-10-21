@@ -335,7 +335,6 @@ const NUMERIC_FIELDS: [u8; 67] = [
     80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 91, 92, 93, 94, 97, 99, 100,
 ];
 
-
 /// A specification with the whole message in EBCDIC code page 500, which is
 /// what older mainframe switches expect.
 #[must_use]

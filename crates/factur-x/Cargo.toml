@@ -1,0 +1,18 @@
+[package]
+name = "factur-x"
+description = "Factur-X and ZUGFeRD hybrid e-invoices: EN 16931 CII and UBL generation, parsing and validation."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["factur-x", "zugferd", "en16931", "e-invoice", "ubl"]
+categories = ["encoding", "finance", "parser-implementations"]
+readme = "README.md"
+
+[dependencies]
+xmlkit.workspace = true
+
+[lints]
+workspace = true

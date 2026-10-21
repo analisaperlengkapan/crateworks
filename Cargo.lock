@@ -11,6 +11,13 @@ name = "eu-vat"
 version = "0.1.0"
 
 [[package]]
+name = "factur-x"
+version = "0.1.0"
+dependencies = [
+ "xmlkit",
+]
+
+[[package]]
 name = "hijridate"
 version = "0.1.0"
 
