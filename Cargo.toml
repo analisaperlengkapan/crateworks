@@ -8,6 +8,8 @@ members = [
     "crates/spreadsheet-formula",
     "crates/iso20022-rs",
     "crates/soap-client",
+    "crates/eu-vat",
+    "crates/iso8583-msg",
 ]
 
 [workspace.package]

@@ -3,6 +3,10 @@
 version = 4
 
 [[package]]
+name = "eu-vat"
+version = "0.1.0"
+
+[[package]]
 name = "hijridate"
 version = "0.1.0"
 
@@ -16,6 +20,10 @@ version = "0.1.0"
 dependencies = [
  "xmlkit",
 ]
+
+[[package]]
+name = "iso8583-msg"
+version = "0.1.0"
 
 [[package]]
 name = "soap-client"

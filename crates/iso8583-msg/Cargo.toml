@@ -1,0 +1,17 @@
+[package]
+name = "iso8583-msg"
+description = "ISO 8583 card transaction messages: bitmap, message type indicator, field encoding and decoding."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["iso8583", "payments", "card", "atm", "bitmap"]
+categories = ["encoding", "parser-implementations", "finance"]
+readme = "README.md"
+
+[dependencies]
+
+[lints]
+workspace = true
