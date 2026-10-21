@@ -21,6 +21,9 @@ to keep them:
 - **Typed errors.** Errors are enums with a `Display` implementation, never a
   string.
 - **Documented public API**, with a doctest on every crate root.
+- **A `README.md` whose example runs.** Every crate carries a
+  `tests/readme.rs` that executes the README example, so the documentation
+  cannot drift from the API. A crate without one is not finished.
 - **No `unsafe`.** The workspace forbids it at the lint level.
 
 ## Before you open a pull request
@@ -35,6 +38,11 @@ cargo test --workspace
 
 All three must pass. `-D warnings` means a warning is a build failure, so a
 clean run locally is required.
+
+If your change adds a workspace dependency between crates, the publish order
+changes with it. `python3 scripts/publish.py` works the order out from the
+manifests and dry-runs every crate without uploading anything; see
+[`scripts/README.md`](scripts/README.md).
 
 ## What makes a good contribution
 

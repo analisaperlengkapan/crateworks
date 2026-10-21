@@ -157,6 +157,14 @@ spent the moment it is uploaded, so a mistake in the first upload of a crate
 costs the `0.1.0` number and the fix goes out as `0.1.1`. Check with
 `cargo publish --dry-run` first.
 
+`scripts/publish.py` works out the order from the manifests and runs it:
+
+```sh
+python3 scripts/publish.py            # dry-run every crate, upload nothing
+python3 scripts/publish.py --strict   # same, but exit 1 if anything is blocked
+python3 scripts/publish.py --publish  # upload, in order, stopping at the first failure
+```
+
 ## Verification
 
 ```sh
