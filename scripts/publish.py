@@ -23,6 +23,13 @@ Usage:
     python3 scripts/publish.py --publish       # upload, in order, stop on error
     python3 scripts/publish.py --publish --yes # same, no confirmation prompt
 
+A rate limit from crates.io is waited out and retried rather than reported as a
+broken crate; pass --delay SECONDS to space the uploads out instead.
+
+`cargo publish --workspace` also orders by dependency and is what to reach for
+when cargo's own output is wanted. This script exists for the check, which that
+command cannot do without attempting an upload, and for the summary.
+
 Exit code is 0 when nothing is wrong: a crate waiting on an unpublished
 dependency is the expected pre-publish state, not an error. Pass --strict to make
 it one, which is the check to run after publishing a dependency.
@@ -32,6 +39,7 @@ import argparse
 import re
 import subprocess
 import sys
+import time
 import tomllib
 from pathlib import Path
 
@@ -39,6 +47,14 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # "no matching package named `xmlkit` found"
 MISSING_DEP = re.compile(r"no matching package named `([^`]+)` found")
+
+# crates.io rate limits uploads. The nginx config allows 1 request per minute
+# with a burst of 30, so a workspace this size fits in the burst, but a larger
+# one or a second run inside the same minute can be refused. Cargo surfaces the
+# refusal as a plain 429, so it is detected here and waited out rather than
+# reported as a broken crate.
+RATE_LIMITED = re.compile(r"429|too many requests|rate limit", re.IGNORECASE)
+RATE_LIMIT_BACKOFF = 70  # seconds; the limit window is 60
 
 
 def load_manifests() -> tuple[list[str], dict[str, list[str]]]:
@@ -140,10 +156,33 @@ def run_publish(crate: str, dry_run: bool) -> tuple[str, str]:
     if missing:
         return "blocked", missing.group(1)
 
+    if RATE_LIMITED.search(output):
+        return "rate-limited", ""
+
     for line in output.splitlines():
         if line.startswith("error"):
             return "failed", line.removeprefix("error:").strip()
     return "failed", f"exit code {result.returncode}"
+
+
+def publish_with_retry(crate: str, attempts: int = 3) -> tuple[str, str]:
+    """Publish one crate, waiting out crates.io rate limiting.
+
+    A rate limit is not a problem with the crate, so it is retried instead of
+    being reported. Any other verdict is returned as-is.
+    """
+    for attempt in range(1, attempts + 1):
+        verdict, detail = run_publish(crate, dry_run=False)
+        if verdict != "rate-limited":
+            return verdict, detail
+        if attempt == attempts:
+            break
+        print(
+            f"    crates.io rate limited this upload; waiting "
+            f"{RATE_LIMIT_BACKOFF}s (attempt {attempt} of {attempts})"
+        )
+        time.sleep(RATE_LIMIT_BACKOFF)
+    return "failed", "still rate limited after retries"
 
 
 def main() -> int:
@@ -156,6 +195,13 @@ def main() -> int:
     )
     parser.add_argument(
         "--strict", action="store_true", help="treat a blocked crate as a failure"
+    )
+    parser.add_argument(
+        "--delay",
+        type=float,
+        default=0.0,
+        metavar="SECONDS",
+        help="wait this long between uploads (crates.io allows 1 per minute)",
     )
     args = parser.parse_args()
 
@@ -199,9 +245,17 @@ def main() -> int:
     dirty: list[tuple[str, str]] = []
     failed: list[tuple[str, str]] = []
     ready: list[str] = []
+    uploaded_any = False
 
     for crate in order:
-        verdict, detail = run_publish(crate, dry_run=not args.publish)
+        if args.publish:
+            if uploaded_any and args.delay:
+                time.sleep(args.delay)
+            verdict, detail = publish_with_retry(crate)
+            if verdict != "failed":
+                uploaded_any = True
+        else:
+            verdict, detail = run_publish(crate, dry_run=True)
         if verdict == "ready":
             ready.append(crate)
             print(f"{crate:<{width}}  ready")

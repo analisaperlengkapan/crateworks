@@ -31,6 +31,7 @@ hand-written list does: if a crate gains a workspace dependency, it moves.
 python3 scripts/publish.py            # dry-run every crate, upload nothing
 python3 scripts/publish.py --strict   # same, but exit 1 if anything is blocked
 python3 scripts/publish.py --publish  # upload, in order, stopping at the first failure
+python3 scripts/publish.py --publish --delay 65   # space uploads out, one per minute
 ```
 
 The default mode uploads nothing and always exits 0 unless a crate genuinely
@@ -55,3 +56,15 @@ Each line reports one of four states:
 The `uncommitted` check is scoped to each crate because cargo's is: a changed
 file at the repository root does not stop `cargo publish -p xmlkit`, but one
 under `crates/xmlkit/` does.
+
+## Rate limiting
+
+crates.io accepts one upload per minute with a burst of 30, so this workspace
+fits inside the burst. A refused upload comes back as HTTP 429, which cargo
+reports as a plain failure; the script waits 70 seconds and retries instead of
+calling the crate broken. Pass `--delay 65` to stay under the limit rather than
+relying on the retry.
+
+`cargo publish --workspace` also orders by dependency and is the command to use
+when cargo's own output is wanted. It cannot check without attempting an upload,
+which is why this script exists for the dry run.
