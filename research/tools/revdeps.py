@@ -15,12 +15,24 @@ def revdeps(name):
     if not d: return None
     return d.get('meta',{}).get('total')
 
+def gh_slug(repo):
+    """The `owner/name` part of a GitHub URL, or None if it is not GitHub.
+
+    Parses the URL and compares the host exactly. Testing for the substring
+    'github.com' would also accept 'github.com.evil.example' or a query string
+    that merely mentions github.com.
+    """
+    parts = urllib.parse.urlsplit(repo)
+    if parts.hostname != 'github.com':
+        return None
+    return parts.path.strip('/').removesuffix('.git') or None
+
 def gh_activity(repo):
     if not repo: return None
     r=repo.rstrip('/').replace('.git','')
     for host in ["https://api.github.com/repos/"]:
         try:
-            slug=r.split('github.com/')[-1] if 'github.com' in r else None
+            slug=gh_slug(r)
             if not slug: return None
             d=get(host+slug)
             if not d: return None

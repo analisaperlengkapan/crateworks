@@ -8,7 +8,25 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+# The workflows only read the repository. Without this block the GITHUB_TOKEN
+# keeps the default write permissions, which a compromised action or a pull
+# request could use. CodeQL flags each job that does not set it.
+permissions:
+  contents: read
+
 jobs:
+  # Runs first and alone: a job that contains an unpinned action dies at "Set up
+  # job" before any step runs, so the check cannot live only in the job it is
+  # meant to police. This job holds one pinned action, so it survives to report
+  # the real reason. The `test` job runs the check too, for the case where the
+  # unpinned action is added here.
+  pinned:
+    name: actions pinned to a SHA
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: python3 scripts/check_actions_pinned.py
+
   msrv:
     name: MSRV (rust-version)
     runs-on: ubuntu-latest
@@ -54,3 +72,6 @@ jobs:
       # NOTICE; stdnum-rs once cited python-stdnum in src/id/mod.rs while its
       # NOTICE said nothing. No compiler catches that.
       - run: python3 scripts/check_attribution.py
+      # The cipansor org rejects unpinned actions, and the failure is a red
+      # workflow rather than a clear message, so catch it here instead.
+      - run: python3 scripts/check_actions_pinned.py
