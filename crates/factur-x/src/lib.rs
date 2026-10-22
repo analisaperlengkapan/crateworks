@@ -48,6 +48,11 @@
 
 #![forbid(unsafe_code)]
 
+/// The README, compiled as a doctest so its example cannot drift from the API.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+pub struct ReadmeDoctests;
+
 pub mod cii;
 pub mod model;
 pub mod ubl;

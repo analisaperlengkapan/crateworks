@@ -39,6 +39,11 @@
 //! JavaScript library, which is the implementation most prayer apps use, across
 //! thousands of date, location, method and school combinations.
 
+/// The README, compiled as a doctest so its example cannot drift from the API.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+pub struct ReadmeDoctests;
+
 mod astronomy;
 mod calculation;
 

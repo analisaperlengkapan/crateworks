@@ -2769,7 +2769,7 @@ fn no_ligatures() -> Options {
 fn shaping_matches_the_reference_implementation() {
     for (input, expected) in SHAPING {
         let got = reshape_with(input, Direction::Logical, no_ligatures());
-        assert_eq!(got, *expected, "input {:?} produced {:?}", input, got);
+        assert_eq!(got, *expected, "input {input:?} produced {got:?}");
     }
 }
 
@@ -2777,7 +2777,7 @@ fn shaping_matches_the_reference_implementation() {
 fn ligatures_match_the_reference_implementation() {
     for (input, expected) in LIGATURES {
         let got = reshape_with(input, Direction::Logical, Options::default());
-        assert_eq!(got, *expected, "input {:?} produced {:?}", input, got);
+        assert_eq!(got, *expected, "input {input:?} produced {got:?}");
     }
 }
 

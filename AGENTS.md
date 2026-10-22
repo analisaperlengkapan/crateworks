@@ -38,16 +38,16 @@ python3 scripts/publish.py
 ```
 
 Cargo lives at `$HOME/.cargo/bin` in this environment. `rust-toolchain.toml`
-pins `stable`; edition is 2024 and `rust-version` is 1.99.
+pins `stable`; edition is 2024 and `rust-version` is 1.88.
 
 `rust-version` is a **floor**, not the toolchain CI builds with. CI runs two
-jobs: one on current stable, one that installs 1.99 and runs `cargo check
---workspace --all-targets` with `-D warnings`. The second job exists because the
-floor was once wrong for months: it read 1.85 while `pdfa`, `iso20022-rs` and
-`soap-client` used let-chains, which need 1.88. Nothing caught it because no job
-ever compiled against the declared minimum. If you raise the floor deliberately,
-raise it in `Cargo.toml` and in the `msrv` job's `toolchain:` input together, or
-the job will pass while the claim is false.
+jobs: one on current stable, one that installs 1.88 and runs `cargo check
+--workspace --all-targets`, clippy with `-D warnings`, and the doctests. The
+second job exists because the floor was once wrong for months: it read 1.85 while
+`pdfa`, `iso20022-rs` and `soap-client` used let-chains, which need 1.88. Nothing
+caught it because no job ever compiled against the declared minimum. If you raise
+the floor deliberately, raise it in `Cargo.toml` and in the `msrv` job's
+`toolchain:` input together, or the job will pass while the claim is false.
 
 ## Non-negotiable standards
 
@@ -114,9 +114,20 @@ means what you think it means. This has cost two separate debugging rounds.
   becomes `as_chunks::<64>().0`), and `collapsible_if` (a nested `if let` becomes
   a let-chain). The fix is to satisfy the lint, not to add an `allow`; the repo's
   five existing allows are the ceiling, not a precedent.
+- **The lints differ in BOTH directions, so the floor must be linted too.**
+  `uninlined_format_args` is warn-by-default in 1.88 but moved to `pedantic` by
+  1.99, so `format!("{:?}", x)` is an error on the floor and fine on stable.
+  Fixing those five sites in favour of 1.88 keeps both green; an `allow` would
+  have papered over it. Lint the floor, not just stable, or the floor's clippy
+  stays red forever.
+- **The README guard is a real test, not ceremony.** Adding the `ReadmeDoctests`
+  marker to `iso20022-rs` immediately failed: its README said
+  `use iso20022-rs::camt::BankStatement;`, and a hyphen is not legal in a Rust
+  path, so the documented import could never have compiled. The marker belongs in
+  every crate's `src/lib.rs`; a crate without one has an unverified README.
 - **`rust-toolchain.toml` outranks the toolchain you select.** `rustup` reads the
-  file in the working directory, so `rustup run 1.99.0` or a CI job whose action
-  installs 1.99 still compiles with `stable` unless `RUSTUP_TOOLCHAIN` is set
+  file in the working directory, so `rustup run 1.88.0` or a CI job whose action
+  installs 1.88 still compiles with `stable` unless `RUSTUP_TOOLCHAIN` is set
   (that variable beats the file) or the action uses `override: true`. This is why
   the MSRV job sets both: without them the job would pass while testing the wrong
   compiler, which is exactly how a `rust-version` of 1.85 survived in a tree that

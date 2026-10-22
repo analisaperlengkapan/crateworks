@@ -182,8 +182,8 @@ pub(crate) fn encode_length(length: usize, spec: &FieldSpec) -> Result<Vec<u8>> 
         return Ok(Vec::new());
     }
     match spec.length {
-        LengthEncoding::Ascii => Ok(format!("{length:0>width$}", width = units).into_bytes()),
-        LengthEncoding::Ebcdic => Ok(to_ebcdic(&format!("{length:0>width$}", width = units))?),
+        LengthEncoding::Ascii => Ok(format!("{length:0>units$}").into_bytes()),
+        LengthEncoding::Ebcdic => Ok(to_ebcdic(&format!("{length:0>units$}"))?),
         LengthEncoding::Binary => {
             let mut out = vec![0u8; units];
             for (i, byte) in out.iter_mut().enumerate() {

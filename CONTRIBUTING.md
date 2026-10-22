@@ -43,7 +43,7 @@ clean run locally is required. The `--doc` run matters as much as the others:
 or a doc comment would slip through without it.
 
 If you use a feature newer than the declared minimum (`rust-version` in
-`Cargo.toml`, currently 1.99), raise that field in the same change. CI compiles
+`Cargo.toml`, currently 1.88), raise that field in the same change. CI compiles
 the workspace against the declared floor, so a stale floor fails the `msrv` job
 rather than shipping as a false promise.
 

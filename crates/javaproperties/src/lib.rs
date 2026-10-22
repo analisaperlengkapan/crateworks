@@ -40,6 +40,11 @@
 //! matters more than checking the parser against itself: several of these rules
 //! are counter-intuitive enough that a reasonable guess is wrong.
 
+/// The README, compiled as a doctest so its example cannot drift from the API.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+pub struct ReadmeDoctests;
+
 mod escape;
 mod reader;
 

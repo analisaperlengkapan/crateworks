@@ -59,16 +59,19 @@ rest depend only on `xmlkit` from this same workspace.
 ## Building
 
 ```sh
-cargo test --workspace
+cargo test --workspace --all-targets
+cargo test --workspace --doc
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all -- --check
 ```
 
-The minimum supported Rust version is 1.99 and the crates use edition 2024.
+The minimum supported Rust version is 1.88 and the crates use edition 2024.
 `rust-version` is a floor, not the toolchain used to build: CI checks the
-workspace both on current stable and on 1.99, so the floor cannot drift away
+workspace both on current stable and on 1.88, so the floor cannot drift away
 from the code the way it did when it read 1.85 while the crates used let-chains
-that need 1.88.
+that need 1.88. Every crate's `src/lib.rs` carries a `#[cfg(doctest)]`
+`ReadmeDoctests` marker, so its README example is compiled as a test and cannot
+describe an API that no longer exists.
 
 ## Using a single crate
 

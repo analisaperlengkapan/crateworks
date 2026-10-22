@@ -77,6 +77,11 @@
 //! value came from somewhere. If a stronger digest is wanted, hash the canonical
 //! bytes — [`canonical`] returns them — with any other function.
 
+/// The README, compiled as a doctest so its example cannot drift from the API.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+pub struct ReadmeDoctests;
+
 mod encode;
 mod sha1;
 

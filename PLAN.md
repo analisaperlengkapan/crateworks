@@ -172,10 +172,10 @@ crates are added; they are here as an order of magnitude, not as a contract.
 
 ```sh
 cargo test --workspace --all-targets      # 592 unit and README tests
-cargo test --workspace --doc              # 39 doctests, not covered by --all-targets
+cargo test --workspace --doc              # 56 doctests, not covered by --all-targets
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all -- --check
 ```
 
-`rust-version` is 1.99 and CI has a second job that compiles the workspace on
-exactly that toolchain, so the floor is checked rather than asserted.
+`rust-version` is 1.88 and CI has a second job that compiles, lints and runs the
+doctests on exactly that toolchain, so the floor is checked rather than asserted.

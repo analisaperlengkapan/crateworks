@@ -31,7 +31,7 @@ pub(crate) fn canonicalize(country: Country, number: String) -> String {
         // without its leading zeros and padded back to nine for checking.
         Country::Netherlands if number.len() == 10 => {
             let (bsn, tail) = number.split_at(7);
-            format!("{:0>9}{tail}", bsn)
+            format!("{bsn:0>9}{tail}")
         }
         _ => number,
     }
