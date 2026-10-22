@@ -4,4 +4,11 @@ Copyright 2026 Yayasan Pesantren Cipansor and contributors
 This product includes software developed by Yayasan Pesantren Cipansor and
 contributors (https://github.com/analisaperlengkapan/crateworks).
 
+The national identifier rules were cross-checked against the python-stdnum
+library by Arthur de Jong and contributors
+(https://arthurdejong.org/python-stdnum/), which is distributed under the GNU
+Lesser General Public License version 2.1 or later. The rules themselves encode
+each authority's published specification; this crate is an independent
+reimplementation for Rust and shares no code with it.
+
 Licensed under the Apache License, Version 2.0 (see LICENSE).

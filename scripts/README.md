@@ -1,12 +1,32 @@
 # scripts
 
-Development tools for the workspace. Nothing here is compiled into a crate, run
-by CI, or needed to build or test anything.
+Development tools for the workspace. None of them is needed to build or test a
+crate. `check_attribution.py` runs in CI, on the `test` job; the rest are run by
+hand.
 
 | Script | What it does |
 | --- | --- |
+| `check_attribution.py` | Fails when a crate credits an upstream project in its code but not in `NOTICE` (run in CI) |
 | `publish.py` | Works out the order the crates can be published in, and checks or runs it |
 | `fuzz/` | Generators for the fuzz corpora in `crates/*/tests/fixtures/` |
+
+## check_attribution.py
+
+Crates here are independent reimplementations of existing libraries, and the
+upstream licence requires that library to be named in `NOTICE`. The credit is
+easy to put in a source comment and forget in `NOTICE`: `stdnum-rs` cited
+`python-stdnum` in `src/id/mod.rs` while its `NOTICE` said nothing, even though
+`eu-vat`, from the same lineage, did name it. No compiler catches that, so the
+script does.
+
+It looks for a fixed list of upstream markers (repository paths such as
+`python-stdnum` or `dralshehri`, chosen so a crate does not match its own name)
+in each crate's `src`, `tests` and `README.md`, and requires the same marker in
+that crate's `NOTICE`.
+
+```sh
+python3 scripts/check_attribution.py   # exit 1 and name the crate if a credit is missing
+```
 
 ## publish.py
 

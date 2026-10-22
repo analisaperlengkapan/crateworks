@@ -38,12 +38,16 @@ matter rather than an EU one.
 
 ## Data provenance
 
-The country rules are a transcription of the MIT-compatible parts of
+The country rules are derived from the published national VAT specifications,
+and were cross-checked against
 [`python-stdnum`](https://arthurdejong.org/python-stdnum/) by Arthur de Jong and
-contributors, which in turn follows each authority's published specification.
-The test fixtures were generated from python-stdnum, so the tests compare
-against an independent implementation rather than against this crate's own
-output. See [`NOTICE`](https://github.com/analisaperlengkapan/crateworks/blob/main/crates/eu-vat/NOTICE).
+contributors. python-stdnum is distributed under the GNU Lesser General Public
+License version 2.1 or later; the rules it encodes are the national
+specifications, not its own text, and this crate is an independent
+reimplementation that shares no code with it. The test fixtures were generated
+from python-stdnum, so the tests compare against an independent implementation
+rather than against this crate's own output. See
+[`NOTICE`](https://github.com/analisaperlengkapan/crateworks/blob/main/crates/eu-vat/NOTICE).
 
 Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan

@@ -120,6 +120,14 @@ means what you think it means. This has cost two separate debugging rounds.
   Fixing those five sites in favour of 1.88 keeps both green; an `allow` would
   have papered over it. Lint the floor, not just stable, or the floor's clippy
   stays red forever.
+- **A credit in the code must also be in `NOTICE`.** Several crates are
+  independent reimplementations of an existing library, and the upstream licence
+  requires that library to be named in `NOTICE`. `stdnum-rs` cited
+  `python-stdnum` in `src/id/mod.rs` while its `NOTICE` listed nothing, even
+  though `eu-vat`, which shares that lineage, did name it. No compiler catches
+  this, so `scripts/check_attribution.py` does, in CI. When you add a crate that
+  reimplements something, add the marker to that script's `MARKERS` and the
+  attribution to the crate's `NOTICE` in the same change.
 - **The README guard is a real test, not ceremony.** Adding the `ReadmeDoctests`
   marker to `iso20022-rs` immediately failed: its README said
   `use iso20022-rs::camt::BankStatement;`, and a hyphen is not legal in a Rust

@@ -50,3 +50,7 @@ jobs:
       # README would never be compiled by CI without these two steps.
       - run: cargo test --workspace --doc
       - run: RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
+      # A crate that credits an upstream project in its code must name it in
+      # NOTICE; stdnum-rs once cited python-stdnum in src/id/mod.rs while its
+      # NOTICE said nothing. No compiler catches that.
+      - run: python3 scripts/check_attribution.py
