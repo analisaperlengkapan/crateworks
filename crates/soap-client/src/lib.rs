@@ -113,15 +113,15 @@ pub(crate) fn child_local<'a>(
     })
 }
 
-/// The namespace part of a prefixed name, resolved against the `xmlns` bindings
-/// declared on the element and its ancestors.
+/// The namespace of a root element, resolved through its own declarations.
 ///
-/// A full namespace resolver needs the whole ancestor chain, so this looks at
-/// the element's own `xmlns:*` attributes, which is where the declaration
-/// normally sits on a SOAP message.
+/// Delegates to `xmlkit`, which carries the whole ancestor chain. The previous
+/// version read only the element's own `xmlns:*` attributes, so a SOAP envelope
+/// whose `xmlns:soap` sat one level down was reported as having no namespace at
+/// all; a root has no ancestors, so the two agree here and the resolver behind
+/// this is the correct one rather than a special case.
 pub(crate) fn namespace_of(element: &xmlkit::Element) -> Option<String> {
-    let (prefix, _) = element.name.split_once(':')?;
-    element.attr(&format!("xmlns:{prefix}")).map(str::to_string)
+    xmlkit::element_namespace(element, element)
 }
 
 #[cfg(test)]
@@ -153,5 +153,33 @@ mod tests {
     fn namespace_of_is_none_without_a_prefix() {
         let root = parse("<Envelope/>").unwrap();
         assert!(namespace_of(&root).is_none());
+    }
+
+    #[test]
+    fn namespace_of_follows_the_uri_not_the_prefix() {
+        // The prefix is arbitrary, so a document that spells the SOAP namespace
+        // with `env` must resolve the same as one that spells it with `soap`.
+        for prefix in ["soap", "env", "s"] {
+            let root = parse(&format!(
+                r#"<{prefix}:Envelope xmlns:{prefix}="http://schemas.xmlsoap.org/soap/envelope/"/>"#
+            ))
+            .unwrap();
+            assert_eq!(
+                namespace_of(&root).as_deref(),
+                Some("http://schemas.xmlsoap.org/soap/envelope/"),
+                "prefix {prefix}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_prefixed_envelope_with_no_declaration_is_rejected() {
+        // Unbound, so it names nothing: this must not pass for a SOAP envelope.
+        let root = parse("<soap:Envelope/>").unwrap();
+        assert!(namespace_of(&root).is_none());
+        assert!(matches!(
+            crate::Envelope::parse("<soap:Envelope/>"),
+            Err(crate::Error::WrongNamespace { .. })
+        ));
     }
 }

@@ -110,8 +110,10 @@ pub(crate) fn optional_text(element: &Element, name: &str) -> Option<String> {
 pub(crate) fn document_body(xml: &str) -> Result<Element> {
     let root = xmlkit::parse(xml)?;
     if local_name(&root.name) != "Document" {
-        return Err(Error::UnsupportedMessage(root.name));
+        return Err(Error::UnsupportedMessage(root.name.clone()));
     }
+    // A clone, not a move: `Element` owns a recursive tree and has a custom
+    // `Drop`, so its fields cannot be moved out of it.
     root.children
         .iter()
         .find_map(|n| match n {

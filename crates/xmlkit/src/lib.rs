@@ -1,6 +1,13 @@
 #![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
 
+mod namespace;
+
+pub use namespace::{
+    Namespaces, XML_NAMESPACE, XMLNS_NAMESPACE, all_namespaced, attribute_namespaced,
+    element_namespace, find_namespaced, namespaces_at, split_name,
+};
+
 use std::collections::BTreeMap;
 use std::fmt::{self, Display, Write as _};
 
@@ -43,6 +50,29 @@ pub enum Node {
     Text(String),
     /// A comment, retained so that round-tripping is faithful.
     Comment(String),
+}
+
+/// Frees a tree without recursing on the call stack.
+///
+/// The derived drop descends one stack frame per level, so a deep tree aborts the
+/// process. A tree can be built by hand past [`MAX_DEPTH`], and even a parsed one
+/// is dropped on whatever stack the caller happens to be on. This walks the tree
+/// instead and frees each element as it goes, so the cost is heap, not stack.
+impl Drop for Element {
+    fn drop(&mut self) {
+        // A leaf is the common case and stays as cheap as the derived drop.
+        if self.children.is_empty() {
+            return;
+        }
+        let mut pending = std::mem::take(&mut self.children);
+        while let Some(node) = pending.pop() {
+            if let Node::Element(mut element) = node {
+                // Taking the children leaves this element empty, so dropping it at
+                // the end of this arm cannot recurse.
+                pending.append(&mut element.children);
+            }
+        }
+    }
 }
 
 impl Element {
@@ -228,19 +258,24 @@ fn unescape(s: &str) -> String {
     out
 }
 
+/// One open element: its name, its attributes, and the children read so far.
+///
+/// The parser's explicit stack is a list of these, which is what keeps it off the
+/// call stack.
+type Frame = (String, BTreeMap<String, String>, Vec<Node>);
+
 struct Parser<'a> {
     src: &'a str,
     pos: usize,
-    /// Nesting depth, capped so a hostile document cannot overflow the stack.
-    depth: usize,
 }
 
 /// The deepest element nesting [`parse`] will accept.
 ///
-/// The parser descends one stack frame per element, so an unbounded document
-/// could exhaust the stack and abort the process. Real SOAP, WSDL and ISO 20022
-/// documents nest a few dozen levels at most, so this leaves ample headroom
-/// while keeping a hostile input to a bounded cost.
+/// This is a policy limit, not a safety one: the parser and the drop both keep
+/// their own stack, so a document past this is refused because nothing legitimate
+/// nests that deep, not because accepting it would overflow. Real SOAP, WSDL and
+/// ISO 20022 documents nest a few dozen levels at most. Raising it is safe; the
+/// cost is heap, and `Element`'s own traversal is iterative too.
 pub const MAX_DEPTH: usize = 128;
 
 impl<'a> Parser<'a> {
@@ -360,55 +395,64 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Parses an element and its whole subtree.
+    ///
+    /// Iterative, not recursive. A recursive descent uses one stack frame per
+    /// level, and measured on this crate `MAX_DEPTH` levels of it overflow a
+    /// 256 KiB stack, which is a spawned thread's default on some platforms. The
+    /// cap cannot be lowered enough to fix that without refusing documents that
+    /// are fine, so the parser carries its own stack of open elements and the cap
+    /// is a policy limit rather than the thing standing between a document and an
+    /// aborted process.
     fn parse_element(&mut self) -> Result<Element> {
-        if self.depth >= MAX_DEPTH {
-            return self.err(format!("element nesting exceeds {MAX_DEPTH} levels"));
-        }
-        self.depth += 1;
-        let result = self.parse_element_inner();
-        self.depth -= 1;
-        result
-    }
+        let mut stack: Vec<Frame> = Vec::new();
 
-    fn parse_element_inner(&mut self) -> Result<Element> {
-        self.expect("<")?;
-        let name = self.parse_name()?;
-        let attributes = self.parse_attributes()?;
-        self.skip_ws();
-        if self.starts_with("/>") {
-            self.pos += 2;
-            return Ok(Element {
-                name,
-                attributes,
-                children: Vec::new(),
-            });
-        }
-        self.expect(">")?;
-
-        let mut children: Vec<Node> = Vec::new();
         loop {
+            // At the start, and only then, there is no open element and the next
+            // thing must be the root's opening tag.
+            if stack.is_empty() {
+                let (name, attributes) = self.parse_open_tag()?;
+                if self.starts_with("/>") {
+                    self.pos += 2;
+                    return Ok(Element {
+                        name,
+                        attributes,
+                        children: Vec::new(),
+                    });
+                }
+                self.expect(">")?;
+                stack.push((name, attributes, Vec::new()));
+                continue;
+            }
+
             if self.starts_with("</") {
                 self.pos += 2;
                 let close = self.parse_name()?;
                 self.skip_ws();
                 self.expect(">")?;
+                let (name, attributes, children) = stack.pop().expect("an open frame");
                 if close != name {
                     return Err(Error {
                         offset: self.pos,
                         message: format!("closing tag </{close}> does not match <{name}>"),
                     });
                 }
-                return Ok(Element {
+                let element = Element {
                     name,
                     attributes,
                     children,
-                });
+                };
+                // With no parent frame, this element is the document's root.
+                if let Some(root) = attach(element, &mut stack) {
+                    return Ok(root);
+                }
+                continue;
             }
             if self.starts_with("<!--") {
                 let start = self.pos;
                 self.skip_comment()?;
                 let body = self.src[start + 4..self.pos - 3].to_string();
-                children.push(Node::Comment(body));
+                self.children_mut(&mut stack).push(Node::Comment(body));
                 continue;
             }
             if self.starts_with("<![CDATA[") {
@@ -418,7 +462,8 @@ impl<'a> Parser<'a> {
                 };
                 let body = self.src[self.pos..self.pos + end].to_string();
                 self.pos += end + 3;
-                push_text(&mut children, body);
+                let children = self.children_mut(&mut stack);
+                push_text(children, body);
                 continue;
             }
             if self.starts_with("<?") {
@@ -429,11 +474,26 @@ impl<'a> Parser<'a> {
                 return self.err("unexpected declaration inside element");
             }
             if self.starts_with("<") {
-                let child = self.parse_element()?;
-                children.push(Node::Element(child));
+                let (name, attributes) = self.parse_open_tag()?;
+                if self.starts_with("/>") {
+                    self.pos += 2;
+                    let child = Element {
+                        name,
+                        attributes,
+                        children: Vec::new(),
+                    };
+                    self.children_mut(&mut stack).push(Node::Element(child));
+                    continue;
+                }
+                if stack.len() >= MAX_DEPTH {
+                    return self.err(format!("element nesting exceeds {MAX_DEPTH} levels"));
+                }
+                self.expect(">")?;
+                stack.push((name, attributes, Vec::new()));
                 continue;
             }
             if self.pos >= self.src.len() {
+                let (name, _, _) = stack.last().expect("an open frame");
                 return self.err(format!("unclosed element <{name}>"));
             }
             let start = self.pos;
@@ -443,8 +503,41 @@ impl<'a> Parser<'a> {
                 }
                 self.pos += c.len_utf8();
             }
-            push_text(&mut children, unescape(&self.src[start..self.pos]));
+            let text = unescape(&self.src[start..self.pos]);
+            let children = self.children_mut(&mut stack);
+            push_text(children, text);
         }
+    }
+
+    /// The children of the innermost open element, which is where content goes.
+    fn children_mut<'s>(&self, stack: &'s mut [Frame]) -> &'s mut Vec<Node> {
+        &mut stack
+            .last_mut()
+            .expect("the innermost frame is always open")
+            .2
+    }
+
+    /// Reads `<name attr="value"...` up to, but not including, `>` or `/>`.
+    fn parse_open_tag(&mut self) -> Result<(String, BTreeMap<String, String>)> {
+        self.expect("<")?;
+        let name = self.parse_name()?;
+        let attributes = self.parse_attributes()?;
+        self.skip_ws();
+        Ok((name, attributes))
+    }
+}
+
+/// Attaches a finished element to the innermost open frame.
+///
+/// Returns `Some(root)` when there was no frame to attach it to, which means the
+/// element just finished is the document's root and the caller should return it.
+fn attach(element: Element, stack: &mut [Frame]) -> Option<Element> {
+    match stack.last_mut() {
+        Some((_, _, children)) => {
+            children.push(Node::Element(element));
+            None
+        }
+        None => Some(element),
     }
 }
 
@@ -478,11 +571,7 @@ fn push_text(children: &mut Vec<Node>, text: String) {
 /// assert!(parse("<a/><b/>").is_err());
 /// ```
 pub fn parse(text: &str) -> Result<Element> {
-    let mut p = Parser {
-        src: text,
-        pos: 0,
-        depth: 0,
-    };
+    let mut p = Parser { src: text, pos: 0 };
     loop {
         p.skip_ws();
         if p.starts_with("<?") {
@@ -571,6 +660,43 @@ mod tests {
         let deep = "<a>".repeat(MAX_DEPTH + 50) + &"</a>".repeat(MAX_DEPTH + 50);
         let err = parse(&deep).unwrap_err();
         assert!(err.message.contains("nesting exceeds"), "{}", err.message);
+    }
+
+    #[test]
+    fn a_document_at_the_cap_parses_and_drops_on_a_small_stack() {
+        // Guards the parser's own stack use. Measured before it was made
+        // iterative: parsing MAX_DEPTH levels overflowed a 256 KiB stack, which is
+        // a spawned thread's default on some platforms. A stack overflow aborts
+        // the process rather than failing, so a regression here shows up as an
+        // abort and not as a failed assertion; that is the only signal available.
+        // The drop is covered by the deep hand-built tree test below.
+        std::thread::Builder::new()
+            .stack_size(256 * 1024)
+            .spawn(|| {
+                let src = "<a>".repeat(MAX_DEPTH) + &"</a>".repeat(MAX_DEPTH);
+                let doc = parse(&src).unwrap();
+                assert_eq!(doc.deep_text(), "");
+                drop(doc);
+            })
+            .unwrap()
+            .join()
+            .expect("parsing and dropping a deep document must not overflow the stack");
+    }
+
+    #[test]
+    fn dropping_a_deep_hand_built_tree_does_not_recurse() {
+        // Past the parse cap, so the parser's guard does not help here: only the
+        // iterative drop keeps this off the call stack.
+        let mut root = Element::new("root");
+        let mut cursor = &mut root;
+        for _ in 0..50_000 {
+            cursor.push(Element::new("x"));
+            cursor = match cursor.children.last_mut() {
+                Some(Node::Element(child)) => child,
+                _ => unreachable!(),
+            };
+        }
+        drop(root);
     }
 
     #[test]
