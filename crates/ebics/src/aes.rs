@@ -117,9 +117,8 @@ impl Aes128 {
                     table[temp[0] as usize],
                 ];
             }
-            for byte in 0..4 {
-                words[index][byte] = words[index - 4][byte] ^ temp[byte];
-            }
+            let previous = words[index - 4];
+            words[index] = std::array::from_fn(|byte| previous[byte] ^ temp[byte]);
         }
 
         let mut round_keys = [[0u8; 16]; ROUNDS + 1];

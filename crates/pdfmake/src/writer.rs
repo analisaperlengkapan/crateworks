@@ -179,7 +179,7 @@ fn content_stream(page: &Page, options: &PageOptions) -> Vec<u8> {
                         }
                         0x20..=0x7e => out.push(byte as char),
                         _ => {
-                            let _ = write!(out, "\\{:03o}", byte);
+                            let _ = write!(out, "\\{byte:03o}");
                         }
                     }
                 }

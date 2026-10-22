@@ -142,7 +142,7 @@ fn write_text_string(bytes: &[u8], out: &mut String) {
             // plain ASCII whatever the text contains.
             0x20..=0x7e => out.push(byte as char),
             _ => {
-                let _ = write!(out, "\\{:03o}", byte);
+                let _ = write!(out, "\\{byte:03o}");
             }
         }
     }
