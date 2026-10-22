@@ -109,7 +109,15 @@ fn read_section(bytes: &[u8], offset: usize) -> Option<Xref> {
 /// advancing, which is a hang on input an attacker chooses. An iterator cannot
 /// fail to advance, so that whole class of bug is gone.
 fn read_table(bytes: &[u8], offset: usize) -> Option<Xref> {
-    let text = std::str::from_utf8(bytes.get(offset..)?).ok()?;
+    // The table and its trailer are ASCII. Decoding from the section offset to
+    // the end of the file is what this used to do, and it fails on any file
+    // where a later revision appends a binary stream: a signed document with
+    // validation data has a `/Certs` stream after the last table, so everything
+    // from here on is no longer valid UTF-8. The walk then dies at that section
+    // and never reaches the newest one. Bound the decode to the trailer's end.
+    let tail = bytes.get(offset..)?;
+    let end = find(tail, 0, b"startxref").unwrap_or(tail.len());
+    let text = std::str::from_utf8(tail.get(..end)?).ok()?;
     let mut lines = text.lines();
     if !lines.next()?.trim_start().starts_with("xref") {
         return None;

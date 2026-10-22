@@ -1,0 +1,13 @@
+{
+  "signatures": [
+    {
+      "field": "Sig1",
+      "subfilter": "/ETSI.CAdES.detached",
+      "digest": "sha256",
+      "intact": true,
+      "valid": true,
+      "trusted": true,
+      "coverage": "ENTIRE_REVISION"
+    }
+  ]
+}
