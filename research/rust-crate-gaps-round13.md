@@ -93,15 +93,19 @@ workspace already shipped.
 | | |
 | --- | --- |
 | Demand | PyPI `srt` **969,672/month**, `pysubs2` 193,478/month. npm `srt-parser-2` 86,911/week. |
-| Best Rust crate | `subtp` 19,896 recent, **5 stars**, last release 2024-02-20. `subparse` 4,857, **dormant since 2021**. `subtitler` 1,948, **3 stars**. |
-| Shape | Fragmented and thin: the leader has 5 stars and has not shipped in twenty months, and no crate covers conversion between the formats with a test corpus. |
+| Best Rust crate | `subtp` 19,896 recent, **5 stars**, 3 dependents, last release 2024-02-20. `subparse` 4,857, **dormant since 2021 but 9 dependents**. `subtitler` 1,948, **3 stars**, 0 dependents. |
+| Shape | Fragmented and thin: the leader has 5 stars and has not shipped in twenty months. `subparse` is the interesting one — dormant for four years with nine crates still depending on it, which is the "dead crate with dependents" shape rounds 4 and 11 called the best opportunity. |
 | Names free | `subkit` **FREE**. |
 | Names taken | `subtitles`, `subtitle`, `subtp`, `subparse`, `subtitler` |
 
-The demand is the largest of the two new candidates (969k/month) and the Rust
-side is genuinely fragmented. The risk is that subtitle formats are forgiving —
-a parser that handles 95% of real files looks finished — which makes a test
-corpus the whole product, and that is the method this workspace already uses.
+The demand is the largest of the two new candidates (969k/month) and the Rust side
+is genuinely fragmented, with one dormant crate carrying nine dependents. The risk
+is that subtitle formats are forgiving — a parser that handles 95% of real files
+looks finished — which makes a test corpus the whole product, and that is the
+method this workspace already uses. Note that earlier notes rejected subtitles
+because `subtitler` is active; that is true but incomplete, since `subtitler` has
+zero dependents and `subparse`'s nine dependents have had no release since 2021.
+Worth a second look, not an automatic build.
 
 ## Rejections this round, with the number that rejected them
 
@@ -164,7 +168,8 @@ corpus the whole product, and that is the method this workspace already uses.
    statements and subtitle formats.** OFX is the better fit — it extends the
    finance line (`iso20022-rs`, `ebics`, `iso8583-msg`) with a format whose
    Python incumbent does 412k/month against a Rust leader of 2,938 downloads and
-   4 stars. Subtitles have the larger demand (969k/month) but a looser spec.
+   4 stars. Subtitles have the larger demand (969k/month) and a dormant crate
+   with nine dependents, but a looser spec.
 4. **Do not re-scan finance interchange or subtitle formats for "is there a
    crate".** The answer is recorded row by row above.
 
