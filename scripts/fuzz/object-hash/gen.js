@@ -86,10 +86,32 @@ for (let i = 0; i < 4000; i++) {
   rows.push(tagged(value) + '\t' + canonical(value) + '\t' + objectHash(value));
 }
 
+// The curated oracle file also carries SHA-256 and MD5, so the Rust side can be
+// held to all three algorithms the reference offers, not just its default.
+function extended(path) {
+  const crypto = require('crypto');
+  const lines = require('fs').readFileSync(path, 'utf8').split('\n').filter((l) => l.length);
+  const out = [lines[0] + '\tsha256\tmd5'];
+  for (const line of lines.slice(1)) {
+    const canonical = line.split('\t')[1];
+    const buf = Buffer.from(canonical, 'utf8');
+    out.push(
+      line +
+        '\t' +
+        crypto.createHash('sha256').update(buf).digest('hex') +
+        '\t' +
+        crypto.createHash('md5').update(buf).digest('hex'),
+    );
+  }
+  require('fs').writeFileSync(path, out.join('\n') + '\n');
+  console.log('extended', out.length - 1, 'rows in', path);
+}
+
 const target = process.argv[2];
 if (!target) {
-  console.error('usage: node gen.js <path to fuzz.tsv>');
+  console.error('usage: node gen.js <path to fuzz.tsv> [path to oracle.tsv to extend]');
   process.exit(1);
 }
 require('fs').writeFileSync(target, rows.join('\n') + '\n');
 console.log('wrote', rows.length, 'cases to', target);
+if (process.argv[3]) extended(process.argv[3]);

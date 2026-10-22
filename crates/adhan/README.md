@@ -155,6 +155,35 @@ its own offset. The sunnah times are `None` when the day has no Maghrib or the
 next day no Fajr, which happens inside the polar circles; there is no night to
 divide, and a made-up answer would hide that.
 
+## Which prayer is now, and which is next
+
+A clock reading is enough to ask which time has begun and which comes next,
+which is what an app showing a countdown needs:
+
+```rust
+use adhan::{Method, Parameters, Prayer, prayer_times};
+
+let parameters = Parameters::for_method(Method::MuslimWorldLeague);
+let times = prayer_times(2026, 10, 21, 21.4225, 39.8262, &parameters);
+
+// A clock reading in the same UTC convention as the fields.
+let now = (9, 0, 0);
+assert_eq!(times.current_prayer(now), Some(Prayer::Sunrise));
+assert_eq!(times.next_prayer(now), Some(Prayer::Dhuhr));
+
+// Sunrise is a time like the others, because the reference returns it too;
+// a caller that wants the next *prayer* can skip it.
+let mut next = times.next_prayer(now);
+if next == Some(Prayer::Sunrise) {
+    next = times.next_prayer(times.sunrise.unwrap());
+}
+assert_eq!(next, Some(Prayer::Dhuhr));
+```
+
+`time_for` returns the clock reading of one prayer, and the three answers are
+`None` where the reference's are: before Fajr there is no current prayer, and
+after Isha there is no next one.
+
 ## Example
 
 ```

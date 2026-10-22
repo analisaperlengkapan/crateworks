@@ -463,6 +463,103 @@ pub struct PrayerTimes {
     pub isha: Option<(i64, u32, u32)>,
 }
 
+/// One of the times of the day, for asking which one comes next.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Prayer {
+    /// Fajr, before sunrise.
+    Fajr,
+    /// Sunrise.
+    Sunrise,
+    /// Dhuhr, after the sun passes the meridian.
+    Dhuhr,
+    /// Asr.
+    Asr,
+    /// Maghrib, at sunset.
+    Maghrib,
+    /// Isha, after twilight.
+    Isha,
+}
+
+impl PrayerTimes {
+    /// The clock reading of one time, or `None` when the sun never reached it.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use adhan::{prayer_times, Method, Parameters, Prayer};
+    ///
+    /// let times = prayer_times(2026, 1, 1, -6.2, 106.8, &Parameters::for_method(Method::MuslimWorldLeague));
+    /// assert_eq!(times.time_for(Prayer::Sunrise), times.sunrise);
+    /// ```
+    #[must_use]
+    pub fn time_for(&self, prayer: Prayer) -> Option<(i64, u32, u32)> {
+        match prayer {
+            Prayer::Fajr => self.fajr,
+            Prayer::Sunrise => self.sunrise,
+            Prayer::Dhuhr => self.dhuhr,
+            Prayer::Asr => self.asr,
+            Prayer::Maghrib => self.maghrib,
+            Prayer::Isha => self.isha,
+        }
+    }
+
+    /// The time that has most recently begun at the given clock reading.
+    ///
+    /// `now` is a UTC clock reading on the same date the times were computed for,
+    /// which is the same convention as the fields. The reference library compares
+    /// whole instants, but because it too reduces every time into the day, the
+    /// comparison is the same one.
+    ///
+    /// A time the sun never reached is skipped rather than treated as absent, so
+    /// a caller inside the polar circle still gets an answer for the times that
+    /// do exist.
+    #[must_use]
+    pub fn current_prayer(&self, now: (i64, u32, u32)) -> Option<Prayer> {
+        let reached = |time: Option<(i64, u32, u32)>| time.is_some_and(|time| now >= time);
+        if reached(self.isha) {
+            Some(Prayer::Isha)
+        } else if reached(self.maghrib) {
+            Some(Prayer::Maghrib)
+        } else if reached(self.asr) {
+            Some(Prayer::Asr)
+        } else if reached(self.dhuhr) {
+            Some(Prayer::Dhuhr)
+        } else if reached(self.sunrise) {
+            Some(Prayer::Sunrise)
+        } else if reached(self.fajr) {
+            Some(Prayer::Fajr)
+        } else {
+            None
+        }
+    }
+
+    /// The next time to begin after the given clock reading, or `None` when the
+    /// day's last time has already begun.
+    ///
+    /// `now` is a UTC clock reading on the same date the times were computed for.
+    /// Sunrise is returned like any other time, because the reference does the
+    /// same and a caller filtering it out can ask for the one after it.
+    #[must_use]
+    pub fn next_prayer(&self, now: (i64, u32, u32)) -> Option<Prayer> {
+        let reached = |time: Option<(i64, u32, u32)>| time.is_some_and(|time| now >= time);
+        if reached(self.isha) {
+            None
+        } else if reached(self.maghrib) {
+            Some(Prayer::Isha)
+        } else if reached(self.asr) {
+            Some(Prayer::Maghrib)
+        } else if reached(self.dhuhr) {
+            Some(Prayer::Asr)
+        } else if reached(self.sunrise) {
+            Some(Prayer::Dhuhr)
+        } else if reached(self.fajr) {
+            Some(Prayer::Sunrise)
+        } else {
+            Some(Prayer::Fajr)
+        }
+    }
+}
+
 /// Computes the prayer times for a date and location.
 ///
 /// `year`, `month` and `day` are a Gregorian date, `latitude` is positive to the

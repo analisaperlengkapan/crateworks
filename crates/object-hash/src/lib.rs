@@ -1,8 +1,27 @@
 #![doc = include_str!("../README.md")]
 mod encode;
+mod md5;
 mod sha1;
+mod sha256;
 
 use std::fmt;
+
+/// The digest function used to turn the canonical form into a digest.
+///
+/// The default is SHA-1, which is what the reference package uses when no
+/// algorithm is named. The others are here so a digest can match a system that
+/// already speaks one of them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[non_exhaustive]
+pub enum Algorithm {
+    /// SHA-1, 40 hexadecimal characters. The reference's default.
+    #[default]
+    Sha1,
+    /// SHA-256, 64 hexadecimal characters.
+    Sha256,
+    /// MD5, 32 hexadecimal characters.
+    Md5,
+}
 
 /// A value that can be hashed.
 ///
@@ -153,7 +172,32 @@ pub fn canonical(value: &Value) -> String {
 /// ```
 #[must_use]
 pub fn hash(value: &Value) -> String {
-    sha1::hex(canonical(value).as_bytes())
+    hash_with(value, Algorithm::Sha1)
+}
+
+/// The digest of a value with a chosen algorithm, as lowercase hexadecimal.
+///
+/// The canonical bytes are the same whatever the algorithm, so two algorithms
+/// agree on which values are equal and differ only in the text they produce.
+///
+/// # Example
+///
+/// ```
+/// use object_hash::{Algorithm, Value, hash_with};
+///
+/// let value = Value::string("cipansor");
+/// assert_eq!(hash_with(&value, Algorithm::Sha1).len(), 40);
+/// assert_eq!(hash_with(&value, Algorithm::Sha256).len(), 64);
+/// assert_eq!(hash_with(&value, Algorithm::Md5).len(), 32);
+/// ```
+#[must_use]
+pub fn hash_with(value: &Value, algorithm: Algorithm) -> String {
+    let bytes = canonical(value);
+    match algorithm {
+        Algorithm::Sha1 => sha1::hex(bytes.as_bytes()),
+        Algorithm::Sha256 => sha256::hex(bytes.as_bytes()),
+        Algorithm::Md5 => md5::hex(bytes.as_bytes()),
+    }
 }
 
 #[cfg(test)]
