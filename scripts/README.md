@@ -65,7 +65,8 @@ of `xmlkit` matches every crate that depends on `xmlkit`.
 
 `cargo publish` resolves a `path` dependency against the registry, so a crate
 that depends on another crate in this workspace cannot be packaged until that
-dependency is published. Get the order wrong and the error is
+dependency is published. Get the order wrong and the error depends on whether the
+dependency has ever been published. On a first release:
 
 ```
 error: failed to prepare local package for uploading
@@ -73,9 +74,21 @@ Caused by:
   no matching package named `xmlkit` found
 ```
 
-which reads like a broken manifest but is only the order. `--no-verify` does not
-help, because the failure is in resolving the dependency rather than in building
-it.
+and, once an older version is on the registry, which is the shape every later
+release takes:
+
+```
+error: failed to prepare local package for uploading
+Caused by:
+  failed to select a version for the requirement `xmlkit = "^0.1.1"`
+  candidate versions found which didn't match: 0.1.0
+```
+
+Both read like a broken manifest but are only the order, and both are reported as
+`blocked`. A version-selection failure is only treated as the order when the
+named crate really is a dependency inside this workspace, so a conflict on a
+third-party crate is still a failure. `--no-verify` does not help, because the
+failure is in resolving the dependency rather than in building it.
 
 The script derives the order from the manifests, so it cannot go stale the way a
 hand-written list does: if a crate gains a workspace dependency, it moves.

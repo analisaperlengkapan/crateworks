@@ -3,13 +3,21 @@
 
 `cargo publish` resolves a `path` dependency against the registry, so a crate
 that depends on another crate in this workspace cannot be packaged until that
-dependency is published. Publishing in the wrong order fails with
+dependency is published. Publishing in the wrong order fails in one of two ways,
+depending on whether the dependency has ever been published:
 
     no matching package named `xmlkit` found
 
-which reads like a broken manifest but is only the order. This script derives the
-order from the manifests themselves, so it cannot go stale the way a hand-written
-list does, and runs the crates in it.
+on a first release, and, once an older version is on the registry,
+
+    failed to select a version for the requirement `xmlkit = "^0.1.1"`
+    candidate versions found which didn't match: 0.1.0
+
+which reads like a broken manifest but is only the order. Both are detected and
+reported as waiting on a dependency, but only when the named crate really is a
+dependency inside this workspace; a version conflict on a third-party crate is
+still a failure. This script derives the order from the manifests themselves, so
+it cannot go stale the way a hand-written list does, and runs the crates in it.
 
 By default it only checks: `cargo publish --dry-run` for every crate, in order,
 stopping at nothing, reporting which are ready and which are waiting on a
@@ -51,6 +59,22 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # "no matching package named `xmlkit` found"
 MISSING_DEP = re.compile(r"no matching package named `([^`]+)` found")
+
+# The same "not published yet" condition, but reached from the other side. When
+# the dependency exists on crates.io at an older version, cargo fails to select a
+# version instead of failing to find the package:
+#
+#   failed to select a version for the requirement `xmlkit = "^0.1.1"`
+#   candidate versions found which didn't match: 0.1.0
+#
+# This is the shape a release actually takes from the second release onward, so
+# matching only MISSING_DEP reported every dependent crate as FAILED and stopped
+# the release before the publish step. Both messages mean the same thing: a
+# workspace dependency is not on the registry yet, publish it first. Only the
+# name is captured; the message names the requirement as `xmlkit = "^0.1.1"`.
+UNRESOLVED_DEP = re.compile(
+    r"failed to select a version for the requirement `([A-Za-z0-9_-]+)"
+)
 
 # crates.io rate limits how many NEW crates an account may publish in a short
 # window (about one every ten minutes), and a second run of the same version is
@@ -158,11 +182,15 @@ def dirty_by_crate(dirty: list[str], crates: list[str]) -> dict[str, list[str]]:
     return blocked
 
 
-def run_publish(crate: str, dry_run: bool) -> tuple[str, str]:
+def run_publish(
+    crate: str, dry_run: bool, workspace_deps: tuple[str, ...] = ()
+) -> tuple[str, str]:
     """Return (verdict, detail).
 
     Verdict is 'ready', 'blocked' (a dependency is unpublished), 'dirty' (files
-    in the crate are uncommitted) or 'failed'.
+    in the crate are uncommitted) or 'failed'. `workspace_deps` are the crate's
+    dependencies inside this workspace, used to tell an unpublished dependency
+    apart from a broken one.
     """
     command = ["cargo", "publish", "-p", crate]
     if dry_run:
@@ -185,6 +213,13 @@ def run_publish(crate: str, dry_run: bool) -> tuple[str, str]:
     if missing:
         return "blocked", missing.group(1)
 
+    # Checked against the known workspace dependencies, not on the message alone:
+    # a version-selection failure on some third-party crate is a real failure and
+    # must not be quietly reported as "waiting on the order".
+    unresolved = UNRESOLVED_DEP.search(output)
+    if unresolved and unresolved.group(1) in workspace_deps:
+        return "blocked", unresolved.group(1)
+
     if ALREADY_PUBLISHED.search(output):
         return "already-published", ""
 
@@ -199,7 +234,9 @@ def run_publish(crate: str, dry_run: bool) -> tuple[str, str]:
     return "failed", f"exit code {result.returncode}"
 
 
-def publish_with_retry(crate: str, attempts: int = 12) -> tuple[str, str]:
+def publish_with_retry(
+    crate: str, workspace_deps: tuple[str, ...] = (), attempts: int = 12
+) -> tuple[str, str]:
     """Publish one crate, waiting out crates.io rate limiting.
 
     A rate limit is not a problem with the crate, so it is retried instead of
@@ -208,7 +245,7 @@ def publish_with_retry(crate: str, attempts: int = 12) -> tuple[str, str]:
     fixed short backoff cannot clear it. Any other verdict is returned as-is.
     """
     for attempt in range(1, attempts + 1):
-        verdict, detail = run_publish(crate, dry_run=False)
+        verdict, detail = run_publish(crate, dry_run=False, workspace_deps=workspace_deps)
         if verdict != "rate-limited":
             return verdict, detail
         if attempt == attempts:
@@ -286,14 +323,15 @@ def main() -> int:
     uploaded_any = False
 
     for crate in order:
+        workspace_deps = tuple(deps[crate])
         if args.publish:
             if uploaded_any and args.delay:
                 time.sleep(args.delay)
-            verdict, detail = publish_with_retry(crate)
+            verdict, detail = publish_with_retry(crate, workspace_deps)
             if verdict != "failed":
                 uploaded_any = True
         else:
-            verdict, detail = run_publish(crate, dry_run=True)
+            verdict, detail = run_publish(crate, dry_run=True, workspace_deps=workspace_deps)
         if verdict == "ready":
             ready.append(crate)
             print(f"{crate:<{width}}  ready")
