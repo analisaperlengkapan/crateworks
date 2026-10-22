@@ -19,7 +19,7 @@ Every crate here follows the same rules:
 
 ## Crates
 
-Seventeen crates, published independently. Most have no dependencies at all; the
+Nineteen crates, published independently. Most have no dependencies at all; the
 rest depend only on `xmlkit` from this same workspace.
 
 ### XML and the document stacks built on it
@@ -28,10 +28,12 @@ rest depend only on `xmlkit` from this same workspace.
 | --- | --- | --- |
 | [`xmlkit`](crates/xmlkit) | Small XML parser, tree and serialiser | Foundation for the SOAP and ISO 20022 crates; no `quick-xml` dependency needed |
 | [`iso20022-rs`](crates/iso20022-rs) | `camt`, `pain` and `pacs` payment messages | The one crate on crates.io is from 2020 and dead |
+| [`ebics`](crates/ebics) | EBICS 3.0 banking: H004/H005 messages, RSA, AES, SHA-256 | EBICS is how a European company reaches its bank, and there is no Rust implementation at all: the field is Java, Python and TypeScript |
 | [`soap-client`](crates/soap-client) | SOAP 1.1/1.2 envelopes and WSDL reading | Every SOAP crate on crates.io has zero reverse dependencies |
 | [`wssec`](crates/wssec) | WS-Security headers: UsernameToken, timestamp, password digests | The missing half of `soap-client`: every bank and government SOAP endpoint requires it, and the only attempt on crates.io has eleven downloads |
 | [`factur-x`](crates/factur-x) | Factur-X and ZUGFeRD e-invoices, EN 16931 in CII and UBL | PyPI `factur-x` is downloaded hundreds of thousands of times a month; the Rust crate in the area has a few thousand downloads |
 | [`pdfa`](crates/pdfa) | PDF/A conformance, XMP metadata and the Factur-X container | The other missing half: the EN 16931 XML has to travel inside a PDF/A-3 document, and the Rust PDF writers have no notion of conformance |
+| [`pdfmake`](crates/pdfmake) | Declarative PDF generation: text, columns, lists, tables, page numbers | The JavaScript `pdfmake` model has no Rust equivalent; the Rust PDF crates are low-level writers or full layout engines, nothing in between |
 
 ### Validation
 
@@ -72,9 +74,10 @@ The minimum supported Rust version is 1.88 and the crates use edition 2024.
 `rust-version` is a floor, not the toolchain used to build: CI checks the
 workspace both on current stable and on 1.88, so the floor cannot drift away
 from the code the way it did when it read 1.85 while the crates used let-chains
-that need 1.88. Every crate's `src/lib.rs` carries a `#[cfg(doctest)]`
-`ReadmeDoctests` marker, so its README example is compiled as a test and cannot
-describe an API that no longer exists.
+that need 1.88. Every crate's `src/lib.rs` includes its README as the crate
+documentation (`#![doc = include_str!("../README.md")]`), so every example in it
+is compiled and run as a doctest, and the crate cannot describe an API that no
+longer exists.
 
 ## Using a single crate
 
