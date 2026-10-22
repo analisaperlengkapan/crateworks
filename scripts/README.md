@@ -12,6 +12,18 @@ crate. `check_attribution.py` and `check_actions_pinned.py` run in CI, on the
 | `publish.py` | Works out the order the crates can be published in, and checks or runs it |
 | `release_notes.py` | Builds release notes for one crate from the commits that touched it (used by the release workflow) |
 | `fuzz/` | Generators for the fuzz corpora in `crates/*/tests/fixtures/` |
+| `tests/` | Tests for the scripts above (run in CI) |
+
+## tests/
+
+Tests for the scripts, run in CI with `python3 -m unittest discover -s scripts/tests`.
+They cover the failure modes that are quiet rather than loud: a credential left in
+the release notes, and a release tag that names the wrong crate or version. Neither
+breaks a build, so a test is the only thing that catches a regression.
+
+```sh
+python3 -m unittest discover -s scripts/tests -v
+```
 
 ## check_actions_pinned.py
 

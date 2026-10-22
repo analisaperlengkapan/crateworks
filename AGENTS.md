@@ -55,6 +55,23 @@ each of which crates.io then rejects because the version already exists.
 `publish.py` refuses a bare version tag rather than guessing. See the "Releasing"
 section of `scripts/README.md`.
 
+**Push tags one at a time.** A single `git push` carrying several tags starts the
+workflow once, not once per tag: one push is one event, and the run is named after
+one of the tags. `git push origin --tags` with seventeen tags therefore produced a
+single run and sixteen releases that silently never appeared. Push each tag on its
+own, or push one and start the rest from the Actions tab (`workflow_dispatch`,
+which takes the tag as an input). A re-run is safe: a version already on
+crates.io is reported and skipped rather than failing.
+
+Anything that turns a git remote into a URL must strip the userinfo. This
+repository pushes with `https://x-access-token:$GITHUB_TOKEN@github.com/...`, so
+`git remote get-url origin` returns a live token, and `release_notes.py` publishes
+what it returns on the release page. `release_notes.py` keeps only the scheme,
+host and path for that reason; a new script that prints a remote URL needs the
+same treatment. The leak is invisible in CI, where `actions/checkout` keeps the
+token in git config headers instead of the remote URL, so it only shows up when
+the script is run locally against a push remote.
+
 Cargo lives at `$HOME/.cargo/bin` in this environment. `rust-toolchain.toml`
 pins `stable`; edition is 2024 and `rust-version` is 1.88.
 

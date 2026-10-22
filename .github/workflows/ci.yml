@@ -75,3 +75,7 @@ jobs:
       # The cipansor org rejects unpinned actions, and the failure is a red
       # workflow rather than a clear message, so catch it here instead.
       - run: python3 scripts/check_actions_pinned.py
+      # The release scripts. Their failure modes are quiet ones - a credential
+      # in the published notes, a tag that names the wrong crate - so they need
+      # tests rather than a careful read.
+      - run: python3 -m unittest discover -s scripts/tests -v
