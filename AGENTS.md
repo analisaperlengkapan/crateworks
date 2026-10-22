@@ -130,6 +130,16 @@ means what you think it means. This has cost two separate debugging rounds.
   file the script reads) and the attribution to the crate's `NOTICE` in the same
   change. The marker must be distinctive to the upstream project, usually a
   repository path; a generic marker such as `xmlkit` matches every dependent.
+- **Every action must be pinned to a commit SHA.** The cipansor org rejects
+  unpinned actions: the job dies at "Set up job" with "all actions must be pinned
+  to a full-length commit SHA", before any step runs. Keep the tag in a trailing
+  comment, since a bare SHA says nothing: `uses:
+  actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4`. An annotated
+  tag (such as `Swatinem/rust-cache@v2`) points at a tag object, so dereference
+  `git/tags/<sha>` to reach the commit. `scripts/check_actions_pinned.py` enforces
+  this, in a `pinned` job of its own as well as in `test`: a job that contains an
+  unpinned action cannot run its own check, so the check must live somewhere else
+  too.
 - **The README guard is a real test, not ceremony.** Adding the `ReadmeDoctests`
   marker to `iso20022-rs` immediately failed: its README said
   `use iso20022-rs::camt::BankStatement;`, and a hyphen is not legal in a Rust

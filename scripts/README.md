@@ -1,15 +1,41 @@
 # scripts
 
 Development tools for the workspace. None of them is needed to build or test a
-crate. `check_attribution.py` runs in CI, on the `test` job; the rest are run by
-hand.
+crate. `check_attribution.py` and `check_actions_pinned.py` run in CI, on the
+`test` job; the rest are run by hand.
 
 | Script | What it does |
 | --- | --- |
 | `check_attribution.py` | Fails when a crate credits an upstream project in its code but not in `NOTICE` (run in CI) |
 | `attribution.toml` | Data for the above: the upstream projects and the marker that identifies each |
+| `check_actions_pinned.py` | Fails when a workflow uses an action by a mutable tag or branch instead of a commit SHA (run in CI) |
 | `publish.py` | Works out the order the crates can be published in, and checks or runs it |
 | `fuzz/` | Generators for the fuzz corpora in `crates/*/tests/fixtures/` |
+
+## check_actions_pinned.py
+
+The cipansor organisation requires every action to be pinned to a full-length
+commit SHA. A tag or branch such as `@v4` is mutable, so whoever controls the
+upstream repository can move it and the next run executes code nobody reviewed.
+Review does not catch this, because `@v4` reads as a version.
+
+```sh
+python3 scripts/check_actions_pinned.py                 # scan .github/
+python3 scripts/check_actions_pinned.py path/to/wf.yml  # scan one file
+```
+
+It accepts a 40-hex SHA, a local action (`./...`) and a docker image pinned by
+digest (`docker://image@sha256:<64 hex>`), and rejects a tag, a branch, a bare
+`owner/repo` with no ref, and a docker image with only a tag.
+
+Keep the tag in a trailing comment, because a bare SHA says nothing to a reader:
+
+```yaml
+- uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+```
+
+To get the SHA for a tag, dereference it: an annotated tag points at a tag
+object rather than a commit, so `git/tags/<sha>` is needed, not `git/ref/tags/`.
 
 ## check_attribution.py
 

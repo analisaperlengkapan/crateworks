@@ -36,14 +36,16 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
 cargo test --workspace --doc
 python3 scripts/check_attribution.py
+python3 scripts/check_actions_pinned.py
 ```
 
 All of them must pass. `-D warnings` means a warning is a build failure, so a
 clean run locally is required. The `--doc` run matters as much as the others:
 `--all-targets` does **not** include doctests, so a broken example in a README
-or a doc comment would slip through without it. The last one checks that any
-upstream project a crate credits in its code is also named in that crate's
-`NOTICE`; if you reimplement a library, credit it in both places.
+or a doc comment would slip through without it. The last two check things no
+compiler can: that any upstream project a crate credits in its code is also
+named in that crate's `NOTICE`, and that every GitHub Action is pinned to a
+commit SHA rather than a mutable tag.
 
 If you use a feature newer than the declared minimum (`rust-version` in
 `Cargo.toml`, currently 1.88), raise that field in the same change. CI compiles
