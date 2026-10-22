@@ -1,43 +1,5 @@
-//! Parser and evaluator for spreadsheet formulas.
-//!
-//! The crate is deliberately independent of any file format. It takes a formula
-//! string and a way to resolve cell references, so it can be used with `xlsx`,
-//! `ods`, or a database of cells without pulling in a spreadsheet reader.
-//!
-//! # Example
-//!
-//! ```
-//! use spreadsheet_formula::{CellRef, Evaluator, Sheet, Value};
-//!
-//! struct Grid;
-//! impl Sheet for Grid {
-//!     fn value(&self, cell: CellRef) -> Value {
-//!         match (cell.column, cell.row) {
-//!             (0, 0) => Value::Number(2.0),
-//!             (0, 1) => Value::Number(3.0),
-//!             (0, 2) => Value::Number(4.0),
-//!             _ => Value::Empty,
-//!         }
-//!     }
-//! }
-//!
-//! let v = Evaluator::new(&Grid).eval("=SUM(A1:A3) * 2").unwrap();
-//! assert_eq!(v, Value::Number(18.0));
-//! ```
-//!
-//! # Scope
-//!
-//! The evaluator covers arithmetic, comparisons, text concatenation, cell and
-//! range references, and a growing set of functions. It does not implement
-//! array formulas, volatile functions or iterative recalculation; a cyclic
-//! reference is reported as an error rather than resolved.
-
+#![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
-
-/// The README, compiled as a doctest so its example cannot drift from the API.
-#[cfg(doctest)]
-#[doc = include_str!("../README.md")]
-pub struct ReadmeDoctests;
 
 mod eval;
 mod functions;

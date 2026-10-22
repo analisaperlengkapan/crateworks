@@ -1,5 +1,8 @@
 # pdfa
 
+[![crates.io](https://img.shields.io/crates/v/pdfa.svg)](https://crates.io/crates/pdfa)
+[![docs.rs](https://docs.rs/pdfa/badge.svg)](https://docs.rs/pdfa)
+
 PDF/A conformance, XMP metadata, and the Factur-X container for e-invoices.
 
 `factur-x` in this workspace writes the EN 16931 invoice as XML. That XML is not
@@ -83,6 +86,27 @@ The same honesty applies to `FlateDecode`. This crate writes a zlib stream with
 shipping a whole deflate implementation. When the checker meets a stream
 compressed with real deflate it reports that the checksum could not be checked,
 rather than reporting a mismatch it cannot prove.
+
+## What the checker proves
+
+`check_factur_x` verifies the container contract: the metadata claims
+PDF/A-3, the catalog points at it, the attachment is present under the agreed
+name, it declares a relationship, and its checksum matches its bytes. That
+last one is the failure that actually happens in practice, because the XML is
+regenerated and the checksum is left behind.
+
+It does not apply the full ISO 19005 rules. Device-independent colour, every
+font embedded, no encryption, transparency restrictions: that is veraPDF's
+job and a small crate claiming it would be lying. The report says what was
+checked so a caller who reads "valid" knows exactly what that means.
+
+## What it refuses
+
+A PDF whose objects live in object streams, or that uses a cross-reference
+stream, is refused rather than mangled. Both are legal and both are common in
+output from newer tools, and handling them means parsing compressed object
+containers. Rewriting a file the parser does not fully understand would risk
+corrupting it silently, which is worse than saying no.
 
 Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan

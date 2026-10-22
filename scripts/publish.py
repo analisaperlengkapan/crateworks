@@ -24,7 +24,10 @@ Usage:
     python3 scripts/publish.py --publish --yes # same, no confirmation prompt
 
 A rate limit from crates.io is waited out and retried rather than reported as a
-broken crate; pass --delay SECONDS to space the uploads out instead.
+broken crate: the 429 names the moment to retry and that time is honoured, since
+the new-crate window is minutes long. A version that is already on the registry
+is reported as such and skipped, so a re-run after a partial release finishes the
+rest instead of failing on the crates it already uploaded.
 
 `cargo publish --workspace` also orders by dependency and is what to reach for
 when cargo's own output is wanted. This script exists for the check, which that
@@ -41,6 +44,7 @@ import subprocess
 import sys
 import time
 import tomllib
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -48,13 +52,38 @@ ROOT = Path(__file__).resolve().parent.parent
 # "no matching package named `xmlkit` found"
 MISSING_DEP = re.compile(r"no matching package named `([^`]+)` found")
 
-# crates.io rate limits uploads. The nginx config allows 1 request per minute
-# with a burst of 30, so a workspace this size fits in the burst, but a larger
-# one or a second run inside the same minute can be refused. Cargo surfaces the
-# refusal as a plain 429, so it is detected here and waited out rather than
-# reported as a broken crate.
+# crates.io rate limits how many NEW crates an account may publish in a short
+# window (about one every ten minutes), and a second run of the same version is
+# refused outright. Cargo surfaces both as a plain non-zero exit, so they are
+# detected here rather than reported as a broken crate.
+#
+# The 429 names the exact moment to retry:
+#   ... Please try again after Thu, 22 Oct 2026 03:32:25 GMT ...
+# so that timestamp is honoured instead of guessing a delay; a fixed 70s backoff
+# is far too short for the new-crate limit and just burns attempts.
 RATE_LIMITED = re.compile(r"429|too many requests|rate limit", re.IGNORECASE)
-RATE_LIMIT_BACKOFF = 70  # seconds; the limit window is 60
+RETRY_AFTER = re.compile(
+    r"try again after (\w{3}, \d{2} \w{3} \d{4} \d{2}:\d{2}:\d{2} GMT)"
+)
+ALREADY_PUBLISHED = re.compile(r"already exists on crates\.io")
+RATE_LIMIT_FALLBACK = 70  # seconds, used only when the 429 carries no timestamp
+
+
+def rate_limit_wait(output: str) -> float:
+    """Seconds to wait before retrying a rate-limited upload.
+
+    Reads the retry time out of the 429 when it is there, because the new-crate
+    window is minutes long and a fixed short backoff cannot clear it.
+    """
+    match = RETRY_AFTER.search(output)
+    if not match:
+        return float(RATE_LIMIT_FALLBACK)
+    try:
+        when = datetime.strptime(match.group(1), "%a, %d %b %Y %H:%M:%S GMT")
+    except ValueError:
+        return float(RATE_LIMIT_FALLBACK)
+    return max(65.0, when.replace(tzinfo=timezone.utc).timestamp() - time.time() + 5)
+
 
 
 def load_manifests() -> tuple[list[str], dict[str, list[str]]]:
@@ -156,8 +185,13 @@ def run_publish(crate: str, dry_run: bool) -> tuple[str, str]:
     if missing:
         return "blocked", missing.group(1)
 
+    if ALREADY_PUBLISHED.search(output):
+        return "already-published", ""
+
     if RATE_LIMITED.search(output):
-        return "rate-limited", ""
+        # The whole message is the detail here: the caller parses the retry time
+        # out of it.
+        return "rate-limited", output
 
     for line in output.splitlines():
         if line.startswith("error"):
@@ -165,11 +199,13 @@ def run_publish(crate: str, dry_run: bool) -> tuple[str, str]:
     return "failed", f"exit code {result.returncode}"
 
 
-def publish_with_retry(crate: str, attempts: int = 3) -> tuple[str, str]:
+def publish_with_retry(crate: str, attempts: int = 12) -> tuple[str, str]:
     """Publish one crate, waiting out crates.io rate limiting.
 
     A rate limit is not a problem with the crate, so it is retried instead of
-    being reported. Any other verdict is returned as-is.
+    being reported, for as long as the 429 keeps naming a retry time. The wait is
+    read from that message, because the new-crate window is minutes long and a
+    fixed short backoff cannot clear it. Any other verdict is returned as-is.
     """
     for attempt in range(1, attempts + 1):
         verdict, detail = run_publish(crate, dry_run=False)
@@ -177,11 +213,12 @@ def publish_with_retry(crate: str, attempts: int = 3) -> tuple[str, str]:
             return verdict, detail
         if attempt == attempts:
             break
+        wait = rate_limit_wait(detail) if detail else RATE_LIMIT_FALLBACK
         print(
             f"    crates.io rate limited this upload; waiting "
-            f"{RATE_LIMIT_BACKOFF}s (attempt {attempt} of {attempts})"
+            f"{wait:.0f}s (attempt {attempt} of {attempts})"
         )
-        time.sleep(RATE_LIMIT_BACKOFF)
+        time.sleep(wait)
     return "failed", "still rate limited after retries"
 
 
@@ -245,6 +282,7 @@ def main() -> int:
     dirty: list[tuple[str, str]] = []
     failed: list[tuple[str, str]] = []
     ready: list[str] = []
+    already: list[str] = []
     uploaded_any = False
 
     for crate in order:
@@ -259,6 +297,9 @@ def main() -> int:
         if verdict == "ready":
             ready.append(crate)
             print(f"{crate:<{width}}  ready")
+        elif verdict == "already-published":
+            already.append(crate)
+            print(f"{crate:<{width}}  already published")
         elif verdict == "blocked":
             blocked.append((crate, detail))
             print(f"{crate:<{width}}  blocked, needs {detail} published first")
@@ -274,6 +315,8 @@ def main() -> int:
             break
 
     summary = f"\n{len(ready)} ready, {len(blocked)} blocked on order"
+    if already:
+        summary += f", {len(already)} already published"
     if dirty:
         summary += f", {len(dirty)} with uncommitted changes"
     summary += f", {len(failed)} failed"

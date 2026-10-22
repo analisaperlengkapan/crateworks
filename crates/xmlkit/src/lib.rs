@@ -1,35 +1,5 @@
-//! Minimal XML reading and writing.
-//!
-//! This crate exists because `iso20022-rs` and `soap-client` both need the same
-//! small amount of XML handling, and neither needs a full DOM. It deliberately
-//! covers a subset of XML: elements, attributes, text, CDATA, comments,
-//! processing instructions and the five predefined entities plus numeric
-//! character references. It does not resolve external entities, which also
-//! means it cannot be used for XXE attacks.
-//!
-//! # Scope
-//!
-//! * [`parse`] builds an [`Element`] tree from a string.
-//! * [`Element`]'s [`Display`] impl writes it back.
-//! * Namespaces are preserved as part of the element name; nothing is resolved.
-//!
-//! # Example
-//!
-//! ```
-//! use xmlkit::{Element, parse};
-//!
-//! let root = parse("<a x=\"1\"><b>hi</b></a>").unwrap();
-//! assert_eq!(root.name, "a");
-//! assert_eq!(root.attr("x"), Some("1"));
-//! assert_eq!(root.child("b").unwrap().text(), "hi");
-//! ```
-
+#![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
-
-/// The README, compiled as a doctest so its example cannot drift from the API.
-#[cfg(doctest)]
-#[doc = include_str!("../README.md")]
-pub struct ReadmeDoctests;
 
 use std::collections::BTreeMap;
 use std::fmt::{self, Display, Write as _};

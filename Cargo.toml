@@ -35,6 +35,10 @@ xmlkit = { version = "0.1.0", path = "crates/xmlkit" }
 [workspace.lints.rust]
 unsafe_code = "forbid"
 missing_debug_implementations = "warn"
+# Every public item must carry a doc comment. docs.rs is the only documentation
+# most users will read, and a public function with no docs is invisible there.
+# `cargo clippy -- -D warnings` turns this into a build failure.
+missing_docs = "warn"
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }

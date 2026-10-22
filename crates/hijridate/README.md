@@ -1,5 +1,8 @@
 # hijridate
 
+[![crates.io](https://img.shields.io/crates/v/hijridate.svg)](https://crates.io/crates/hijridate)
+[![docs.rs](https://docs.rs/hijridate/badge.svg)](https://docs.rs/hijridate)
+
 Hijri (Islamic) and Gregorian date conversion, based on the Umm al-Qura
 calendar. No dependencies.
 
@@ -41,6 +44,30 @@ The month-start table and the test fixtures are generated from the
 [`hijridate`](https://github.com/dralshehri/hijridate) Python package by Mohammed
 Alshehri, which is MIT licensed and reproduces the Umm al-Qura calendar as
 published by the Saudi authorities. See [`NOTICE`](https://github.com/cipansor/crateworks/blob/main/crates/hijridate/NOTICE).
+
+The Hijri year is about eleven days shorter than the Gregorian year, and a
+Hijri month begins when the crescent is sighted, so the calendar cannot be
+derived from a formula the way the Gregorian one can. Umm al-Qura is the
+calendar Saudi Arabia publishes from actual sighting data, and it is what
+most software uses as the reference.
+
+## Scope
+
+The table covers Hijri years 1343 to 1500 (Gregorian 1924-08-01 to
+2077-11-16). Outside that range conversion falls back to a tabular
+arithmetic approximation, which can be a day or two out; see
+`Hijri::is_tabular` for how to tell.
+
+## Regional differences
+
+Umm al-Qura is one authority among several. Indonesia (Kemenag), Malaysia
+and many communities determine the start of a month by their own sighting,
+so a date here can differ by a day from the date a country observes. For
+example 1 Shawwal 1445 is 2024-04-10 in Umm al-Qura, while Indonesia
+observed Eid al-Fitr on 2024-04-10 as well, but this agreement is not
+guaranteed for every year. Use `Hijri::month_name` and this table to get
+the reference date, and expect to override it when a local authority
+announces something different.
 
 Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan

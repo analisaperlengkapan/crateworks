@@ -1,53 +1,5 @@
-//! Arabic text shaping.
-//!
-//! Arabic letters change shape depending on their neighbours. An initial `ب`
-//! looks different from a final one, and a letter that joins on both sides is
-//! drawn in its medial form. Terminals, older renderers and PDF generators do
-//! not do this themselves: they expect the text to arrive already shaped, with
-//! each letter replaced by the presentation form that Unicode keeps in the
-//! Arabic Presentation Forms block.
-//!
-//! # Example
-//!
-//! ```
-//! use arabic::{Direction, reshape};
-//!
-//! // "peace be upon you" in Arabic, shaped but still in logical order.
-//! let logical = reshape("السلام عليكم", Direction::Logical);
-//! assert_eq!(logical, "ﺍﻟﺴﻼﻡ ﻋﻠﻴﻜﻢ");
-//!
-//! // For a display that draws left to right, the shaped text is reversed.
-//! let displayed = reshape("السلام عليكم", Direction::RightToLeft);
-//! assert_eq!(displayed, "ﻢﻜﻴﻠﻋ ﻡﺎﻠﺴﻟﺍ");
-//! ```
-//!
-//! # What shaping is for
-//!
-//! The Unicode standard stores Arabic in *logical* order: the characters as
-//! they are typed and as they should be compared and searched. Rendering to a
-//! terminal, a PDF or an image usually needs two further steps:
-//!
-//! 1. Replace each letter with its contextual presentation form, which is what
-//!    [`reshape`] does.
-//! 2. Reverse the result so it reads right to left, which is what
-//!    [`Direction::RightToLeft`] adds.
-//!
-//! Search, sorting and storage should use the original text. Shaped text is for
-//! display only, and comparing two shaped strings is almost always a mistake.
-//!
-//! # Harakat
-//!
-//! Short vowels and other combining marks are carried along with the letter they
-//! belong to. By default they are preserved and stay attached to the correct
-//! letter through the transformation; [`reshape_with`] can drop them instead,
-//! which is what a fixed-width display often needs.
-
+#![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
-
-/// The README, compiled as a doctest so its example cannot drift from the API.
-#[cfg(doctest)]
-#[doc = include_str!("../README.md")]
-pub struct ReadmeDoctests;
 
 mod forms;
 mod ligatures;

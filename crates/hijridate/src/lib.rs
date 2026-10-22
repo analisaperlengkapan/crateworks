@@ -1,49 +1,5 @@
-//! Hijri (Islamic) and Gregorian date conversion using the Umm al-Qura calendar.
-//!
-//! The Hijri year is about eleven days shorter than the Gregorian year, and a
-//! Hijri month begins when the crescent is sighted, so the calendar cannot be
-//! derived from a formula the way the Gregorian one can. Umm al-Qura is the
-//! calendar Saudi Arabia publishes from actual sighting data, and it is what
-//! most software uses as the reference.
-//!
-//! # Example
-//!
-//! ```
-//! use hijridate::{Gregorian, Hijri};
-//!
-//! // 1 Ramadan 1445 fell on 11 March 2024.
-//! let h = Hijri::new(1445, 9, 1).unwrap();
-//! assert_eq!(h.to_gregorian().to_string(), "2024-03-11");
-//! assert_eq!(h.month_name(), "Ramadan");
-//!
-//! let g = Gregorian::new(2024, 3, 11).unwrap();
-//! assert_eq!(g.to_hijri().to_string(), "1445-09-01");
-//! ```
-//!
-//! # Scope
-//!
-//! The table covers Hijri years 1343 to 1500 (Gregorian 1924-08-01 to
-//! 2077-11-16). Outside that range conversion falls back to a tabular
-//! arithmetic approximation, which can be a day or two out; see
-//! [`Hijri::is_tabular`] for how to tell.
-//!
-//! # Regional differences
-//!
-//! Umm al-Qura is one authority among several. Indonesia (Kemenag), Malaysia
-//! and many communities determine the start of a month by their own sighting,
-//! so a date here can differ by a day from the date a country observes. For
-//! example 1 Shawwal 1445 is 2024-04-10 in Umm al-Qura, while Indonesia
-//! observed Eid al-Fitr on 2024-04-10 as well, but this agreement is not
-//! guaranteed for every year. Use [`Hijri::month_name`] and this table to get
-//! the reference date, and expect to override it when a local authority
-//! announces something different.
-
+#![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
-
-/// The README, compiled as a doctest so its example cannot drift from the API.
-#[cfg(doctest)]
-#[doc = include_str!("../README.md")]
-pub struct ReadmeDoctests;
 
 mod ummalqura;
 

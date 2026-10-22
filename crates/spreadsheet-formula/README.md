@@ -1,5 +1,8 @@
 # spreadsheet-formula
 
+[![crates.io](https://img.shields.io/crates/v/spreadsheet-formula.svg)](https://crates.io/crates/spreadsheet-formula)
+[![docs.rs](https://docs.rs/spreadsheet-formula/badge.svg)](https://docs.rs/spreadsheet-formula)
+
 A spreadsheet formula parser and evaluator, independent of any file format.
 
 ```rust
@@ -22,6 +25,38 @@ assert_eq!(Evaluator::new(&Grid).eval("=SUM(A1:A2)*2").unwrap(), Value::Number(1
 29 functions plus `IF` and `IFERROR`, which are evaluated lazily. Cell and range
 references, absolute references, sheet qualifiers, text concatenation, and
 comparison operators.
+
+The crate is deliberately independent of any file format. It takes a formula
+string and a way to resolve cell references, so it can be used with `xlsx`,
+`ods`, or a database of cells without pulling in a spreadsheet reader.
+
+## Example
+
+```
+use spreadsheet_formula::{CellRef, Evaluator, Sheet, Value};
+
+struct Grid;
+impl Sheet for Grid {
+    fn value(&self, cell: CellRef) -> Value {
+        match (cell.column, cell.row) {
+            (0, 0) => Value::Number(2.0),
+            (0, 1) => Value::Number(3.0),
+            (0, 2) => Value::Number(4.0),
+            _ => Value::Empty,
+        }
+    }
+}
+
+let v = Evaluator::new(&Grid).eval("=SUM(A1:A3) * 2").unwrap();
+assert_eq!(v, Value::Number(18.0));
+```
+
+## Scope
+
+The evaluator covers arithmetic, comparisons, text concatenation, cell and
+range references, and a growing set of functions. It does not implement
+array formulas, volatile functions or iterative recalculation; a cyclic
+reference is reported as an error rather than resolved.
 
 Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan

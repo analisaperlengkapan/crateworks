@@ -1,5 +1,8 @@
 # arabic
 
+[![crates.io](https://img.shields.io/crates/v/arabic.svg)](https://crates.io/crates/arabic)
+[![docs.rs](https://docs.rs/arabic/badge.svg)](https://docs.rs/arabic)
+
 Arabic text shaping: contextual letter forms, ligatures, harakat handling and
 normalization. No dependencies.
 
@@ -45,6 +48,34 @@ marks and tatweel for displays that cannot position them.
 Only the ligatures in ordinary use are applied: the four lam-alef combinations
 and the word Allah. Unicode defines hundreds more, but substituting them by
 default produces text that most fonts cannot render.
+
+Arabic letters change shape depending on their neighbours. An initial `ب`
+looks different from a final one, and a letter that joins on both sides is
+drawn in its medial form. Terminals, older renderers and PDF generators do
+not do this themselves: they expect the text to arrive already shaped, with
+each letter replaced by the presentation form that Unicode keeps in the
+Arabic Presentation Forms block.
+
+## What shaping is for
+
+The Unicode standard stores Arabic in *logical* order: the characters as
+they are typed and as they should be compared and searched. Rendering to a
+terminal, a PDF or an image usually needs two further steps:
+
+1. Replace each letter with its contextual presentation form, which is what
+   `reshape` does.
+2. Reverse the result so it reads right to left, which is what
+   `Direction::RightToLeft` adds.
+
+Search, sorting and storage should use the original text. Shaped text is for
+display only, and comparing two shaped strings is almost always a mistake.
+
+## Harakat
+
+Short vowels and other combining marks are carried along with the letter they
+belong to. By default they are preserved and stay attached to the correct
+letter through the transformation; `reshape_with` can drop them instead,
+which is what a fixed-width display often needs.
 
 Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan

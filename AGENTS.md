@@ -37,9 +37,15 @@ Publishing order and readiness, without uploading anything:
 python3 scripts/publish.py
 ```
 
-Uploading needs a crates.io token, which is not stored in this repository or in
-CI; see the "Authenticating" section of `scripts/README.md`. Run the dry run
-first, then upload with `--publish` (it asks for confirmation).
+Uploading needs a crates.io token; see the "Authenticating" section of
+`scripts/README.md`. Run the dry run first, then upload with `--publish` (it
+asks for confirmation; `--yes` skips the prompt for CI).
+
+A release is a tag: `.github/workflows/release.yml` runs on `v*`, checks the tag
+against every manifest, publishes in dependency order, and needs the
+`CARGO_REGISTRY_TOKEN` repository secret. It can also be started by hand to
+finish a partial release; a version already on crates.io is skipped, not failed.
+See the "Releasing" section of `scripts/README.md`.
 
 Cargo lives at `$HOME/.cargo/bin` in this environment. `rust-toolchain.toml`
 pins `stable`; edition is 2024 and `rust-version` is 1.88.

@@ -1,53 +1,5 @@
-//! WS-Security headers for SOAP services.
-//!
-//! `soap-client` in this workspace builds and reads SOAP envelopes, and its
-//! documentation says plainly that it does not implement WS-Security. This crate
-//! is that missing half. Almost every bank, government and ERP endpoint requires
-//! a `Security` header, and without one the request is rejected before the
-//! service ever looks at it.
-//!
-//! # Example
-//!
-//! ```
-//! use wssec::{Security, Timestamp, UsernameToken};
-//!
-//! // The nonce and the timestamp are inputs, not something generated here, so
-//! // the caller can record them and a test can reproduce the digest.
-//! let nonce = b"0123456789abcdef".to_vec();
-//! let created = "2026-10-21T12:00:00Z";
-//!
-//! let token = UsernameToken::digest("NNK", "secret", nonce, created);
-//! let header = Security::new()
-//!     .with_timestamp(&Timestamp::new(created, "2026-10-21T12:05:00Z"))
-//!     .with_username_token(&token)
-//!     .to_xml();
-//!
-//! assert!(header.contains("wsse:UsernameToken"));
-//! assert!(header.contains("PasswordDigest"));
-//! assert!(header.contains("wsu:Timestamp"));
-//! // The password itself is nowhere in the document.
-//! assert!(!header.contains("secret"));
-//! ```
-//!
-//! The result is a header fragment. Pass it to `soap_client::Envelope` with
-//! `with_header_xml` and the two crates compose into a request that an
-//! enterprise service will accept.
-//!
-//! # What this crate does not do
-//!
-//! It does not sign messages, does not carry X.509 certificates, and does not
-//! talk to a hardware token. `Signature` and `EncryptedData` are the other half
-//! of WS-Security, and they need a certificate story that this crate
-//! deliberately leaves alone. Nor does it generate a nonce or read a clock: a
-//! library that did would be untestable and would hide the timestamp the caller
-//! has to record anyway.
-
+#![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
-
-/// The README, compiled as a doctest so its example cannot drift from the API.
-#[cfg(doctest)]
-#[doc = include_str!("../README.md")]
-pub struct ReadmeDoctests;
 
 pub mod base64;
 pub mod digest;

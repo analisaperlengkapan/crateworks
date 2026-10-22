@@ -1,47 +1,5 @@
-//! SOAP envelopes and WSDL reading.
-//!
-//! SOAP is the XML web service protocol that predates REST, and it is still the
-//! only interface many banks, government systems and enterprise products offer.
-//! This crate covers the parts an integrator needs most: building a request,
-//! reading a response, and finding out from a WSDL document which operations
-//! exist and what they expect.
-//!
-//! # Example
-//!
-//! ```
-//! use soap_client::{Envelope, Version};
-//!
-//! let request = Envelope::request(Version::Soap11)
-//!     .with_body_xml("<GetPrice xmlns=\"urn:shop\"><Sku>ABC</Sku></GetPrice>")
-//!     .to_xml();
-//!
-//! assert!(request.contains("soap:Envelope"));
-//! assert!(request.contains("GetPrice"));
-//!
-//! let response = r#"<?xml version="1.0"?>
-//! <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-//!   <soap:Body><GetPriceResponse xmlns="urn:shop"><Price>9.99</Price></GetPriceResponse></soap:Body>
-//! </soap:Envelope>"#;
-//!
-//! let envelope = Envelope::parse(response).unwrap();
-//! assert!(!envelope.is_fault());
-//! assert!(envelope.body_text().contains("9.99"));
-//! ```
-//!
-//! # Scope
-//!
-//! This crate builds and reads messages and describes a service from its WSDL.
-//! It does not perform the HTTP call, does not implement WS-Security, and does
-//! not generate typed client code. Those are deliberate omissions: the HTTP
-//! layer belongs to the caller's chosen client, and WS-Security needs a
-//! certificate story that should not be guessed at.
-
+#![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
-
-/// The README, compiled as a doctest so its example cannot drift from the API.
-#[cfg(doctest)]
-#[doc = include_str!("../README.md")]
-pub struct ReadmeDoctests;
 
 pub mod call;
 pub mod envelope;

@@ -131,12 +131,45 @@ under `crates/xmlkit/` does.
 
 ## Rate limiting
 
-crates.io accepts one upload per minute with a burst of 30, so this workspace
-fits inside the burst. A refused upload comes back as HTTP 429, which cargo
-reports as a plain failure; the script waits 70 seconds and retries instead of
-calling the crate broken. Pass `--delay 65` to stay under the limit rather than
-relying on the retry.
+crates.io limits how many *new* crates an account may publish in a short window,
+about one every ten minutes, and the limit is on the account rather than on the
+crate. A refused upload comes back as HTTP 429, which cargo reports as a plain
+failure. The response names the moment to retry:
+
+```
+You have published too many new crates in a short period of time.
+Please try again after Thu, 22 Oct 2026 03:32:25 GMT
+```
+
+`publish.py` reads that timestamp and sleeps until then, up to 12 attempts, so a
+long release finishes on its own. A fixed backoff cannot work here: 70 seconds
+does not clear a ten-minute window, it only spends an attempt. Pass `--delay 65`
+to stay under the limit in the first place rather than relying on the retry.
+
+A version that is already on crates.io (`crate xmlkit@0.1.0 already exists on
+crates.io index`) is reported as `already published` and skipped. That makes a
+re-run after a partial release finish the remaining crates instead of failing on
+the ones already uploaded.
 
 `cargo publish --workspace` also orders by dependency and is the command to use
 when cargo's own output is wanted. It cannot check without attempting an upload,
 which is why this script exists for the dry run.
+
+## Releasing
+
+`.github/workflows/release.yml` publishes every crate. It runs on a `v*` tag, or
+by hand from the Actions tab (`workflow_dispatch`) to finish a partial release.
+
+```sh
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+The workflow checks the tag against every manifest, runs the attribution check,
+dry-runs the whole workspace, publishes in dependency order with `--publish
+--yes`, and then confirms each version answers HTTP 200 from the crates.io API.
+It needs one repository secret, `CARGO_REGISTRY_TOKEN`, a crates.io API token
+with publish scope. Without it the publish step fails at the first upload.
+
+Bump every manifest and tag the same version. A version number cannot be reused
+or deleted, so a wrong upload has to be followed by a new version, not a fix.
+
