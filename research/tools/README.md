@@ -21,6 +21,16 @@ APIs without a key. They need Python 3 and no external dependencies.
 - **Do not run two scripts at once.** crates.io rate-limits requests; running them
   in parallel triggers HTTP 429 and produces false empty results — a gap that
   looks real but is not.
+- **`revdeps.py` runs its whole scan on import**, which is exactly the trap: a
+  script that does `import revdeps` to reuse `revdeps()` also fires 33 crates.io
+  requests, gets rate-limited, and then every later search in that script returns
+  empty. A capability that is actually served then reads as a gap. Round 5 lost a
+  run to this and nearly recorded "Hashids: nothing found". It now has a
+  `if __name__ == "__main__"` guard, so importing it is safe; `probe.py`,
+  `incumbents.py`, `verify2.py` and `gen_hijri_table.py` do not, so never import
+  those — run them, or copy the helper out.
+- **Treat any "nothing found" as a rate limit until it is re-checked.** A second
+  run a minute later is cheap; a wrong gap is not.
 - The npm bulk endpoint rejects a mix of scoped and unscoped names (HTTP 400).
   Keep the two apart, at most 32 per call.
 - `revdeps.py` is the true measure of Rust demand. PyPI and npm download figures

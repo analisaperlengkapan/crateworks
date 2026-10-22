@@ -48,18 +48,23 @@ TARGETS = ["holidays","public_holidays","holiday","py-holidays-rs",
  "en16931-formats","zugferd","puml","plantuml-little","musicxml",
  "subparse","srt","ass_parser","srt_parser",
  "libdav","caldav","carddav","sepa","mt940","camt053","iso20022"]
-out={}
-for n in TARGETS:
-    c=get(f"https://crates.io/api/v1/crates/{urllib.parse.quote(n)}")
-    if not c or not c.get('crate'):
-        out[n]={'exists':False}; print(f"  {n:<18} (none)"); time.sleep(0.3); continue
-    cr=c['crate']
-    rd=revdeps(n); time.sleep(0.35)
-    repo=cr.get('repository')
-    gh=gh_activity(repo); time.sleep(0.6)
-    out[n]={'exists':True,'recent':cr.get('recent_downloads') or 0,'upd':(cr.get('updated_at') or '')[:10],
-            'revdeps':rd,'repo':repo,'gh':gh}
-    g = f" stars={gh['stars']} pushed={gh['pushed']} archived={gh['archived']} issues={gh['open_issues']}" if gh else " (repo not found)"
-    print(f"  {n:<18} recent={out[n]['recent']:>9,} pub={out[n]['upd']} revdeps={rd}{g}")
-    time.sleep(0.3)
-json.dump(out,open('revdeps.json','w'),indent=1)
+def main():
+    out={}
+    for n in TARGETS:
+        c=get(f"https://crates.io/api/v1/crates/{urllib.parse.quote(n)}")
+        if not c or not c.get('crate'):
+            out[n]={'exists':False}; print(f"  {n:<18} (none)"); time.sleep(0.3); continue
+        cr=c['crate']
+        rd=revdeps(n); time.sleep(0.35)
+        repo=cr.get('repository')
+        gh=gh_activity(repo); time.sleep(0.6)
+        out[n]={'exists':True,'recent':cr.get('recent_downloads') or 0,'upd':(cr.get('updated_at') or '')[:10],
+                'revdeps':rd,'repo':repo,'gh':gh}
+        g = f" stars={gh['stars']} pushed={gh['pushed']} archived={gh['archived']} issues={gh['open_issues']}" if gh else " (repo not found)"
+        print(f"  {n:<18} recent={out[n]['recent']:>9,} pub={out[n]['upd']} revdeps={rd}{g}")
+        time.sleep(0.3)
+    json.dump(out,open('revdeps.json','w'),indent=1)
+
+
+if __name__ == "__main__":
+    main()
