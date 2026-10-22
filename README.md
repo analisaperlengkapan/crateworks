@@ -1,7 +1,7 @@
 # crateworks
 
 [![CI](https://github.com/cipansor/crateworks/actions/workflows/ci.yml/badge.svg)](https://github.com/cipansor/crateworks/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/badge/crates.io-17%20crates-orange.svg)](https://crates.io/crates/xmlkit)
+[![crates.io](https://img.shields.io/badge/crates.io-21%20crates-orange.svg)](https://crates.io/crates/xmlkit)
 
 A workspace of small, single-purpose Rust crates that fill gaps where the
 JavaScript and Python ecosystems have mature libraries and Rust does not.
@@ -19,16 +19,16 @@ Every crate here follows the same rules:
 
 ## Crates
 
-Twenty crates, published independently. Most have no dependencies at all; the
-rest depend only on `xmlkit` or `pdfa` from this same workspace.
+Twenty-one crates, published independently. Most have no dependencies at all;
+the rest depend only on `xmlkit` or `pdfa` from this same workspace.
 
 ### XML and the document stacks built on it
 
 | Crate | What it does | Why it exists |
 | --- | --- | --- |
 | [`xmlkit`](crates/xmlkit) | Small XML parser, tree and serialiser | Foundation for the SOAP and ISO 20022 crates; no `quick-xml` dependency needed |
-| [`iso20022-rs`](crates/iso20022-rs) | `camt`, `pain` and `pacs` payment messages | The one crate on crates.io is from 2020 and dead |
-| [`ebics`](crates/ebics) | EBICS 3.0 banking: H004/H005 messages, RSA, AES, SHA-256 | EBICS is how a European company reaches its bank, and there is no Rust implementation at all: the field is Java, Python and TypeScript |
+| [`iso20022-rs`](crates/iso20022-rs) | `camt` and `pain` payment messages | The one crate on crates.io is from 2020 and dead |
+| [`ebics`](crates/ebics) | EBICS 3.0 banking: the H004 messages, RSA, AES, SHA-256 | EBICS is how a European company reaches its bank, and there is no Rust implementation at all: the field is Java, Python and TypeScript |
 | [`soap-client`](crates/soap-client) | SOAP 1.1/1.2 envelopes and WSDL reading | Every SOAP crate on crates.io has zero reverse dependencies |
 | [`wssec`](crates/wssec) | WS-Security headers: UsernameToken, timestamp, password digests | The missing half of `soap-client`: every bank and government SOAP endpoint requires it, and the only attempt on crates.io has eleven downloads |
 | [`factur-x`](crates/factur-x) | Factur-X and ZUGFeRD e-invoices, EN 16931 in CII and UBL | PyPI `factur-x` is downloaded hundreds of thousands of times a month; the Rust crate in the area has a few thousand downloads |

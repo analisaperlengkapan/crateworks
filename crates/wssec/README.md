@@ -76,33 +76,6 @@ The same care applies to `PasswordText`, which the profile sends in clear text.
 `zeep` writes it plainly and so does this crate; base64 would look plausible and
 fail against every real server.
 
-## Example
-
-```
-use wssec::{Security, Timestamp, UsernameToken};
-
-// The nonce and the timestamp are inputs, not something generated here, so
-// the caller can record them and a test can reproduce the digest.
-let nonce = b"0123456789abcdef".to_vec();
-let created = "2026-10-21T12:00:00Z";
-
-let token = UsernameToken::digest("NNK", "secret", nonce, created);
-let header = Security::new()
-    .with_timestamp(&Timestamp::new(created, "2026-10-21T12:05:00Z"))
-    .with_username_token(&token)
-    .to_xml();
-
-assert!(header.contains("wsse:UsernameToken"));
-assert!(header.contains("PasswordDigest"));
-assert!(header.contains("wsu:Timestamp"));
-// The password itself is nowhere in the document.
-assert!(!header.contains("secret"));
-```
-
-The result is a header fragment. Pass it to `soap_client::Envelope` with
-`with_header_xml` and the two crates compose into a request that an
-enterprise service will accept.
-
 ## How it is checked
 
 The digest and base64 code is written out here rather than pulled in, so it is

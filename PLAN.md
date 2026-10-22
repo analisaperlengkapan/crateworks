@@ -2,8 +2,9 @@
 
 The order in which the crates in this workspace were built, what each one
 covers today, and what is deliberately left out. The dependency order matters:
-`xmlkit` is the foundation that `iso20022-rs` and `soap-client` build on,
-so it had to be correct first.
+`xmlkit` is the foundation that `iso20022-rs`, `soap-client`, `wssec`, `ebics`
+and `factur-x` build on, and `pdfa` is the foundation for `pades`, so both had
+to be correct before the crates above them could be.
 
 ## 1. `xmlkit` (foundation)
 
@@ -65,7 +66,7 @@ works with `xlsx`, `ods`, or a database of cells.
 
 **Covers today.** Tokeniser with absolute references, sheet qualifiers and
 ranges; recursive-descent parser with spreadsheet operator precedence;
-evaluator with 29 functions plus `IF` and `IFERROR`, which are handled
+evaluator with 38 functions plus `IF` and `IFERROR`, which are handled
 specially so they do not evaluate both branches. A range size limit bounds the
 work a hostile formula can request.
 
@@ -153,6 +154,211 @@ is a dataset that changes, and a crate shipping a copy would be wrong within a
 month; the code can be well formed and still name an operator that does not
 exist.
 
+## 9. `eu-vat`
+
+**Why.** VAT number validation is a form field in every European B2B flow, and
+the `vat` crate stopped in 2016 with nothing replacing it. The rules are per
+country, so the work is in the national details rather than in the shape.
+
+**Covers today.** All 27 member states plus Northern Ireland (`XI`), each with
+its own shape and check digit: Belgium modulo 97, Germany ISO 7064 Mod 11,10,
+Italy the province of residence, Latvia a birth date in the personal code.
+Greece accepts both `EL` and `GR` and canonicalises to `EL`. Separators are
+tolerated and stripped.
+
+**Not covered.** Whether a number is live. That needs the Commission's VIES
+service, and there is no network access in the crate. A number that passes may
+still be deregistered.
+
+**How the data is trusted.** The rules were differential-tested against
+`python-stdnum` over generated inputs, which found six real check-digit bugs;
+see `crates/eu-vat/NOTICE`.
+
+## 10. `iso8583-msg`
+
+**Why.** ISO 8583 is the format card switches use for ATM, EDC and POS traffic,
+and `pyiso8583` is downloaded around 400,000 times a month. The Rust crates in
+the space are all abandoned.
+
+**Covers today.** The message type indicator, the bitmap chain, fixed and
+variable-length fields, ASCII, BCD, binary and EBCDIC code page 500 data
+encodings, and length prefixes in ASCII, BCD or binary. A `Spec` is data, so a
+switch's dialect is configured rather than compiled.
+
+**Not covered.** Transport, MAC verification and PIN block handling. Field
+contents stay opaque strings: what a processing code means is per-switch, so no
+business-rule validation is attempted.
+
+## 11. `arabic`
+
+**Why.** Terminals, older renderers and PDF generators expect Arabic to arrive
+already shaped. The Rust reshaping crates have under ten thousand downloads
+between them, and shaping is easy to get subtly wrong at the joins.
+
+**Covers today.** Contextual presentation forms for each letter in logical order
+or reversed for display, the lam-alef ligatures and the word Allah, harakat
+carried with their letter or dropped, and a separate `normalize` for a matching
+key. No dependencies.
+
+**Not covered.** Full bidi layout and hundreds of rare ligatures that Unicode
+defines but most fonts cannot render.
+
+## 12. `factur-x`
+
+**Why.** Factur-X and ZUGFeRD are the European hybrid e-invoice, and the PyPI
+package is downloaded hundreds of thousands of times a month. The Rust crates in
+the area have a few thousand downloads and model only one syntax.
+
+**Covers today.** EN 16931 modelled once and written or read as either CII or
+UBL, with `detect_syntax` to tell them apart, and `validate` for the standard's
+arithmetic rules (`BR-01`..`BR-06`, `BR-09`, `BR-16`, `BR-CO-10`..`BR-CO-18`,
+`BR-S-08`). Fields carry the standard's own numbers (`BT-1`, `BG-25`).
+
+**Not covered.** Embedding the XML in a PDF - that is `pdfa` - and code list
+validation and country profiles such as XRechnung, which extend EN 16931.
+
+## 13. `wssec`
+
+**Why.** The missing half of `soap-client`: almost every bank and government
+SOAP endpoint rejects a request with no `Security` header, and the only attempt
+on crates.io has eleven downloads.
+
+**Covers today.** Username tokens with the password digest, timestamps, and
+reading a header back so a password can be checked without holding it. The
+nonce is treated as the raw bytes the specification digests, not the base64
+text, which is where `zeep` gets it wrong; `digest_with_text_nonce` reproduces
+that behaviour for the rare server written to match it.
+
+**Not covered.** `Signature` and `EncryptedData`. Those need a certificate story
+this crate deliberately leaves alone. It also does not generate a nonce or read
+a clock, so the caller records the timestamp and a test can reproduce it.
+
+## 14. `pdfa`
+
+**Why.** The EN 16931 XML is not what a tax authority accepts: it has to travel
+inside a PDF/A-3 document as an attachment, with metadata that says so. The Rust
+PDF writers have no notion of conformance, so this is the other missing half.
+
+**Covers today.** Reading all three object layouts (plain `xref` table,
+cross-reference stream, object stream, predictors included), full `FlateDecode`,
+and building the Factur-X container with the checksum and `/AFRelationship` that
+PDF/A-3 requires. `check_factur_x` verifies the container contract.
+
+**Not covered.** The full ISO 19005 rules. Device-independent colour, every font
+embedded, no encryption, transparency: that is veraPDF's job, and a small crate
+claiming it would be lying. The report says exactly what was checked.
+
+## 15. `adhan`
+
+**Why.** Prayer times are arithmetic every prayer app and mosque schedule needs,
+and it sits beside `hijridate` and `arabic`. The Rust space is split across an
+848-download crate and a 2023 stub.
+
+**Covers today.** Fajr, sunrise, Dhuhr, Asr, Maghrib and Isha from a date and
+coordinates, thirteen calculation methods, both Asr schools, three high latitude
+rules, the Moonsighting Committee seasonal curve, qibla and the sunnah times.
+`Rounding::None` keeps the seconds the reference produces. A time that does not
+exist inside the polar circles is `None`, as the reference reports it.
+
+**Not covered.** Local time. The result is UTC and the caller adds the offset,
+because a place can be an hour or more from its solar time.
+
+**How the data is trusted.** Checked against the JavaScript `adhan` library, not
+its Python port, which is wrong for eastern longitudes.
+
+## 16. `object-hash`
+
+**Why.** npm `object-hash` is downloaded over 40 million times a week, the name
+was free, and the only Rust equivalent had 58 recent downloads. `std::hash::Hash`
+cannot do the job: `RandomState` is seeded per process and a `HashMap` iterates
+in an unspecified order.
+
+**Covers today.** A canonical form identical to the npm package's byte for byte,
+so a Rust service and a Node service agree on a cache key. SHA-1 by default, with
+SHA-256 and MD5 selectable; all three are written out here, so the crate still
+has no dependencies. Number formatting follows the ECMAScript rules rather than
+Rust's `Display`, and entries sort by UTF-16 code unit.
+
+**Not covered.** JavaScript prototypes and constructors, which the reference
+mixes into its hash. A Rust caller has no prototype to respect, so `Value::Map`
+is the entries and nothing else. The digests are not security primitives.
+
+## 17. `javaproperties`
+
+**Why.** The format behind `application.properties` in every Spring service, and
+npm `properties` is downloaded 300,000 times a week. The Rust `java-properties`
+has not moved since 2023. It looks like `key=value` lines and is not.
+
+**Covers today.** Reading and writing, with the escapes, continuations, comment
+rules and ISO-8859-1 default that `java.util.Properties` uses. `Properties::store`
+writes what Java writes, including `\uXXXX` for non-ASCII and the escapes for
+`#`, `!`, `=` and `:`.
+
+**Not covered.** Nothing of the format is omitted; the crate is the reader and
+the writer rather than a formatter.
+
+## 18. `mllp`
+
+**Why.** MLLP is how almost every HL7 v2 message travels over TCP, and PyPI
+`hl7apy` is downloaded 758,000 times a month. The Rust HL7 crates are leaderless
+and none frames a stream.
+
+**Covers today.** Framing and unframing, plus a streaming `Decoder` that
+reassembles frames from reads that do not line up with them. The terminator is
+the pair `0x1C 0x0D`, never a lone `0x0D`, because HL7 v2 ends every segment with
+a carriage return.
+
+**Not covered.** Parsing HL7 v2, opening sockets, TLS, and the newer block-based
+MLLP over HTTPS. A frame that never terminates stops at 16 MiB rather than
+growing the buffer without bound.
+
+## 19. `ebics`
+
+**Why.** EBICS is how a European company sends payment files to its bank, and
+there is no Rust implementation at all: the field is Java, Python and TypeScript.
+
+**Covers today.** The H004 messages and the cryptography a client needs, all
+written here rather than pulled in: RSA PKCS#1 v1.5 and PSS, AES-128-CBC, SHA-256,
+DEFLATE, base64, a bignum, and the canonical XML the header digest is taken over.
+Each layer is checked against an independent implementation, and the header
+digest reproduces byte for byte what `node-ebics-client` put in its own message.
+
+**Not covered.** H005. The return-code table is transcribed from both
+specifications, but the message layer implements H004 only.
+
+## 20. `pdfmake`
+
+**Why.** The JavaScript `pdfmake` model has no Rust equivalent: the Rust PDF
+crates are low-level writers or full layout engines, with nothing in between. A
+generated invoice is data, and building it should not mean concatenating PDF
+operators by hand.
+
+**Covers today.** Text, columns, lists and tables as a Rust value, with text
+wrapping, a table header redrawn on every page, and page numbers resolved after
+the last page is laid out. The 14 standard fonts are used unembedded, which is
+what makes a dependency-free PDF possible.
+
+**Not covered.** Font embedding, so text is WinAnsi and a character it cannot
+represent becomes `?`, with the count recorded in `/Info`. No encryption, no
+signing, no images, no justified text or hyphenation. Reading a PDF is `pdfa`.
+
+## 21. `pades`
+
+**Why.** Three Rust crates produce PAdES signatures and none verifies one. A
+verifier needs the opposite of what a signer does, and it is the smaller and less
+crowded problem.
+
+**Covers today.** Reading a signed PDF and reporting, per signature, the field
+name, `/SubFilter`, the digest algorithm read from the CMS, the `/ByteRange` and
+what it covers, whether the covered bytes still hash correctly, the signer
+subject and validity window, whether an RFC 3161 timestamp is embedded, the
+revocation material in the DSS, and the highest baseline level reached.
+
+**Not covered.** Building a certification path. Full RFC 5280 validation,
+revocation fetching and policy processing is a large subject, and the crate is
+network-free; it reports the chain and the material present and the caller
+decides trust by passing anchors. Producing a signature is out of scope.
+
 ## Publishing order
 
 `cargo package` resolves a `path` dependency against the registry, so a crate
@@ -164,10 +370,13 @@ no flag that gets around this, `--no-verify` included, because the failure is in
 resolving the dependency rather than in building it.
 
 1. `xmlkit`
-2. `iso20022-rs`, `soap-client`, `wssec`, `factur-x`, `pdfa` (each depends on `xmlkit`)
-3. Everything else is independent and can go in any order: `holidays-rs`,
+2. `iso20022-rs`, `soap-client`, `wssec`, `ebics`, `factur-x`, `pdfa`
+   (each depends on `xmlkit`)
+3. `pades` (depends on `pdfa`)
+4. Everything else is independent and can go in any order: `holidays-rs`,
    `hijridate`, `stdnum-rs`, `spreadsheet-formula`, `eu-vat`, `iso8583-msg`,
-   `arabic`, `adhan`, `object-hash`, `javaproperties`, `mllp`.
+   `arabic`, `adhan`, `object-hash`, `javaproperties`, `mllp`, `pdfmake`,
+   `iso6346`.
 
 The other rule is that a published version cannot be overwritten. `0.1.0` is
 spent the moment it is uploaded, so a mistake in the first upload of a crate
@@ -184,12 +393,12 @@ python3 scripts/publish.py --publish  # upload, in order, stopping at the first 
 
 ## Verification
 
-The counts below are for the whole workspace, all 20 crates, and they drift as
+The counts below are for the whole workspace, all 21 crates, and they drift as
 crates are added; they are here as an order of magnitude, not as a contract.
 
 ```sh
-cargo test --workspace --all-targets      # 592 unit and README tests
-cargo test --workspace --doc              # 56 doctests, not covered by --all-targets
+cargo test --workspace --all-targets      # 919 unit and README tests
+cargo test --workspace --doc              # 146 doctests, not covered by --all-targets
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all -- --check
 ```

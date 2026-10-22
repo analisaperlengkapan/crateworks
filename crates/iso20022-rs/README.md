@@ -28,33 +28,8 @@ formats. It is organised into business areas whose message names carry a
 three-letter prefix:
 
 * `pain` - payment initiation, sent by a customer to their bank.
-* `pacs` - payment clearing and settlement, sent between banks.
+* `pacs` - payment clearing and settlement, sent between banks. Not covered here yet.
 * `camt` - cash management, including account statements.
-
-## Example
-
-```
-use iso20022_rs::camt::BankStatement;
-
-let xml = r#"<?xml version="1.0"?>
-<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.08">
-  <BkToCstmrStmt>
-    <Stmt>
-      <Id>STMT-001</Id>
-      <Acct><Id><IBAN>DE89370400440532013000</IBAN></Id></Acct>
-      <Bal><Tp><CdOrPrtry><Cd>OPBD</Cd></CdOrPrtry></Tp><Amt Ccy="EUR">1000.00</Amt></Bal>
-      <Ntry><Amt Ccy="EUR">250.00</Amt><CdtDbtInd>CRDT</CdtDbtInd></Ntry>
-    </Stmt>
-  </BkToCstmrStmt>
-</Document>"#;
-
-let statement = BankStatement::parse(xml).unwrap();
-assert_eq!(statement.id, "STMT-001");
-assert_eq!(statement.iban.as_deref(), Some("DE89370400440532013000"));
-assert_eq!(statement.opening_balance.as_ref().unwrap().amount, 1000.0);
-assert_eq!(statement.entries.len(), 1);
-assert_eq!(statement.closing_balance(), 1250.0);
-```
 
 ## Scope
 

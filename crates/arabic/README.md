@@ -49,13 +49,6 @@ Only the ligatures in ordinary use are applied: the four lam-alef combinations
 and the word Allah. Unicode defines hundreds more, but substituting them by
 default produces text that most fonts cannot render.
 
-Arabic letters change shape depending on their neighbours. An initial `ب`
-looks different from a final one, and a letter that joins on both sides is
-drawn in its medial form. Terminals, older renderers and PDF generators do
-not do this themselves: they expect the text to arrive already shaped, with
-each letter replaced by the presentation form that Unicode keeps in the
-Arabic Presentation Forms block.
-
 ## What shaping is for
 
 The Unicode standard stores Arabic in *logical* order: the characters as

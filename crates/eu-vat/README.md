@@ -52,41 +52,6 @@ from python-stdnum, so the tests compare against an independent implementation
 rather than against this crate's own output. See
 [`NOTICE`](https://github.com/cipansor/crateworks/blob/main/crates/eu-vat/NOTICE).
 
-A VAT number is a two-letter country prefix followed by a national number
-whose shape and check digit differ per member state. This crate knows all
-twenty-seven of them plus Northern Ireland (`XI`), and it performs the same
-country-specific check that the national authority applies.
-
-## Example
-
-```
-use eu_vat::{Country, Vat};
-
-// Spaces and dots are separators, not part of the number.
-let vat = Vat::parse("NL 0044.95445.B01").unwrap();
-assert_eq!(vat.country(), Country::Netherlands);
-assert_eq!(vat.number(), "004495445B01");
-assert_eq!(vat.to_string(), "NL004495445B01");
-
-// A wrong BSN check digit is rejected.
-assert!(Vat::parse("NL004495446B01").is_err());
-```
-
-## Scope
-
-This is a format and check-digit filter, not a registry lookup. A number
-that passes may still be deregistered, and a number that fails is certainly
-not a VAT number. Confirming that a number is *live* requires the European
-Commission's VIES service, which this crate deliberately does not contact.
-
-## Greece and Northern Ireland
-
-Greece uses `EL` as its VAT prefix even though its ISO 3166 code is `GR`;
-both spellings are accepted here and `EL` is what the canonical form uses.
-`XI` is Northern Ireland, which applies the same numbering scheme as the
-United Kingdom. The United Kingdom itself is no longer inside the EU VAT
-area, so `GB` is not accepted; a `GB` number is a UK tax matter.
-
 Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.

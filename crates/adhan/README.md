@@ -130,11 +130,6 @@ them exactly one minute low. The crate follows the JavaScript library, and
 `tests/fixtures/adhan_js_*.tsv` also covers the three high-latitude rules, the
 sunnah times and the qibla, none of which the earlier grid reached.
 
-Given a Gregorian date, a latitude and a longitude, this computes Fajr,
-sunrise, Dhuhr, Asr, Maghrib and Isha. It is the sort of arithmetic that
-every prayer app, mosque schedule and Ramadan calendar needs, and that
-`hijridate` and `arabic` in this workspace sit next to.
-
 ## Qibla and the sunnah times
 
 ```rust

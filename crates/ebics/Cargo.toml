@@ -1,6 +1,6 @@
 [package]
 name = "ebics"
-description = "EBICS 3.0 (H004 and H005): the XML messages and the RSA, AES and SHA-256 cryptography a corporate banking client needs."
+description = "EBICS 3.0 (H004): the XML messages and the RSA, AES and SHA-256 cryptography a corporate banking client needs."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

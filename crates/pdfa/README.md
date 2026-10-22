@@ -88,19 +88,6 @@ against streams Python's `zlib` produced. Writing stays simple: the attachment
 this crate adds is a zlib stream with *stored* blocks, which is valid, which any
 reader inflates, and which costs only a few bytes per sixty-five thousand.
 
-## What the checker proves
-
-`check_factur_x` verifies the container contract: the metadata claims
-PDF/A-3, the catalog points at it, the attachment is present under the agreed
-name, it declares a relationship, and its checksum matches its bytes. That
-last one is the failure that actually happens in practice, because the XML is
-regenerated and the checksum is left behind.
-
-It does not apply the full ISO 19005 rules. Device-independent colour, every
-font embedded, no encryption, transparency restrictions: that is veraPDF's
-job and a small crate claiming it would be lying. The report says what was
-checked so a caller who reads "valid" knows exactly what that means.
-
 ## What it does not do
 
 It is not a renderer and not a general PDF library. It does not decrypt, and it

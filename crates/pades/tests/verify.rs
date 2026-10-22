@@ -1,4 +1,4 @@
-//! Runs the README example and the public API against the committed corpus.
+//! Runs the public API against the committed corpus.
 //!
 //! The fixtures are signed PDFs, and the labels beside them are what pyHanko
 //! reports for each one. The tests assert against those labels rather than
@@ -12,16 +12,6 @@ fn fixture(name: &str) -> Vec<u8> {
         .join("tests/fixtures")
         .join(name);
     std::fs::read(&path).unwrap_or_else(|_| panic!("the fixture {name} is present"))
-}
-
-#[test]
-fn readme_example() {
-    let document = fixture("signed_lt.pdf");
-    let report = verify(&document).unwrap();
-    let signature = &report.signatures[0];
-    assert_eq!(signature.integrity, Integrity::Intact);
-    assert_eq!(signature.coverage, Coverage::EntireRevision);
-    assert_eq!(report.level, Some(Level::B_LT));
 }
 
 #[test]

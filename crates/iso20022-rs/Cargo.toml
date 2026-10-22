@@ -1,6 +1,6 @@
 [package]
 name = "iso20022-rs"
-description = "ISO 20022 payment messages: parse and build camt, pain and pacs documents."
+description = "ISO 20022 payment messages: parse and build camt bank statements and pain payment initiation."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
