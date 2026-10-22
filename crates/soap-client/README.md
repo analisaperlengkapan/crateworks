@@ -34,6 +34,6 @@ Build requests, parse responses, read faults in either version's shape, turn a
 WSDL operation into a ready-to-send request, and extract a service's endpoint and
 operations. The HTTP call and WS-Security are left to the caller.
 
-Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
+Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.

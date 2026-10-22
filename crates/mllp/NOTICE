@@ -2,7 +2,7 @@ crateworks
 Copyright 2026 Yayasan Pesantren Cipansor and contributors
 
 This product includes software developed by Yayasan Pesantren Cipansor and
-contributors (https://github.com/analisaperlengkapan/crateworks).
+contributors (https://github.com/cipansor/crateworks).
 
 The framing characters (start block 0x0B, end block 0x1C, carriage return
 0x0D) and the framing rules follow "Transport Specification: MLLP, Release 1",

@@ -55,6 +55,6 @@ The crate works on the XML. Embedding it in a PDF and reading it back out needs 
 PDF library; `generate` gives you the XML to embed. `parse` reads both syntaxes,
 and `detect_syntax` tells you which one a document is.
 
-Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
+Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.

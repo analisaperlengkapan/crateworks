@@ -87,6 +87,6 @@ authenticates a shared secret to a server that already knows it and the input
 includes a nonce the attacker cannot choose. It would matter for a server that
 accepts a replayed token, which is a protocol concern: check the timestamp.
 
-Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
+Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.

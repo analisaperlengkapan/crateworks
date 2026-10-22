@@ -5,34 +5,27 @@ Several crates here are independent reimplementations of an existing library,
 and the licence requires that library to be named in NOTICE. The credit is easy
 to add to a source comment and easy to forget in NOTICE, which is how
 `stdnum-rs` ended up citing python-stdnum in `src/id/mod.rs` while its NOTICE
-said nothing. This script looks for a short list of upstream markers in each
-crate's sources, tests and README, and requires NOTICE to carry the same marker.
+said nothing.
 
-Markers are distinctive fragments (usually a repository path) rather than bare
-project names, so that a crate's own name does not match itself: `hijridate`
-matches itself, `dralshehri` does not.
+The list of upstream projects lives in `attribution.toml` next to this script,
+so adding a crate means editing data rather than code. Each entry has a marker,
+usually a repository path, chosen so a crate cannot match its own name
+(`hijridate` matches itself; `dralshehri` does not).
 
 Exits 1 and prints the offending crate when a marker is missing from NOTICE.
 """
 
 import sys
+import tomllib
 from pathlib import Path
-
-# marker -> the project it stands for, for the error message
-MARKERS = {
-    "batoulapps/adhan-js": "adhan (JS) by Batoul Apps",
-    "arabic-reshaper": "arabic-reshaper by Abdullah Diab",
-    "python-stdnum": "python-stdnum by Arthur de Jong",
-    "akretion/factur-x": "factur-x by Alexis de Lattre",
-    "dralshehri": "hijridate by Mohammed Alshehri",
-    "pyiso8583": "pyiso8583 by Konstantin Novichikhin",
-    "jwodder/javaproperties": "javaproperties by John T. Wodder II",
-    "puleos/object-hash": "object-hash (npm) by Stefan Judis and David Bittner",
-    "python-zeep": "zeep by Mathieu Leplatre",
-}
 
 # Where a credit is allowed to appear. NOTICE is the file being checked.
 CREDIT_SOURCES = ("src", "tests", "README.md")
+
+
+def load_markers(path: Path) -> dict[str, str]:
+    data = tomllib.loads(path.read_text())
+    return {e["marker"]: e["project"] for e in data["upstream"]}
 
 
 def texts(crate: Path):
@@ -44,23 +37,24 @@ def texts(crate: Path):
             yield from sorted(p.rglob("*.rs"))
 
 
-def check(root: Path):
+def check(root: Path, markers: dict[str, str]):
     failures = []
     for crate in sorted((root / "crates").iterdir()):
         if not crate.is_dir():
             continue
         notice = crate / "NOTICE"
         notice_text = notice.read_text() if notice.is_file() else ""
-        credited = {m for m in MARKERS if any(m in f.read_text() for f in texts(crate))}
+        credited = {m for m in markers if any(m in f.read_text() for f in texts(crate))}
         for marker in sorted(credited):
             if marker not in notice_text:
-                failures.append((crate.name, marker, MARKERS[marker]))
+                failures.append((crate.name, marker, markers[marker]))
     return failures
 
 
 def main() -> int:
     root = Path(__file__).resolve().parent.parent
-    failures = check(root)
+    markers = load_markers(root / "scripts" / "attribution.toml")
+    failures = check(root, markers)
     for crate, marker, project in failures:
         print(
             f"{crate}: NOTICE does not mention {project!r} "
@@ -74,7 +68,7 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
-    print("attribution: every credited upstream project is named in NOTICE")
+    print(f"attribution: {len(markers)} upstream projects tracked, all named in NOTICE")
     return 0
 
 

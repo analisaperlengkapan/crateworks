@@ -7,6 +7,7 @@ hand.
 | Script | What it does |
 | --- | --- |
 | `check_attribution.py` | Fails when a crate credits an upstream project in its code but not in `NOTICE` (run in CI) |
+| `attribution.toml` | Data for the above: the upstream projects and the marker that identifies each |
 | `publish.py` | Works out the order the crates can be published in, and checks or runs it |
 | `fuzz/` | Generators for the fuzz corpora in `crates/*/tests/fixtures/` |
 
@@ -19,14 +20,20 @@ easy to put in a source comment and forget in `NOTICE`: `stdnum-rs` cited
 `eu-vat`, from the same lineage, did name it. No compiler catches that, so the
 script does.
 
-It looks for a fixed list of upstream markers (repository paths such as
-`python-stdnum` or `dralshehri`, chosen so a crate does not match its own name)
-in each crate's `src`, `tests` and `README.md`, and requires the same marker in
-that crate's `NOTICE`.
+The list of upstream projects lives in `attribution.toml`, so adding a crate
+means editing data, not code. For each entry the script checks: if the entry's
+`marker` appears anywhere in a crate's `src`, `tests` or `README.md`, then that
+same marker must also appear in the crate's `NOTICE`.
 
 ```sh
 python3 scripts/check_attribution.py   # exit 1 and name the crate if a credit is missing
 ```
+
+Pick a marker that is distinctive to the upstream project, normally a repository
+path, so that a crate cannot match its own name. `hijridate` matches itself,
+which is why its marker is the author's handle `dralshehri` rather than the
+project name. A marker that is too generic turns into a false positive: a marker
+of `xmlkit` matches every crate that depends on `xmlkit`.
 
 ## publish.py
 

@@ -2,7 +2,7 @@ crateworks
 Copyright 2026 Yayasan Pesantren Cipansor and contributors
 
 This product includes software developed by Yayasan Pesantren Cipansor and
-contributors (https://github.com/analisaperlengkapan/crateworks).
+contributors (https://github.com/cipansor/crateworks).
 
 The parsing rules follow java.util.Properties and were checked against the
 javaproperties Python package by John T. Wodder II

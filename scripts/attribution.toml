@@ -1,0 +1,46 @@
+# Upstream projects that a crate in this workspace reimplements.
+#
+# `check_attribution.py` reads this file. For each entry it checks: if `marker`
+# appears anywhere in a crate's `src/`, `tests/` or `README.md`, then the same
+# marker must also appear in that crate's `NOTICE`. Add an entry here in the same
+# change that adds a crate which reimplements an upstream library.
+#
+# Pick a marker that is distinctive to the upstream project, normally a
+# repository path, so that a crate cannot match its own name. `hijridate` matches
+# itself, which is why its marker is the author's handle rather than the name.
+
+[[upstream]]
+project = "adhan (JS) by Batoul Apps"
+marker = "batoulapps/adhan-js"
+
+[[upstream]]
+project = "arabic-reshaper by Abdullah Diab"
+marker = "arabic-reshaper"
+
+[[upstream]]
+project = "python-stdnum by Arthur de Jong"
+marker = "python-stdnum"
+
+[[upstream]]
+project = "factur-x by Alexis de Lattre"
+marker = "akretion/factur-x"
+
+[[upstream]]
+project = "hijridate by Mohammed Alshehri"
+marker = "dralshehri"
+
+[[upstream]]
+project = "pyiso8583 by Konstantin Novichikhin"
+marker = "pyiso8583"
+
+[[upstream]]
+project = "javaproperties by John T. Wodder II"
+marker = "jwodder/javaproperties"
+
+[[upstream]]
+project = "object-hash (npm) by Stefan Judis and David Bittner"
+marker = "puleos/object-hash"
+
+[[upstream]]
+project = "zeep by Mathieu Leplatre"
+marker = "python-zeep"

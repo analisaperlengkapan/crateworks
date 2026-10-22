@@ -110,6 +110,6 @@ so the JavaScript library is the reference rather than the Python one. And in th
 polar cases the reference returns nothing rather than a number, which is why the
 API here returns `Option`.
 
-Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
+Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.

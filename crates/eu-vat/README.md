@@ -47,8 +47,8 @@ specifications, not its own text, and this crate is an independent
 reimplementation that shares no code with it. The test fixtures were generated
 from python-stdnum, so the tests compare against an independent implementation
 rather than against this crate's own output. See
-[`NOTICE`](https://github.com/analisaperlengkapan/crateworks/blob/main/crates/eu-vat/NOTICE).
+[`NOTICE`](https://github.com/cipansor/crateworks/blob/main/crates/eu-vat/NOTICE).
 
-Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
+Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.

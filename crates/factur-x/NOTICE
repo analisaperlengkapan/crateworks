@@ -2,7 +2,7 @@ crateworks
 Copyright 2026 Yayasan Pesantren Cipansor and contributors
 
 This product includes software developed by Yayasan Pesantren Cipansor and
-contributors (https://github.com/analisaperlengkapan/crateworks).
+contributors (https://github.com/cipansor/crateworks).
 
 The element mapping and the test fixtures under tests/fixtures were checked
 against the factur-x package by Alexis de Lattre and contributors

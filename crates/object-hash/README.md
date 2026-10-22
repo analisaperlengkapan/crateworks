@@ -102,6 +102,6 @@ One ordering rule is worth stating because it is not obvious: entries of a set o
 map are ordered by UTF-16 code unit, as JavaScript orders strings, not by UTF-8
 byte. The two disagree above the basic plane, where an emoji sorts before U+FFFF.
 
-Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
+Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.

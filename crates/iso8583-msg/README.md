@@ -54,6 +54,6 @@ Field contents are opaque strings. What a processing code or a response code
 There is also no transport, no MAC verification and no PIN block decryption:
 this crate frames messages and nothing more.
 
-Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
+Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.

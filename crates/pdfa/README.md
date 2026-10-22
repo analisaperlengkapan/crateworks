@@ -84,6 +84,6 @@ shipping a whole deflate implementation. When the checker meets a stream
 compressed with real deflate it reports that the checksum could not be checked,
 rather than reporting a mismatch it cannot prove.
 
-Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
+Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.

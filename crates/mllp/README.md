@@ -70,6 +70,6 @@ It does not open sockets, retry, or decide how long to wait for a reply, and it
 does not implement TLS or the newer, block-based MLLP (MLLP over HTTPS). It also
 does not build HL7 acknowledgement messages; that needs a message parser.
 
-Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
+Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.

@@ -6,6 +6,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
 authors.workspace = true
 keywords = ["mllp", "hl7", "hl7v2", "healthcare", "framing"]
 categories = ["encoding", "parser-implementations", "network-programming"]

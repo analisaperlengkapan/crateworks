@@ -57,6 +57,6 @@ a backslash just before a comment, a `\uXXXX` split across a continuation, a
 separator that is also an escaped character. Those are where the obvious
 implementation and the reference part ways.
 
-Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
+Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.

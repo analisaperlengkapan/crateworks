@@ -6,6 +6,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
 authors.workspace = true
 keywords = ["iso8583", "payments", "card", "atm", "bitmap"]
 categories = ["encoding", "parser-implementations", "finance"]

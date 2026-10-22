@@ -126,8 +126,10 @@ means what you think it means. This has cost two separate debugging rounds.
   `python-stdnum` in `src/id/mod.rs` while its `NOTICE` listed nothing, even
   though `eu-vat`, which shares that lineage, did name it. No compiler catches
   this, so `scripts/check_attribution.py` does, in CI. When you add a crate that
-  reimplements something, add the marker to that script's `MARKERS` and the
-  attribution to the crate's `NOTICE` in the same change.
+  reimplements something, add an entry to `scripts/attribution.toml` (the data
+  file the script reads) and the attribution to the crate's `NOTICE` in the same
+  change. The marker must be distinctive to the upstream project, usually a
+  repository path; a generic marker such as `xmlkit` matches every dependent.
 - **The README guard is a real test, not ceremony.** Adding the `ReadmeDoctests`
   marker to `iso20022-rs` immediately failed: its README said
   `use iso20022-rs::camt::BankStatement;`, and a hyphen is not legal in a Rust
@@ -177,7 +179,7 @@ means what you think it means. This has cost two separate debugging rounds.
   be public. Stage with `git add -A -- ':!.openhands'`.
 - Do not push and do not open a pull request unless asked to.
 - `git push` prompts and then hangs, because `origin` is plain HTTPS. Use
-  `GIT_TERMINAL_PROMPT=0 git push "https://x-access-token:${GITHUB_TOKEN}@github.com/analisaperlengkapan/crateworks.git" main`.
+  `GIT_TERMINAL_PROMPT=0 git push "https://x-access-token:${GITHUB_TOKEN}@github.com/cipansor/crateworks.git" main`.
 - If a change deleted something that was never committed, `git checkout -- <path>`
   recovers it. Do not reach for destructive git commands to undo work; ask first.
 

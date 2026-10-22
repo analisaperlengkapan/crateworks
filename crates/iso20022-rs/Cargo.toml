@@ -6,6 +6,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
 authors.workspace = true
 keywords = ["iso20022", "payments", "banking", "sepa", "camt"]
 categories = ["parser-implementations", "finance"]

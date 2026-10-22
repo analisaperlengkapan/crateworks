@@ -2,7 +2,7 @@ crateworks
 Copyright 2026 Yayasan Pesantren Cipansor and contributors
 
 This product includes software developed by Yayasan Pesantren Cipansor and
-contributors (https://github.com/analisaperlengkapan/crateworks).
+contributors (https://github.com/cipansor/crateworks).
 
 The country-specific validation rules and the test fixtures are derived from
 the python-stdnum library by Arthur de Jong and contributors

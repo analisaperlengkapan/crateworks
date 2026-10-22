@@ -46,6 +46,6 @@ Only the ligatures in ordinary use are applied: the four lam-alef combinations
 and the word Allah. Unicode defines hundreds more, but substituting them by
 default produces text that most fonts cannot render.
 
-Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
+Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.

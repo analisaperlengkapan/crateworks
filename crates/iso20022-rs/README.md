@@ -20,6 +20,6 @@ assert_eq!(s.closing_balance(), 125.0);
 `pain.001` can be read and generated, with the control sum and transaction count
 computed from the transfers so the output is internally consistent.
 
-Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
+Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.

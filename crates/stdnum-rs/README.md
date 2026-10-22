@@ -20,8 +20,8 @@ The rules were cross-checked against
 [`python-stdnum`](https://arthurdejong.org/python-stdnum/) by Arthur de Jong and
 contributors, which in turn follows each authority's published specification.
 This is an independent reimplementation and shares no code with it; see
-[`NOTICE`](https://github.com/analisaperlengkapan/crateworks/blob/main/crates/stdnum-rs/NOTICE).
+[`NOTICE`](https://github.com/cipansor/crateworks/blob/main/crates/stdnum-rs/NOTICE).
 
-Part of the [crateworks](https://github.com/analisaperlengkapan/crateworks)
+Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.
