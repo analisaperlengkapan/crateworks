@@ -19,6 +19,7 @@ members = [
     "crates/javaproperties",
     "crates/mllp",
     "crates/ebics",
+    "crates/pdfmake",
 ]
 
 [workspace.package]

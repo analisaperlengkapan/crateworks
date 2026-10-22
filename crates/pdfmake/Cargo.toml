@@ -1,0 +1,23 @@
+[package]
+name = "pdfmake"
+description = "Build paginated PDFs from a plain Rust data structure: text, columns, lists and tables, with repeated table headers and page numbers."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+keywords = ["pdf", "report", "document", "layout", "invoice"]
+categories = ["text-processing", "visualization"]
+readme = "README.md"
+
+[package.metadata.docs.rs]
+# docs.rs builds every feature so nothing is missing from the published docs.
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[dependencies]
+
+[lints]
+workspace = true

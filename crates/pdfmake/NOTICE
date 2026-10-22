@@ -1,0 +1,21 @@
+crateworks
+Copyright 2026 Yayasan Pesantren Cipansor and contributors
+
+This product includes software developed by Yayasan Pesantren Cipansor and
+contributors (https://github.com/cipansor/crateworks).
+
+The glyph widths and vertical metrics in `src/fonts/metrics.rs` are Adobe's
+published AFM metrics for the PDF core fonts, as distributed with Ghostscript
+and reproduced in the Python libraries `reportlab` and `pdfminer.six`. The
+WinAnsi encoding follows Annex D of the PDF specification (ISO 32000-1).
+
+The declarative document model (content as a value, a table that repeats its
+header, page numbers resolved after layout) follows the API of the pdfmake
+JavaScript library by Bartek Pampuch and contributors
+(https://github.com/bpampuch/pdfmake), which is distributed under the MIT
+licence.
+
+This crate is an independent implementation for Rust. It does not include or
+link any of those projects.
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).

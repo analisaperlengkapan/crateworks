@@ -1,0 +1,188 @@
+#!/usr/bin/env python3
+"""Generate `src/fonts/metrics.rs` from the Adobe Core 14 font metrics.
+
+The 14 standard PDF fonts may be used without embedding, so their glyph widths
+have to live in the crate. Those widths are fixed by Adobe's AFM files and have
+not changed in decades; this script copies them out once so the crate does not
+carry a build-time dependency on a font parser.
+
+Two independent copies of the metrics are read and compared. The script aborts
+if they ever disagree, because a wrong width is invisible until a line of text
+overflows its column:
+
+  * `pdfminer.fontmetrics` supplies the widths and vertical metrics
+  * `reportlab.pdfbase._fontdata` supplies a second copy of the same widths
+
+The character encoding comes from `pdfminer.encodingdb.WinAnsiEncoding`, which
+reproduces Annex D of the PDF specification. reportlab's copy of that table is
+NOT used: it fills several codes that Annex D leaves unused (127, 129, 141, 143,
+144) with `bullet`, which would emit the wrong glyph for those byte values.
+
+Run from the crate directory:  python3 tools/generate_font_metrics.py
+"""
+
+from pathlib import Path
+
+from pdfminer import fontmetrics
+from pdfminer.encodingdb import EncodingDB
+
+# The twelve text fonts of the Core 14. Symbol and ZapfDingbats are symbol fonts
+# with their own encodings and are not offered by this crate.
+FONTS = [
+    "Helvetica",
+    "Helvetica-Bold",
+    "Helvetica-Oblique",
+    "Helvetica-BoldOblique",
+    "Times-Roman",
+    "Times-Bold",
+    "Times-Italic",
+    "Times-BoldItalic",
+    "Courier",
+    "Courier-Bold",
+    "Courier-Oblique",
+    "Courier-BoldOblique",
+]
+
+OUT = Path(__file__).resolve().parent.parent / "src" / "fonts" / "metrics.rs"
+
+
+def width_const(font: str) -> str:
+    return "W_" + font.upper().replace("-", "_")
+
+
+def check_against_reportlab(spec, metrics):
+    """Compare the widths with reportlab's separate copy of the same AFM data.
+
+    reportlab's `WinAnsiEncoding` is not Annex D. It maps the six codes that
+    Annex D leaves unused (0x7F, 0x81, 0x8D, 0x8F, 0x90, 0x9D) to `bullet`, and
+    it maps 0xAD to `hyphen` where Annex D has U+00AD. A code is therefore only
+    compared when reportlab's glyph for it means the same character, which the
+    glyph-name-to-character table decides without trusting the code table.
+    """
+    import reportlab.pdfbase._fontdata as fd
+    from reportlab.pdfbase._glyphlist import _glyphname2unicode
+
+    def char_of(value):
+        if value is None:
+            return None
+        if isinstance(value, int):
+            return chr(value)
+        if isinstance(value, str):
+            return value
+        return "".join(chr(v) for v in value)
+
+    skipped = set()
+    checked = 0
+    for font in FONTS:
+        by_glyph = fd.widthsByFontGlyph[font]
+        widths = metrics[font][1]
+        for code, ch in spec.items():
+            if not ch or ch not in widths:
+                continue
+            glyph = fd.WinAnsiEncoding[code]
+            if glyph is None:
+                continue
+            if char_of(_glyphname2unicode.get(glyph)) != ch:
+                skipped.add(code)
+                continue
+            expected = by_glyph.get(glyph)
+            if expected is None:
+                continue
+            if expected != widths[ch]:
+                raise SystemExit(
+                    f"width disagreement for {font} {ch!r} at code {code}: "
+                    f"reportlab={expected} pdfminer={widths[ch]}"
+                )
+            checked += 1
+    if skipped:
+        codes = ", ".join(f"0x{c:02X}" for c in sorted(skipped))
+        print(f"skipped {len(skipped)} codes reportlab encodes differently: {codes}")
+    return checked
+
+
+def width_lookup(font, metrics):
+    """Return `char -> width` for one font, with a documented fallback.
+
+    pdfminer's copy of the metrics predates Adobe adding the Euro to the core
+    fonts, so `€` is absent from it. reportlab carries the updated value, and it
+    is the only character that needs the fallback. Anything else missing is an
+    error, because it would mean a glyph silently renders at width 0.
+    """
+    import reportlab.pdfbase._fontdata as fd
+
+    by_glyph = fd.widthsByFontGlyph[font]
+    glyph_by_code = fd.WinAnsiEncoding
+    _, widths = metrics[font]
+
+    def lookup(ch):
+        if ch in widths:
+            return widths[ch]
+        for code, candidate in enumerate(glyph_by_code):
+            if candidate == "Euro" and ch == "\u20ac":
+                return by_glyph["Euro"]
+        raise SystemExit(f"no width for {ch!r} in {font}")
+
+    return lookup
+
+
+def main():
+    spec = EncodingDB.get_encoding("WinAnsiEncoding")  # code -> character
+    metrics = {f: fontmetrics.FONT_METRICS[f] for f in FONTS}
+    checked = check_against_reportlab(spec, metrics)
+
+    lines = [
+        "//! Glyph widths for the PDF core fonts, and the WinAnsi encoding.",
+        "//!",
+        "//! Generated by `tools/generate_font_metrics.py` from Adobe's AFM metrics,",
+        f"//! with {checked} widths cross-checked against a second copy of the same data.",
+        "//! Do not edit by hand.",
+        "",
+        "/// Width of one glyph in 1/1000 of the font size, indexed by WinAnsi code.",
+        "///",
+        "/// A code with no glyph in WinAnsi has width 0 and cannot be emitted.",
+        "pub(crate) type Widths = [u16; 256];",
+        "",
+    ]
+
+    for font in FONTS:
+        lookup = width_lookup(font, metrics)
+        row = [int(lookup(spec[code])) if spec.get(code) else 0 for code in range(256)]
+        lines.append(f"/// Glyph widths for `{font}`.")
+        lines.append(f"pub(crate) const {width_const(font)}: Widths = [")
+        for start in range(0, 256, 16):
+            chunk = ", ".join(f"{v:4}" for v in row[start : start + 16])
+            lines.append(f"    {chunk},")
+        lines.append("];")
+        lines.append("")
+
+    # Characters WinAnsi can represent outside ASCII, sorted so the lookup in
+    # `fonts::encode_char` can binary-search them.
+    pairs = sorted((ch, code) for code, ch in spec.items() if ch and code > 126)
+    lines.append("/// Characters WinAnsi encodes outside ASCII, sorted by character.")
+    lines.append("///")
+    lines.append("/// Everything from U+0020 to U+007E encodes to its own code point and is")
+    lines.append("/// handled without consulting this table.")
+    lines.append("pub(crate) const WINANSI_NON_ASCII: &[(char, u8)] = &[")
+    for ch, code in pairs:
+        lines.append(f"    ('{ch}', {code}),")
+    lines.append("];")
+    lines.append("")
+
+    lines.append("/// Vertical metrics and glyph widths for one core font.")
+    lines.append("#[derive(Debug, Clone, Copy)]")
+    lines.append("pub(crate) struct Metrics {")
+    lines.append("    /// Baseline to the top of the tallest glyph, in 1/1000 em.")
+    lines.append("    pub ascent: i16,")
+    lines.append("    /// Baseline down to the lowest descender, as a positive number of 1/1000 em.")
+    lines.append("    pub descent: i16,")
+    lines.append("    /// Per-code glyph widths in 1/1000 em.")
+    lines.append("    pub widths: &'static Widths,")
+    lines.append("}")
+    lines.append("")
+
+    OUT.write_text("\n".join(lines) + "\n")
+    print(f"wrote {OUT} ({OUT.stat().st_size} bytes, {checked} widths verified)")
+
+
+if __name__ == "__main__":
+    main()

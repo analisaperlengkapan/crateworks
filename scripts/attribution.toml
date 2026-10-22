@@ -44,3 +44,7 @@ marker = "puleos/object-hash"
 [[upstream]]
 project = "zeep by Mathieu Leplatre"
 marker = "python-zeep"
+
+[[upstream]]
+project = "pdfmake (JS) by Bartek Pampuch"
+marker = "bpampuch/pdfmake"
