@@ -153,20 +153,36 @@ pub(super) mod mexico {
     /// is a check character over the preceding twelve. Only the longer form
     /// carries a verifiable check, so the shorter one is validated structurally.
     pub(in crate::id) fn validate_rfc(s: &str) -> Result<()> {
-        if s.len() != 12 && s.len() != 13 {
-            return Err(Error::WrongLength {
-                expected: 13,
-                found: s.len(),
-            });
-        }
+        // The RFC is written with dashes, underscores or spaces between its
+        // parts, and none of them carry meaning.
+        let owned: String = s
+            .chars()
+            .filter(|c| !matches!(c, '-' | '_' | ' '))
+            .collect();
+        let s: &str = &owned;
+        // Three shapes exist: a ten-character number assigned to a person
+        // before the homoclave was added, a thirteen-character personal number,
+        // and a twelve-character company number. All three begin with letters
+        // and carry the same six digits of date, but the date starts after four
+        // letters for a person and after three for a company.
+        let (letters, homoclave) = match s.len() {
+            10 | 13 => (4usize, s.len() - 10),
+            12 => (3usize, 3usize),
+            found => {
+                return Err(Error::WrongLength {
+                    expected: 13,
+                    found,
+                });
+            }
+        };
         let bytes = s.as_bytes();
-        let letters = if s.len() == 13 { 4 } else { 3 };
-        // The four or three leading letters, six digits of date, then the
-        // homoclave.
-        if !bytes[..letters].iter().all(|b| b.is_ascii_uppercase()) {
+        // The leading letters may include the ampersand and the enye, both of
+        // which appear in real names.
+        let name_ok = |b: &u8| b.is_ascii_uppercase() || *b == b'&' || *b == 0xC3;
+        if !bytes[..letters].iter().all(name_ok) {
             let bad = bytes
                 .iter()
-                .find(|b| !b.is_ascii_uppercase())
+                .find(|b| !name_ok(b))
                 .copied()
                 .unwrap_or(bytes[0]);
             return Err(Error::InvalidCharacter(char::from(bad)));
@@ -187,14 +203,24 @@ pub(super) mod mexico {
                 .unwrap_or(bytes[letters + 6]);
             return Err(Error::InvalidCharacter(char::from(bad)));
         }
+        let _ = homoclave;
         // The six digits are a date. The century is not stored, so it is taken
-        // as 2000, which matches the reference implementation.
+        // as 2000. Unlike the Indonesian NIK this is a real calendar check: a
+        // date that does not exist is not a valid RFC.
         let start = letters;
         let year = 2000 + u32::from(bytes[start] - b'0') * 10 + u32::from(bytes[start + 1] - b'0');
         let month = u32::from(bytes[start + 2] - b'0') * 10 + u32::from(bytes[start + 3] - b'0');
         let day = u32::from(bytes[start + 4] - b'0') * 10 + u32::from(bytes[start + 5] - b'0');
         if !checksum::is_real_date(year, month, day) {
             return Err(Error::OutOfRange);
+        }
+        // The four letters of a personal RFC are a name, and the tax office
+        // refuses a short list of them because they read as profanity.
+        if letters == 4 {
+            let name = &s[..4];
+            if RFC_NAME_BLACKLIST.contains(&name) {
+                return Err(Error::OutOfRange);
+            }
         }
         if s.len() == 12 {
             // The company form ends with the same check character as the
@@ -214,6 +240,11 @@ pub(super) mod mexico {
             }
             return Ok(());
         }
+        // The ten-character form predates the homoclave, so it has no check
+        // character to verify.
+        if s.len() == 10 {
+            return Ok(());
+        }
         // The check character is computed over the first twelve characters.
         let mut sum = 0u32;
         for (i, c) in bytes[..12].iter().enumerate() {
@@ -228,6 +259,14 @@ pub(super) mod mexico {
         }
         Ok(())
     }
+
+    /// Four-letter names the Mexican tax office does not issue.
+    const RFC_NAME_BLACKLIST: [&str; 42] = [
+        "BUEI", "BUEY", "CACA", "CACO", "CAGA", "CAGO", "CAKA", "CAKO", "COGE", "COJA", "COJE",
+        "COJI", "COJO", "CULO", "FETO", "GUEY", "JOTO", "KACA", "KACO", "KAGA", "KAGO", "KAKA",
+        "KOGE", "KOJO", "KULO", "MAME", "MAMO", "MEAR", "MEAS", "MEON", "MION", "MOCO", "MULA",
+        "PEDA", "PEDO", "PENE", "PUTA", "PUTO", "QULO", "RATA", "RUIN", "AÑA",
+    ];
 }
 
 /// The Verhoeff tables, shared by Aadhaar and the public check-digit helper.

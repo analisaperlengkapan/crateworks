@@ -166,6 +166,9 @@ pub(super) mod portugal {
 
     /// Validates a Portuguese NIF.
     pub(in crate::id) fn validate_nif(s: &str) -> Result<()> {
+        // The number is written with the country prefix, so `PT 501 964 843`
+        // and `501964843` are the same number.
+        let s = s.strip_prefix("PT").unwrap_or(s);
         let digits = checksum::digits_only(s)?;
         checksum::expect_len(&digits, 9)?;
         if digits[0] == 0 {

@@ -74,6 +74,9 @@ pub(super) mod new_zealand {
 
     /// Validates a New Zealand IRD number.
     pub(in crate::id) fn validate_ird(s: &str) -> Result<()> {
+        // The number is written with the country prefix, so `NZ 69-098-576` and
+        // `69098576` are the same number.
+        let s = s.strip_prefix("NZ").unwrap_or(s);
         let digits = checksum::digits_only(s)?;
         if digits.len() != 8 && digits.len() != 9 {
             return Err(Error::WrongLength {

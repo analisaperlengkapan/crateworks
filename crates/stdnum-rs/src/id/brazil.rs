@@ -36,25 +36,47 @@ pub(super) mod cnpj {
 
     /// Validates a CNPJ.
     pub(in crate::id) fn validate(s: &str) -> Result<()> {
-        let digits = checksum::digits_only(s)?;
-        checksum::expect_len(&digits, 14)?;
-        if digits.iter().all(|d| *d == digits[0]) {
+        // The number is written with dots, a slash and a dash, none of which
+        // carry meaning.
+        let owned: String = s
+            .chars()
+            .filter(|c| !matches!(c, '.' | '/' | '-' | ' '))
+            .collect();
+        let s: &str = &owned;
+        // CNPJ became alphanumeric in 2026: the first twelve characters may be
+        // letters, and each letter is worth its ASCII code minus 48 in the
+        // checksum. A numeric CNPJ is the special case of that rule, so one
+        // implementation covers both.
+        if s.len() != 14 {
+            return Err(Error::WrongLength {
+                expected: 14,
+                found: s.len(),
+            });
+        }
+        let value = |c: char| -> Result<u32> {
+            match c {
+                '0'..='9' => Ok(c as u32 - '0' as u32),
+                'A'..='Z' => Ok(c as u32 - '0' as u32),
+                _ => Err(Error::InvalidCharacter(c)),
+            }
+        };
+        let chars: Vec<char> = s.chars().collect();
+        if chars[..12].iter().all(|c| *c == chars[0]) {
             return Err(Error::OutOfRange);
         }
         let weights: [[u32; 13]; 2] = [
             [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2, 0],
             [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
         ];
-        for (i, &expected) in [digits[12], digits[13]].iter().enumerate() {
+        for (i, weight) in weights.iter().enumerate() {
             let count = 12 + i;
-            let sum: u32 = digits[..count]
-                .iter()
-                .zip(weights[i])
-                .map(|(&d, w)| u32::from(d) * w)
-                .sum();
+            let mut sum = 0u32;
+            for (c, w) in chars[..count].iter().zip(weight) {
+                sum += value(*c)? * w;
+            }
             let remainder = sum % 11;
-            let check = if remainder < 2 { 0 } else { 11 - remainder } as u8;
-            if check != expected {
+            let check = if remainder < 2 { 0 } else { 11 - remainder };
+            if check != value(chars[count])? {
                 return Err(Error::BadChecksum);
             }
         }

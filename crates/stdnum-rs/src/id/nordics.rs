@@ -11,27 +11,57 @@ pub(super) mod sweden {
     /// The number is ten or twelve digits, optionally with a separator before
     /// the last four, and the Luhn check covers the last ten digits.
     pub(in crate::id) fn validate_personnummer(s: &str) -> Result<()> {
-        let digits: Vec<u8> = s
-            .chars()
-            .filter(|c| c.is_ascii_digit())
-            .map(|c| c as u8 - b'0')
-            .collect();
-        if !(10..=12).contains(&digits.len()) {
-            return Err(Error::WrongLength {
-                expected: 10,
-                found: digits.len(),
-            });
+        // Two shapes: `YYMMDD-XXXX` is eleven characters and `YYYYMMDD-XXXX`
+        // is thirteen. The separator is normally a hyphen and a plus once the
+        // holder has turned one hundred; a colon is also accepted. When the
+        // separator is left out of a ten or twelve digit number it is inserted,
+        // because that is how the number is read out.
+        let mut cleaned: String = s.chars().filter(|c| !matches!(c, ':' | ' ')).collect();
+        let len = cleaned.chars().count();
+        if (len == 10 || len == 12) && !cleaned.ends_with(['-', '+']) {
+            let split = len - 4;
+            cleaned.insert(split, '-');
         }
-        // The check covers the ten digits of the date and the serial, so a
-        // twelve-digit form drops the century.
+        let chars: Vec<char> = cleaned.chars().collect();
+        let separator = match chars.len() {
+            11 | 13 => chars[chars.len() - 5],
+            found => {
+                return Err(Error::WrongLength {
+                    expected: 11,
+                    found,
+                });
+            }
+        };
+        if separator != '-' && separator != '+' {
+            return Err(Error::InvalidCharacter(separator));
+        }
+        let mut digits = Vec::with_capacity(12);
+        for (i, c) in chars.iter().enumerate() {
+            if i == chars.len() - 5 {
+                continue;
+            }
+            match c.to_digit(10) {
+                Some(d) => digits.push(d as u8),
+                None => return Err(Error::InvalidCharacter(*c)),
+            }
+        }
+        // The check covers the ten digits of the date and the serial, so the
+        // thirteen-character form drops the century.
         let tail = &digits[digits.len() - 10..];
         if !checksum::luhn_matches(&tail[..9], tail[9]) {
             return Err(Error::BadChecksum);
         }
-        // The date part must be a real date.
         let month = tail[2] * 10 + tail[3];
         let day = tail[4] * 10 + tail[5];
-        if !(1..=12).contains(&month) || !(1..=31).contains(&day) {
+        if !(1..=12).contains(&month) {
+            return Err(Error::OutOfRange);
+        }
+        let max_day = match month {
+            2 => 29,
+            4 | 6 | 9 | 11 => 30,
+            _ => 31,
+        };
+        if day == 0 || day > max_day {
             return Err(Error::OutOfRange);
         }
         Ok(())

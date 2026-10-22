@@ -66,6 +66,14 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub fn normalize(input: &str) -> String {
     input
         .chars()
+        // Numbers are copied out of documents, so the separator may be an en
+        // dash or a non-breaking space rather than the ASCII characters. They
+        // mean the same thing and are removed the same way.
+        .map(|c| match c {
+            '\u{2010}'..='\u{2015}' | '\u{2212}' | '\u{fe58}' | '\u{fe63}' | '\u{ff0d}' => '-',
+            '\u{2000}'..='\u{200b}' | '\u{202f}' | '\u{205f}' | '\u{3000}' => ' ',
+            _ => c,
+        })
         .filter(|c| !matches!(c, ' ' | '-' | '.' | ':' | '\u{a0}'))
         .flat_map(char::to_uppercase)
         .collect()
