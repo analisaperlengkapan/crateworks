@@ -78,10 +78,20 @@ def require_full_history() -> None:
 
 
 def repo_url() -> str:
-    """The repository's web URL, for commit and compare links."""
+    """The repository's web URL, for commit and compare links.
+
+    The remote may carry credentials - a CI checkout or a local push can leave
+    `https://x-access-token:<token>@github.com/...` in it - and these notes are
+    published on the release page, so anything left in the URL is public. Only
+    the scheme, host and path are kept.
+    """
     url = git("remote", "get-url", "origin").strip()
     if url.startswith("git@github.com:"):
         url = "https://github.com/" + url.removeprefix("git@github.com:")
+    if "://" in url:
+        scheme, rest = url.split("://", 1)
+        host_path = rest.rsplit("@", 1)[-1] if "@" in rest else rest
+        url = f"{scheme}://{host_path}"
     return url.removesuffix(".git")
 
 
