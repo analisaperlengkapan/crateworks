@@ -266,7 +266,13 @@ fn check_checksum(bytes: &[u8], report: &mut Report) {
 }
 
 /// The XMP packet, inflating it if it was written compressed.
-fn metadata_packet(bytes: &[u8]) -> Option<String> {
+///
+/// Both forms are handled: a packet stored in the clear is found by its
+/// `<?xpacket` marker, and a compressed one is inflated with the full deflate
+/// reader. The reference implementation writes the compressed form, so this is
+/// the path a real document takes.
+#[must_use]
+pub fn metadata_packet(bytes: &[u8]) -> Option<String> {
     if let Some(start) = find_from(bytes, 0, b"<?xpacket") {
         let end = find_from(bytes, start, b"<?xpacket end")
             .map(|at| at + b"<?xpacket end=\"w\"?>".len())
@@ -274,12 +280,11 @@ fn metadata_packet(bytes: &[u8]) -> Option<String> {
         return Some(String::from_utf8_lossy(bytes.get(start..end)?).into_owned());
     }
 
-    // Compressed: read the metadata stream and inflate a stored zlib stream,
-    // which is the form this crate writes. A packet compressed with real deflate
-    // is not readable here, so nothing is returned.
+    // Compressed: read the metadata stream and inflate it. Either the zlib form
+    // or a raw deflate stream, because producers exist that omit the header.
     let stream_start = find_from(bytes, 0, b"/Type /Metadata")?;
     let data = stream_bytes(bytes, stream_start)?;
-    let inflated = crate::flate::inflate_stored(&data)?;
+    let inflated = crate::flate::inflate(&data).or_else(|| crate::flate::inflate_raw(&data))?;
     String::from_utf8(inflated).ok()
 }
 
@@ -296,9 +301,8 @@ fn embedded_stream_data(bytes: &[u8]) -> Option<Vec<u8>> {
     let compressed = find_from(bytes.get(start..stream_keyword)?, 0, b"/Filter").is_some();
     let data = stream_bytes(bytes, stream_start)?;
     if compressed {
-        // This crate writes a stored zlib stream, which can be inflated without
-        // a full deflate implementation. Anything else is reported as unchecked.
-        return crate::flate::inflate_stored(&data);
+        // The zlib form, or a raw deflate stream, which some producers write.
+        return crate::flate::inflate(&data).or_else(|| crate::flate::inflate_raw(&data));
     }
     Some(data)
 }

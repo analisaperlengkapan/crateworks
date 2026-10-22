@@ -73,19 +73,20 @@ way that only shows up in whichever reader picks the other definition. Rewriting
 gives one numbering and one cross-reference table. Page content, fonts and images
 are copied through byte for byte, so the visual output cannot change.
 
-## What it refuses
+## What it reads
 
-A PDF whose objects live in object streams, or that uses a cross-reference stream
-rather than a table, is refused with `Error::UnsupportedPdf` rather than mangled.
-Both are legal and both are common in output from newer tools. Handling them
-means parsing compressed object containers; rewriting a file the parser does not
-fully understand would risk corrupting it silently, which is worse than saying no.
+A PDF may lay its objects out in three ways, and all three are handled. The
+oldest is a plain `xref` table with a `trailer` dictionary. PDF 1.5 added the
+cross-reference **stream** and the object **stream**, and newer tools use both by
+default, so a reader that understands only the table cannot open a file from a
+modern word processor at all. Both are decoded here, predictors included.
 
-The same honesty applies to `FlateDecode`. This crate writes a zlib stream with
-*stored* blocks, which is valid and which any reader inflates, rather than
-shipping a whole deflate implementation. When the checker meets a stream
-compressed with real deflate it reports that the checksum could not be checked,
-rather than reporting a mismatch it cannot prove.
+`FlateDecode` is decompressed in full. Real deflate uses fixed and dynamic
+Huffman codes, and the attachment and metadata of a real invoice are compressed
+that way, so the decompressor covers all three block types and the tests check it
+against streams Python's `zlib` produced. Writing stays simple: the attachment
+this crate adds is a zlib stream with *stored* blocks, which is valid, which any
+reader inflates, and which costs only a few bytes per sixty-five thousand.
 
 ## What the checker proves
 
@@ -100,13 +101,13 @@ font embedded, no encryption, transparency restrictions: that is veraPDF's
 job and a small crate claiming it would be lying. The report says what was
 checked so a caller who reads "valid" knows exactly what that means.
 
-## What it refuses
+## What it does not do
 
-A PDF whose objects live in object streams, or that uses a cross-reference
-stream, is refused rather than mangled. Both are legal and both are common in
-output from newer tools, and handling them means parsing compressed object
-containers. Rewriting a file the parser does not fully understand would risk
-corrupting it silently, which is worse than saying no.
+It is not a renderer and not a general PDF library. It does not decrypt, and it
+does not resolve an indirect `/Length`, which needs the cross-reference table to
+be walked first. Page content, fonts and images are copied through byte for byte
+and never interpreted. Incremental updates are followed through `/Prev`, so an
+object redefined by a later revision is the one that wins.
 
 Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan

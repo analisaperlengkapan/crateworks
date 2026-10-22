@@ -7,8 +7,11 @@ pub mod digest;
 pub mod flate;
 pub mod object;
 pub mod xmp;
+pub mod xref;
 
-pub use conformance::{Finding, Report, Severity, attachment_name, check_factur_x, embedded_file};
+pub use conformance::{
+    Finding, Report, Severity, attachment_name, check_factur_x, embedded_file, metadata_packet,
+};
 pub use container::{EmbeddedFile, Pdf, WriteOptions, embed};
 pub use xmp::{DocumentInfo, FacturX, Level, Xmp};
 
@@ -19,8 +22,6 @@ pub enum Error {
     Xml(String),
     /// A part of the PDF that has to be there is not.
     MissingPdfPart(&'static str),
-    /// A PDF feature this crate does not handle.
-    UnsupportedPdf(&'static str),
     /// The metadata is missing something required.
     MissingXmp(&'static str),
 }
@@ -30,7 +31,6 @@ impl std::fmt::Display for Error {
         match self {
             Self::Xml(message) => write!(f, "invalid XML: {message}"),
             Self::MissingPdfPart(part) => write!(f, "the document has no {part}"),
-            Self::UnsupportedPdf(what) => write!(f, "unsupported PDF feature: {what}"),
             Self::MissingXmp(field) => write!(f, "the XMP metadata has no {field}"),
         }
     }

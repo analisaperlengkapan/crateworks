@@ -19,14 +19,14 @@
 //! The page content, fonts and images are copied through byte for byte. Nothing
 //! here parses a content stream, so the visual output cannot change.
 //!
-//! # What it refuses
+//! # Layouts it reads
 //!
-//! A PDF that stores its objects in object streams, or that uses a
-//! cross-reference stream rather than a table, is rejected with
-//! [`Error::UnsupportedPdf`] rather than mangled. Both are legal and both are
-//! common in files produced by newer tools; supporting them means parsing
-//! compressed object containers, which is a much larger job than embedding a
-//! file and is not worth guessing at.
+//! All three ways a PDF may lay its objects out: a plain `xref` table with a
+//! `trailer` dictionary, a cross-reference stream, and object streams. The last
+//! two are what PDF 1.5 added and what newer tools emit by default, so a reader
+//! that understands only the table cannot open a file from a modern word
+//! processor at all. [`crate::xref`] does that decoding; this module treats the
+//! result as if every object had been written out plainly.
 
 use std::collections::BTreeMap;
 
@@ -95,6 +95,17 @@ pub struct Pdf {
     info: Option<u32>,
     /// The declared `/Size`.
     size: u32,
+    /// Objects that came out of an object stream, stored as `N 0 obj ... endobj`
+    /// because they had no such bytes in the file.
+    synthesised: BTreeMap<u32, Vec<u8>>,
+}
+
+/// Wraps an object body from an object stream as a standalone object.
+fn wrap_object(number: u32, body: &[u8]) -> Vec<u8> {
+    let mut out = format!("{number} 0 obj\n").into_bytes();
+    out.extend_from_slice(body);
+    out.extend_from_slice(b"\nendobj");
+    out
 }
 
 impl Pdf {
@@ -102,43 +113,94 @@ impl Pdf {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::UnsupportedPdf`] for an object stream or a
-    /// cross-reference stream, and [`Error::MissingPdfPart`] when the trailer or
-    /// the catalog is absent.
+    /// Returns [`Error::MissingPdfPart`] when the header, the trailer, the
+    /// catalog, or any object at all is absent, which is what a file that is not
+    /// a PDF or is badly damaged produces.
     pub fn parse(bytes: &[u8]) -> Result<Self> {
         if !bytes.starts_with(b"%PDF-") {
             return Err(Error::MissingPdfPart("the %PDF- header"));
         }
-        // A cross-reference stream is announced by an /XRef type; an object
-        // stream by /ObjStm. Either one means the objects are not laid out the
-        // way this parser assumes.
-        if bytes.windows(5).any(|w| w == b"/XRef") || bytes.windows(7).any(|w| w == b"/ObjStm") {
-            return Err(Error::UnsupportedPdf(
-                "object streams and cross-reference streams are not supported",
-            ));
-        }
 
+        // Objects defined in the file, plus the ones that live inside an object
+        // stream and are therefore not laid out as `N 0 obj ... endobj` at all.
         let mut objects = BTreeMap::new();
-        let mut cursor = 0;
-        while let Some(found) = find_object_header(bytes, cursor) {
-            let (number, start) = found;
-            let Some(end) = find(bytes, start, b"endobj") else {
-                break;
-            };
-            let end = end + b"endobj".len();
-            objects.insert(number, (start, end));
-            cursor = end;
+        let mut in_streams = BTreeMap::new();
+
+        // The cross-reference section is the authority when it can be read: it
+        // knows about objects a scan cannot see. A file without a usable
+        // `startxref` falls back to scanning for `N 0 obj` headers, which is what
+        // a damaged or hand-written file needs.
+        let xref = crate::xref::read(bytes);
+        match &xref {
+            Some(xref) => {
+                for (&number, location) in &xref.entries {
+                    match *location {
+                        crate::xref::Location::InFile { offset, .. } => {
+                            if let Some(end) = find(bytes, offset, b"endobj") {
+                                objects.insert(number, (offset, end + b"endobj".len()));
+                            }
+                        }
+                        crate::xref::Location::InStream { stream, .. } => {
+                            in_streams.insert(number, stream);
+                        }
+                    }
+                }
+            }
+            None => {
+                let mut cursor = 0;
+                while let Some(found) = find_object_header(bytes, cursor) {
+                    let (number, start) = found;
+                    let Some(end) = find(bytes, start, b"endobj") else {
+                        break;
+                    };
+                    let end = end + b"endobj".len();
+                    objects.insert(number, (start, end));
+                    cursor = end;
+                }
+            }
         }
         if objects.is_empty() {
             return Err(Error::MissingPdfPart("any object"));
         }
 
-        let trailer_start =
-            rfind(bytes, b"trailer").ok_or(Error::MissingPdfPart("the trailer dictionary"))?;
-        let trailer_end = find(bytes, trailer_start, b"startxref")
-            .ok_or(Error::MissingPdfPart("the startxref keyword"))?;
-        let trailer = String::from_utf8_lossy(&bytes[trailer_start..trailer_end]).into_owned();
+        // Materialise the object streams, so every object looks the same to the
+        // rest of the crate whatever the file did. A stream is expanded once
+        // however many of its members are referenced.
+        let mut synthesised: BTreeMap<u32, Vec<u8>> = BTreeMap::new();
+        let mut visited = std::collections::BTreeSet::new();
+        for &stream in in_streams.values() {
+            if !visited.insert(stream) {
+                continue;
+            }
+            let Some(&(start, _)) = objects.get(&stream) else {
+                continue;
+            };
+            let Some(members) = crate::xref::expand_object_stream(bytes, start) else {
+                continue;
+            };
+            for (member, body) in members {
+                if in_streams.contains_key(&member) {
+                    synthesised.insert(member, wrap_object(member, &body));
+                }
+            }
+        }
+        for &number in synthesised.keys() {
+            objects.entry(number).or_insert((0, 0));
+        }
 
+        // The trailer, from the cross-reference stream's own dictionary when
+        // there is one, otherwise from the `trailer` keyword.
+        let fallback = || {
+            let start = rfind(bytes, b"trailer")?;
+            let end = find(bytes, start, b"startxref")?;
+            Some(String::from_utf8_lossy(bytes.get(start..end)?).into_owned())
+        };
+        let trailer = xref
+            .as_ref()
+            .map(|xref| xref.trailer.clone())
+            .filter(|trailer| !trailer.is_empty())
+            .or_else(fallback)
+            .ok_or(Error::MissingPdfPart("the trailer dictionary"))?;
         let root = number_after(&trailer, "/Root")
             .ok_or(Error::MissingPdfPart("the /Root entry in the trailer"))?;
         let info = number_after(&trailer, "/Info");
@@ -152,6 +214,7 @@ impl Pdf {
             root,
             info,
             size,
+            synthesised,
         })
     }
 
@@ -162,11 +225,16 @@ impl Pdf {
     }
 
     /// The bytes of one object, from `N 0 obj` to `endobj`.
+    ///
+    /// An object taken out of an object stream has no range in the file, so it is
+    /// returned from the copy kept alongside.
     #[must_use]
     pub fn object_bytes(&self, number: u32) -> Option<&[u8]> {
-        self.objects
-            .get(&number)
-            .map(|(start, end)| &self.bytes[*start..*end])
+        let (start, end) = *self.objects.get(&number)?;
+        if end == 0 {
+            return self.synthesised.get(&number).map(Vec::as_slice);
+        }
+        self.bytes.get(start..end)
     }
 
     /// The catalog object as text.
@@ -224,13 +292,20 @@ pub fn embed(original: &[u8], file: &EmbeddedFile, options: &WriteOptions) -> Re
     out.extend_from_slice(b"%\xe2\xe3\xcf\xd3\n");
 
     let mut offsets: BTreeMap<u32, usize> = BTreeMap::new();
-    for (&number, &(start, end)) in &pdf.objects {
+    for &number in pdf.objects.keys() {
         offsets.insert(number, out.len());
         if number == pdf.root {
             out.extend_from_slice(&updated_catalog(&pdf, metadata, associated_files, names)?);
             out.push(b'\n');
         } else {
-            out.extend_from_slice(&pdf.bytes[start..end]);
+            // `object_bytes` rather than the file range: an object that came out
+            // of an object stream has no range, and copying the empty slice would
+            // drop its body. A dropped pages object is what makes a reader report
+            // that it cannot find the page tree.
+            let Some(object) = pdf.object_bytes(number) else {
+                continue;
+            };
+            out.extend_from_slice(object);
             out.push(b'\n');
         }
     }
@@ -322,12 +397,17 @@ pub fn embed(original: &[u8], file: &EmbeddedFile, options: &WriteOptions) -> Re
     out.extend_from_slice(&metadata_data);
     out.extend_from_slice(b"\nendstream\nendobj\n");
 
-    // The name tree that lists the attachment.
+    // The name tree that lists the attachment. `/Names` is an array of
+    // `(name) reference` pairs; writing a name there instead produces a file no
+    // reader can find the attachment in, and one that some reject outright.
     offsets.insert(names, out.len());
     let mut names_map = BTreeMap::new();
     names_map.insert(
         "Names".to_string(),
-        Object::Name("EmbeddedFiles".to_string()),
+        Object::Array(vec![
+            Object::LiteralString(file.name.clone()),
+            Object::Reference(filespec),
+        ]),
     );
     let mut names_dict = BTreeMap::new();
     names_dict.insert("EmbeddedFiles".to_string(), Object::Dictionary(names_map));
@@ -438,7 +518,7 @@ fn find_object_header(bytes: &[u8], from: usize) -> Option<(u32, usize)> {
 }
 
 /// Finds `needle` at or after `from`.
-fn find(bytes: &[u8], from: usize, needle: &[u8]) -> Option<usize> {
+pub(crate) fn find(bytes: &[u8], from: usize, needle: &[u8]) -> Option<usize> {
     if from >= bytes.len() || needle.len() > bytes.len() - from {
         return None;
     }
@@ -449,7 +529,7 @@ fn find(bytes: &[u8], from: usize, needle: &[u8]) -> Option<usize> {
 }
 
 /// Finds `needle` at or before `from`, searching backwards from the end.
-fn rfind(bytes: &[u8], needle: &[u8]) -> Option<usize> {
+pub(crate) fn rfind(bytes: &[u8], needle: &[u8]) -> Option<usize> {
     if needle.len() > bytes.len() {
         return None;
     }
@@ -630,10 +710,14 @@ mod tests {
     }
 
     #[test]
-    fn an_object_stream_is_refused_rather_than_mangled() {
+    fn a_trailing_object_stream_marker_does_not_break_the_scan() {
+        // The bytes after `%%EOF` are not part of the document. A marker there
+        // must not send the parser looking for an object stream that is not in
+        // the cross-reference table.
         let mut bytes = minimal_pdf();
         bytes.extend_from_slice(b"\n/ObjStm inside\n");
-        assert!(matches!(Pdf::parse(&bytes), Err(Error::UnsupportedPdf(_))));
+        let pdf = Pdf::parse(&bytes).expect("the document itself is intact");
+        assert_eq!(pdf.root_number(), 1);
     }
 
     #[test]
