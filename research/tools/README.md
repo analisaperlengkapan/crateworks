@@ -17,6 +17,7 @@ APIs without a key. They need Python 3 and no external dependencies.
 | `gen_hijri_table.py` | Regenerate the Umm al-Qura table and test fixtures for the `hijridate` crate. Needs `pip install hijridate`. Run from the repository root: `python3 research/tools/gen_hijri_table.py crates/hijridate` |
 | `namecheck.py` | **Run this before writing code**: is the crate name still free? `python3 namecheck.py iso20022 xmlkit` |
 | `stale.py` | Round 12: **the abandoned incumbent, measured**. Pages the crates.io ranked list by recent downloads and reads each crate's newest live version from the sparse index, so "popular but nobody is maintaining it" becomes a scan rather than an anecdote. A yank is not a release, so a pulled version does not count as activity. `--github` adds an archived-repository check (needs `GITHUB_TOKEN`). Caches index reads under `.cache/` |
+| `round13.py` | Round 13: **run this before acting on any round-12 candidate**. Re-measures the round-12 headlines and sweeps four new areas. Its result is a correction: the YAML opening round 12 called the largest in twelve rounds is closed, because `yaml-rust2` (19.6M recent), `serde_yaml_ng` (11.6M) and `serde-saphyr` (9.3M) already carry the audience. Sections: `yaml`, `candidates`, `demand` |
 
 ## Operational warnings
 
@@ -33,6 +34,11 @@ APIs without a key. They need Python 3 and no external dependencies.
   those — run them, or copy the helper out.
 - **Treat any "nothing found" as a rate limit until it is re-checked.** A second
   run a minute later is cheap; a wrong gap is not.
+- **Re-measure before building, not after.** A gap that is "the registry is
+  empty" or "the incumbent is dead" can close within weeks. MRZ went from empty to
+  served between rounds 10 and 11; the YAML opening round 12 called the largest in
+  twelve rounds had three maintained successors by round 13. The document records
+  the finding; it does not keep it true.
 - The npm bulk endpoint rejects a mix of scoped and unscoped names (HTTP 400).
   Keep the two apart, at most 32 per call.
 - `revdeps.py` is the true measure of Rust demand. PyPI and npm download figures
