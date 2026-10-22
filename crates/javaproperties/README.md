@@ -44,6 +44,30 @@ Every rule below is one somebody gets wrong:
 A key given twice keeps both entries in order, and `Properties::get` returns the
 last, which is what Java does.
 
+## Writing
+
+`Properties::store` writes the document back, and it is the other half of the
+parser rather than a formatter: the escapes are the ones `java.util.Properties.store`
+uses, so what is written reads back as it was. That means a space in a key is
+escaped, the first character of a value is escaped when it is a space, and
+anything outside printable ASCII becomes `\uXXXX` in upper case. A value past
+eighty characters is wrapped with a trailing backslash, and the reader drops the
+continuation's leading whitespace, so the wrap is invisible.
+
+```rust
+use javaproperties::Properties;
+
+let properties = Properties::from_pairs(vec![
+    ("a b".to_string(), "one".to_string()),
+    ("café".to_string(), "two".to_string()),
+]);
+assert_eq!(properties.store(None), "a\\ b=one\ncaf\\u00E9=two\n");
+```
+
+`store_bytes` gives the ISO-8859-1 bytes Java writes to a stream, which are the
+same because every escape is ASCII, and `store_to` writes them to anything
+writable.
+
 ## How it is checked
 
 Against Python's `javaproperties` package, which replicates

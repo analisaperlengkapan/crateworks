@@ -30,6 +30,12 @@ not guess one from a longitude: a place can be an hour or more from its solar
 time, sometimes for political reasons. The caller adds the offset, which keeps a
 wrong local time the caller's decision rather than a surprise.
 
+Qibla and the night are here too. `qibla(latitude, longitude)` gives the
+bearing to the Kaaba in degrees clockwise from true north, and
+`sunnah_times(...)` gives the middle and last third of the night that follows the
+day, which is what the voluntary night prayer is timed by. Both are what the
+reference library offers beside the times, and both are checked against it.
+
 The six times are returned as whole hours, minutes and seconds. The seconds are
 there because `Rounding::None` keeps them and the reference does the same; under
 the default `Rounding::Nearest` the second is always zero. Nothing here formats
@@ -117,6 +123,26 @@ Given a Gregorian date, a latitude and a longitude, this computes Fajr,
 sunrise, Dhuhr, Asr, Maghrib and Isha. It is the sort of arithmetic that
 every prayer app, mosque schedule and Ramadan calendar needs, and that
 `hijridate` and `arabic` in this workspace sit next to.
+
+## Qibla and the sunnah times
+
+```rust
+use adhan::{Method, Parameters, qibla, sunnah_times};
+
+// From Jakarta, the Kaaba lies to the west-northwest.
+let bearing = qibla(-6.2, 106.8);
+assert!((bearing - 295.15).abs() < 0.1);
+
+// The night after 12 July 2015 at the reference's North Carolina coordinates.
+let parameters = Parameters::for_method(Method::NorthAmerica);
+let night = sunnah_times(2015, 7, 12, 35.775, -78.6336, &parameters);
+assert!(night.middle_of_the_night.is_some());
+```
+
+Both are in the same UTC clock reading as the prayer times, and the caller adds
+its own offset. The sunnah times are `None` when the day has no Maghrib or the
+next day no Fajr, which happens inside the polar circles; there is no night to
+divide, and a made-up answer would hide that.
 
 ## Example
 

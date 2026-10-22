@@ -99,7 +99,7 @@ pub fn load(mut reader: impl Read) -> Result<Vec<(String, String)>, Error> {
 /// returns the last, which is what Java does.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Properties {
-    pairs: Vec<(String, String)>,
+    pub(crate) pairs: Vec<(String, String)>,
 }
 
 impl Properties {

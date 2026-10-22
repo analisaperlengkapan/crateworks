@@ -58,6 +58,15 @@ range references, and a growing set of functions. It does not implement
 array formulas, volatile functions or iterative recalculation; a cyclic
 reference is reported as an error rather than resolved.
 
+`FUNCTION_NAMES` is the list of every function the crate implements, and a caller
+can validate a formula against it. The conditional ones are `IF` and `IFERROR`,
+which the evaluator handles itself so that they do not evaluate every argument,
+plus `IFS`, `COUNTIF`, `SUMIF`, `AVERAGEIF` and `COUNTBLANK`. `COUNTIF`, `SUMIF`
+and `AVERAGEIF` take the spreadsheet criteria of a bare value or a comparison
+such as `">3"`, and match text case-insensitively. `SUMIF` and `AVERAGEIF` take
+the optional third argument as the range to add up, aligned by position with the
+range being tested.
+
 Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.

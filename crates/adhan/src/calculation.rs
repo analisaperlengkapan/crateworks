@@ -576,6 +576,122 @@ pub fn prayer_times(
     }
 }
 
+/// The Qibla: the direction to the Kaaba, in degrees clockwise from true north.
+///
+/// The answer is a bearing, not a heading: a compass in most of the world reads
+/// a little off true north, and the difference is the caller's to apply.
+///
+/// The formula is the spherical one from "Spherical Trigonometry for the use of
+/// colleges and schools", which is the one the reference library uses, so the two
+/// agree to the fourth decimal. Makkah's coordinates are the reference's own.
+///
+/// # Example
+///
+/// ```
+/// use adhan::qibla;
+///
+/// // From Jakarta the Kaaba lies to the west-northwest.
+/// let bearing = qibla(-6.2, 106.8);
+/// assert!((bearing - 295.15).abs() < 0.1);
+/// ```
+#[must_use]
+pub fn qibla(latitude: f64, longitude: f64) -> f64 {
+    let makkah_latitude = 21.422_524_1_f64;
+    let makkah_longitude = 39.826_181_8_f64;
+
+    let delta_longitude = (makkah_longitude - longitude).to_radians();
+    let term1 = delta_longitude.sin();
+    let term2 = latitude.to_radians().cos() * makkah_latitude.to_radians().tan();
+    let term3 = latitude.to_radians().sin() * delta_longitude.cos();
+    let angle = (term1).atan2(term2 - term3);
+
+    unwind_angle(angle.to_degrees())
+}
+
+/// Reduces an angle into `[0, 360)`.
+///
+/// The reference subtracts `360 * floor(angle / 360)`, which keeps a negative
+/// angle positive. `rem_euclid` does the same thing and says so.
+fn unwind_angle(angle: f64) -> f64 {
+    angle.rem_euclid(360.0)
+}
+
+/// The middle and last third of the night, for the night that follows a Maghrib.
+///
+/// The night runs from Maghrib to the next day's Fajr, so both are on the day
+/// after the prayer times they were computed from, and both can fall after
+/// midnight. They are what the voluntary night prayer is timed by: the last third
+/// is the part of the night most often recommended for Qiyam.
+///
+/// The day crosses a month and a year boundary like any other, and the next day's
+/// Fajr is computed with the same parameters, so a caller who changed the method
+/// or the high latitude rule gets the night that goes with it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SunnahTimes {
+    /// The middle of the night: Maghrib plus half the night.
+    pub middle_of_the_night: Option<(i64, u32, u32)>,
+    /// The last third of the night: Maghrib plus two thirds of it.
+    pub last_third_of_the_night: Option<(i64, u32, u32)>,
+}
+
+/// Computes the middle and last third of the night after the given day.
+///
+/// The night is measured from this day's Maghrib to the next day's Fajr. A
+/// `PrayerTimes` with no Maghrib or no Fajr - inside the polar circles, where the
+/// sun may not set or may not rise - has no night to divide, and both fields come
+/// back `None`.
+#[must_use]
+pub fn sunnah_times(
+    year: i32,
+    month: u32,
+    day: u32,
+    latitude: f64,
+    longitude: f64,
+    parameters: &Parameters,
+) -> SunnahTimes {
+    let today = prayer_times(year, month, day, latitude, longitude, parameters);
+    let (next_year, next_month, next_day) = next_day(year, month, day);
+    let tomorrow = prayer_times(
+        next_year, next_month, next_day, latitude, longitude, parameters,
+    );
+
+    let (Some(maghrib), Some(fajr)) = (today.maghrib, tomorrow.fajr) else {
+        return SunnahTimes {
+            middle_of_the_night: None,
+            last_third_of_the_night: None,
+        };
+    };
+
+    // Maghrib and the next Fajr are clock readings with no day attached. The
+    // night is the gap between them, which is always less than a day: a
+    // negative difference means the Fajr falls on the following day, so a day is
+    // added back. Adding a day unconditionally is wrong, because in an eastern
+    // timezone Maghrib itself is already past midnight UTC.
+    let maghrib_seconds = seconds_of(maghrib);
+    let fajr_seconds = seconds_of(fajr);
+    let mut night_seconds = fajr_seconds - maghrib_seconds;
+    if night_seconds < 0.0 {
+        night_seconds += 86_400.0;
+    }
+
+    let divide = |fraction: f64| {
+        let seconds = maghrib_seconds + night_seconds * fraction;
+        DayTime::from_seconds(seconds)
+            .rounded(parameters.rounding)
+            .components()
+    };
+
+    SunnahTimes {
+        middle_of_the_night: divide(0.5),
+        last_third_of_the_night: divide(2.0 / 3.0),
+    }
+}
+
+/// A clock reading as seconds since midnight.
+fn seconds_of((hour, minute, second): (i64, u32, u32)) -> f64 {
+    (hour * 3600 + i64::from(minute) * 60 + i64::from(second)) as f64
+}
+
 /// The date after the given one.
 fn next_day(year: i32, month: u32, day: u32) -> (i32, u32, u32) {
     let lengths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];

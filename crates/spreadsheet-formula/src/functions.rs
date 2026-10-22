@@ -9,7 +9,7 @@
 //! argument; the evaluator handles them directly.
 
 use crate::Error;
-use crate::value::Value;
+use crate::value::{Error as ValueError, Value};
 
 /// A flattened argument: one value for a scalar, many for a range.
 #[derive(Debug, Clone)]
@@ -131,6 +131,81 @@ pub(crate) fn call(name: &str, args: &[Arg]) -> Result<Value, Error> {
         "PI" => {
             require_arity(name, args, 0)?;
             Ok(Value::Number(std::f64::consts::PI))
+        }
+        "COUNTIF" => {
+            require_arity(name, args, 2)?;
+            let matched = args[0].0.iter().filter(|v| criterion(v, &args[1])).count();
+            Ok(Value::Number(matched as f64))
+        }
+        "SUMIF" => {
+            require_between(name, args, 2, 3)?;
+            let values = matching_values(args);
+            Ok(Value::Number(values.iter().sum()))
+        }
+        "AVERAGEIF" => {
+            require_between(name, args, 2, 3)?;
+            let values = matching_values(args);
+            if values.is_empty() {
+                return Ok(Value::Empty);
+            }
+            let count = values.len() as f64;
+            Ok(Value::Number(values.iter().sum::<f64>() / count))
+        }
+        "COUNTBLANK" => {
+            require_arity(name, args, 1)?;
+            let blanks = args[0]
+                .0
+                .iter()
+                .filter(|v| v.is_empty() || v.to_string().trim().is_empty())
+                .count();
+            Ok(Value::Number(blanks as f64))
+        }
+        "IFS" => {
+            // Pairs of condition and result, then an optional final fallback.
+            // Every condition is already evaluated by the caller, so this cannot
+            // short-circuit the way `IF` does; it picks, it does not save work.
+            require_at_least(name, args, 2)?;
+            let mut i = 0;
+            while i + 1 < args.len() {
+                if first_value(&args[i]).as_bool() {
+                    return Ok(first_value(&args[i + 1]));
+                }
+                i += 2;
+            }
+            if args.len() % 2 == 1 {
+                return Ok(first_value(&args[args.len() - 1]));
+            }
+            Err(Error::NoMatchingCondition)
+        }
+        "EXACT" => {
+            require_arity(name, args, 2)?;
+            let a = first_text(&args[0]);
+            let b = first_text(&args[1]);
+            Ok(Value::Bool(a == b))
+        }
+        "REPT" => {
+            require_arity(name, args, 2)?;
+            let text = first_text(&args[0]);
+            let times = args[1]
+                .0
+                .first()
+                .map_or(0.0, |v| v.as_number().unwrap_or(0.0));
+            if times < 0.0 {
+                return Err(Error::Arithmetic(ValueError::NotANumber));
+            }
+            Ok(Value::Text(text.repeat(times as usize)))
+        }
+        "SUBSTITUTE" => {
+            require_arity(name, args, 3)?;
+            let text = first_text(&args[0]);
+            let from = first_text(&args[1]);
+            let to = first_text(&args[2]);
+            // An empty needle would loop forever; a spreadsheet leaves the text
+            // alone rather than hanging, and so does this.
+            if from.is_empty() {
+                return Ok(Value::Text(text));
+            }
+            Ok(Value::Text(text.replace(&from, &to)))
         }
         "LEN" => {
             require_arity(name, args, 1)?;
@@ -271,6 +346,89 @@ fn first_number(name: &str, arg: &Arg) -> Result<f64, Error> {
     })
 }
 
+/// The numbers `SUMIF` and `AVERAGEIF` should act on.
+///
+/// The first argument is tested against the criterion and the third holds the
+/// numbers, and the two are aligned by position: the value summed for a match is
+/// the one at the same index in the sum range. When the third argument is left
+/// out the tested range is summed, which is the spreadsheet default and not the
+/// same as summing the criterion.
+fn matching_values(args: &[Arg]) -> Vec<f64> {
+    let tested = &args[0];
+    let sum_range = args.get(2).unwrap_or(&args[0]);
+    tested
+        .0
+        .iter()
+        .enumerate()
+        .filter(|(_, value)| criterion(value, &args[1]))
+        .filter_map(|(index, _)| sum_range.0.get(index).and_then(|v| v.as_number().ok()))
+        .collect()
+}
+
+/// Requires an argument count within an inclusive range.
+fn require_between(name: &str, args: &[Arg], minimum: usize, maximum: usize) -> Result<(), Error> {
+    if args.len() < minimum || args.len() > maximum {
+        return Err(Error::WrongArity {
+            name: name.to_string(),
+            given: args.len(),
+            expected: "2 or 3",
+        });
+    }
+    Ok(())
+}
+
+/// The first value of an argument, or `Empty`.
+fn first_value(arg: &Arg) -> Value {
+    arg.0.first().cloned().unwrap_or(Value::Empty)
+}
+
+/// Whether a value satisfies a criterion that may be text, a number, or a
+/// comparison such as `">3"`.
+///
+/// The operators are the spreadsheet ones: `=`, `<>`, `<`, `<=`, `>`, `>=`. A
+/// bare value means equality. Comparison of two numbers is numeric, and anything
+/// else compares as text case-insensitively, which is what a spreadsheet does.
+fn criterion(value: &Value, criterion_arg: &Arg) -> bool {
+    let raw = first_text(criterion_arg);
+    let (operator, rest) = match raw.as_bytes().first() {
+        Some(b'<') if raw.starts_with("<=") => ("<=", &raw[2..]),
+        Some(b'>') if raw.starts_with(">=") => (">=", &raw[2..]),
+        Some(b'<') if raw.starts_with("<>") => ("<>", &raw[2..]),
+        Some(b'<') => ("<", &raw[1..]),
+        Some(b'>') => (">", &raw[1..]),
+        Some(b'=') => ("=", &raw[1..]),
+        _ => ("=", raw.as_str()),
+    };
+    let rest = rest.trim();
+
+    // Two numbers compare numerically; anything else as text.
+    let (left_number, right_number) = (value.as_number(), rest.parse::<f64>());
+    let ordering = match (left_number, right_number) {
+        (Ok(left), Ok(right)) => left.partial_cmp(&right),
+        _ => {
+            let left = value.to_string().to_lowercase();
+            let right = rest.to_lowercase();
+            Some(left.cmp(&right))
+        }
+    };
+
+    match operator {
+        "=" => match (value.as_number(), rest.parse::<f64>()) {
+            (Ok(left), Ok(right)) => left == right,
+            _ => value.to_string().eq_ignore_ascii_case(rest),
+        },
+        "<>" => match (value.as_number(), rest.parse::<f64>()) {
+            (Ok(left), Ok(right)) => left != right,
+            _ => !value.to_string().eq_ignore_ascii_case(rest),
+        },
+        "<" => ordering == Some(std::cmp::Ordering::Less),
+        "<=" => ordering != Some(std::cmp::Ordering::Greater),
+        ">" => ordering == Some(std::cmp::Ordering::Greater),
+        ">=" => ordering != Some(std::cmp::Ordering::Less),
+        _ => false,
+    }
+}
+
 fn first_text(arg: &Arg) -> String {
     arg.0.first().cloned().unwrap_or(Value::Empty).to_string()
 }
@@ -311,16 +469,22 @@ pub const FUNCTION_NAMES: &[&str] = &[
     "ABS",
     "AND",
     "AVERAGE",
+    "AVERAGEIF",
     "CONCAT",
     "CONCATENATE",
     "COUNT",
     "COUNTA",
+    "COUNTBLANK",
+    "COUNTIF",
+    "EXACT",
+    "IFS",
     "INT",
     "LEFT",
     "LEN",
     "LOWER",
     "MAX",
     "MEDIAN",
+    "MID",
     "MIN",
     "MOD",
     "NOT",
@@ -328,13 +492,16 @@ pub const FUNCTION_NAMES: &[&str] = &[
     "PI",
     "POWER",
     "PRODUCT",
+    "REPT",
     "RIGHT",
     "ROUND",
     "ROUNDDOWN",
     "ROUNDUP",
     "SIGN",
     "SQRT",
+    "SUBSTITUTE",
     "SUM",
+    "SUMIF",
     "TRIM",
     "UPPER",
 ];
@@ -353,6 +520,163 @@ mod tests {
 
     fn t(s: &str) -> Arg {
         Arg(vec![Value::Text(s.into())])
+    }
+
+    #[test]
+    fn every_registered_name_has_an_implementation() {
+        // `MID` was implemented but missing from `FUNCTION_NAMES`, so a caller
+        // validating a formula against the published list rejected a function
+        // that worked. This catches the next one.
+        for name in FUNCTION_NAMES {
+            let result = call(name, &[n(1.0)]);
+            assert!(
+                !matches!(result, Err(Error::UnknownFunction(_))),
+                "{name} is advertised but not implemented"
+            );
+        }
+    }
+
+    #[test]
+    fn countif_accepts_a_bare_value_and_a_comparison() {
+        let range = Arg(vec![
+            Value::Number(1.0),
+            Value::Number(2.0),
+            Value::Number(3.0),
+            Value::Number(4.0),
+        ]);
+        assert_eq!(
+            call("COUNTIF", &[range.clone(), n(3.0)]).unwrap(),
+            Value::Number(1.0)
+        );
+        assert_eq!(
+            call("COUNTIF", &[range.clone(), t(">2")]).unwrap(),
+            Value::Number(2.0)
+        );
+        assert_eq!(
+            call("COUNTIF", &[range, t("<=2")]).unwrap(),
+            Value::Number(2.0)
+        );
+    }
+
+    #[test]
+    fn countif_is_case_insensitive_over_text() {
+        let range = Arg(vec![
+            Value::Text("Yes".into()),
+            Value::Text("yes".into()),
+            Value::Text("no".into()),
+        ]);
+        assert_eq!(
+            call("COUNTIF", &[range, t("YES")]).unwrap(),
+            Value::Number(2.0)
+        );
+    }
+
+    #[test]
+    fn countblank_counts_empty_cells_and_empty_text() {
+        let range = Arg(vec![
+            Value::Empty,
+            Value::Text(String::new()),
+            Value::Number(0.0),
+        ]);
+        assert_eq!(call("COUNTBLANK", &[range]).unwrap(), Value::Number(2.0));
+    }
+
+    #[test]
+    fn sumif_uses_the_third_argument_as_the_sum_range() {
+        // The bug this pins: summing the tested range instead of the sum range.
+        // The criteria match the first two cells, whose values in the sum range
+        // are 100 and 200, not 1 and 2.
+        let tested = nums(&[1.0, 2.0, 3.0]);
+        let sum_range = nums(&[100.0, 200.0, 300.0]);
+        assert_eq!(
+            call("SUMIF", &[tested.clone(), t("<=2"), sum_range.clone()]).unwrap(),
+            Value::Number(300.0)
+        );
+        assert_eq!(
+            call("AVERAGEIF", &[tested.clone(), t("<=2"), sum_range]).unwrap(),
+            Value::Number(150.0)
+        );
+        // Without the third argument the tested range is summed.
+        assert_eq!(
+            call("SUMIF", &[tested, t("<=2")]).unwrap(),
+            Value::Number(3.0)
+        );
+    }
+
+    #[test]
+    fn ifs_returns_the_first_holding_condition() {
+        let arg = |v: Value| Arg(vec![v]);
+        assert_eq!(
+            call(
+                "IFS",
+                &[
+                    arg(Value::Bool(false)),
+                    n(1.0),
+                    arg(Value::Bool(true)),
+                    n(2.0)
+                ]
+            )
+            .unwrap(),
+            Value::Number(2.0)
+        );
+        // With no condition holding, an odd count means the last argument is the
+        // fallback and is returned.
+        assert_eq!(
+            call("IFS", &[arg(Value::Bool(false)), n(1.0), n(99.0)]).unwrap(),
+            Value::Number(99.0)
+        );
+        // Without a fallback there is nothing to return, which is an error.
+        assert_eq!(
+            call("IFS", &[arg(Value::Bool(false)), n(1.0)]),
+            Err(Error::NoMatchingCondition)
+        );
+    }
+
+    #[test]
+    fn exact_is_case_sensitive_where_a_comparison_is_not() {
+        assert_eq!(
+            call("EXACT", &[t("abc"), t("abc")]).unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            call("EXACT", &[t("abc"), t("ABC")]).unwrap(),
+            Value::Bool(false)
+        );
+    }
+
+    #[test]
+    fn mid_counts_from_one() {
+        assert_eq!(
+            call("MID", &[t("hello"), n(2.0), n(3.0)]).unwrap(),
+            Value::Text("ell".into())
+        );
+        // Past the end is empty, not an error.
+        assert_eq!(
+            call("MID", &[t("hello"), n(10.0), n(3.0)]).unwrap(),
+            Value::Text(String::new())
+        );
+    }
+
+    #[test]
+    fn rept_and_substitute_behave_on_the_edges() {
+        assert_eq!(
+            call("REPT", &[t("ab"), n(3.0)]).unwrap(),
+            Value::Text("ababab".into())
+        );
+        // A zero count is empty rather than an error.
+        assert_eq!(
+            call("REPT", &[t("ab"), n(0.0)]).unwrap(),
+            Value::Text(String::new())
+        );
+        assert_eq!(
+            call("SUBSTITUTE", &[t("a-b-c"), t("-"), t("+")]).unwrap(),
+            Value::Text("a+b+c".into())
+        );
+        // An empty needle must not hang.
+        assert_eq!(
+            call("SUBSTITUTE", &[t("abc"), t(""), t("x")]).unwrap(),
+            Value::Text("abc".into())
+        );
     }
 
     #[test]

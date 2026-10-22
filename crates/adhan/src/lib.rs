@@ -3,5 +3,6 @@ mod astronomy;
 mod calculation;
 
 pub use calculation::{
-    HighLatitudeRule, Madhab, Method, Parameters, PrayerTimes, Rounding, prayer_times,
+    HighLatitudeRule, Madhab, Method, Parameters, PrayerTimes, Rounding, SunnahTimes, prayer_times,
+    qibla, sunnah_times,
 };

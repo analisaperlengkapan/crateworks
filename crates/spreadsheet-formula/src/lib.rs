@@ -51,6 +51,8 @@ pub enum Error {
     CircularReference(CellRef),
     /// Arithmetic failed, for example division by zero.
     Arithmetic(ValueError),
+    /// `IFS` was given no condition that held, and no fallback to fall back on.
+    NoMatchingCondition,
 }
 
 impl std::fmt::Display for Error {
@@ -71,6 +73,9 @@ impl std::fmt::Display for Error {
             }
             Self::CircularReference(cell) => write!(f, "circular reference at {cell}"),
             Self::Arithmetic(e) => write!(f, "{e}"),
+            Self::NoMatchingCondition => {
+                f.write_str("IFS found no condition that holds and has no fallback")
+            }
         }
     }
 }
