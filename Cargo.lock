@@ -4,83 +4,83 @@ version = 4
 
 [[package]]
 name = "adhan"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "arabic"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "eu-vat"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "factur-x"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "xmlkit",
 ]
 
 [[package]]
 name = "hijridate"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "holidays-rs"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "iso20022-rs"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "xmlkit",
 ]
 
 [[package]]
 name = "iso8583-msg"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "javaproperties"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "mllp"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "object-hash"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "pdfa"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "xmlkit",
 ]
 
 [[package]]
 name = "soap-client"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "xmlkit",
 ]
 
 [[package]]
 name = "spreadsheet-formula"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "stdnum-rs"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "wssec"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "xmlkit",
 ]
 
 [[package]]
 name = "xmlkit"
-version = "0.1.0"
+version = "0.1.1"

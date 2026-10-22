@@ -21,7 +21,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.88"
 license = "Apache-2.0"
@@ -30,7 +30,7 @@ homepage = "https://github.com/cipansor/crateworks"
 authors = ["Yayasan Pesantren Cipansor and contributors"]
 
 [workspace.dependencies]
-xmlkit = { version = "0.1.0", path = "crates/xmlkit" }
+xmlkit = { version = "0.1.1", path = "crates/xmlkit" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
