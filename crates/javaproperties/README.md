@@ -49,10 +49,10 @@ last, which is what Java does.
 `Properties::store` writes the document back, and it is the other half of the
 parser rather than a formatter: the escapes are the ones `java.util.Properties.store`
 uses, so what is written reads back as it was. That means a space in a key is
-escaped, the first character of a value is escaped when it is a space, and
-anything outside printable ASCII becomes `\uXXXX` in upper case. A value past
-eighty characters is wrapped with a trailing backslash, and the reader drops the
-continuation's leading whitespace, so the wrap is invisible.
+escaped, the first character of a value is escaped when it is a space, `#`, `!`,
+`=` and `:` are escaped wherever they appear in a key or a value, and anything
+outside printable ASCII becomes `\uXXXX` in upper case, the way Java writes it.
+Nothing is wrapped: a long value stays on one line, as Java leaves it.
 
 ```rust
 use javaproperties::Properties;
@@ -76,6 +76,13 @@ hand-written set that pins each rule above, plus **six thousand random cases**
 built from the format's own punctuation: separators, escapes, `\uXXXX` sequences,
 line continuations, comments, all four line endings and the ISO-8859-1 default
 all mixed into the same document. All 6,084 agree.
+
+Writing is checked the same way, from the other side: **four thousand random
+key/value pairs** are written by `javaproperties.dumps` and the documents it
+produces are replayed against `Properties::store`. That is the side which found
+the two disagreements above - the missing escapes for `#`, `!`, `=` and `:`, and
+the line wrap that could cut a `\uXXXX` escape in half - because a corpus of
+inputs can only ever check the reader.
 
 The random corpus is generated with a fixed seed by `scripts/fuzz/javaproperties/`,
 so it can be rebuilt exactly,

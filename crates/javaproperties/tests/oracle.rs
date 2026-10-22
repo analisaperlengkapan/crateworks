@@ -220,3 +220,43 @@ fn the_separator_can_be_a_colon_or_whitespace() {
         );
     }
 }
+
+/// Replays `fixtures/fuzz-writer.tsv`, whose rows are key/value pairs and the
+/// document `javaproperties.dumps` produced for them.
+///
+/// The reader corpus can only compare what is read; this is the side that pins
+/// the writer. Without it the writer had two disagreements with Java that the
+/// reader corpus could not see: `#`, `!`, `=` and `:` were escaped only at the
+/// start of a key and never in a value, and a line was wrapped at eighty
+/// characters, which cut a `\uXXXX` escape in half and made the file unreadable.
+#[test]
+fn every_written_document_matches_javaproperties() {
+    let mut compared = 0u32;
+    let mut failures = Vec::new();
+    for line in include_str!("fixtures/fuzz-writer.tsv").lines().skip(1) {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let fields: Vec<&str> = line.split('\t').collect();
+        if fields.len() < 3 {
+            continue;
+        }
+        let key = decode(fields[0]);
+        let value = decode(fields[1]);
+        let want = decode(fields[2]);
+        compared += 1;
+        let got = Properties::from_pairs(vec![(key.clone(), value.clone())]).store(None);
+        if got != want {
+            failures.push(format!(
+                "key {key:?} value {value:?}\n  expected {want:?}\n  got      {got:?}"
+            ));
+        }
+    }
+    assert!(compared > 3_000, "only {compared} cases");
+    assert!(
+        failures.is_empty(),
+        "{} of {compared}:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
+}

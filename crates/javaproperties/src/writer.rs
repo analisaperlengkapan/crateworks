@@ -11,33 +11,22 @@ use std::fmt::Write as _;
 use crate::escape::Error;
 use crate::reader::Properties;
 
-/// The largest line, in characters, that a value is wrapped to.
-///
-/// Java's `store` wraps a long value with a trailing backslash once the line
-/// passes this, and the continuation's leading whitespace is dropped when read
-/// back, so the wrap is invisible. Values are written in the basic multilingual
-/// plane, one escape per character, so a character count is also a byte count of
-/// the escaped text and this matches Java's own limit.
-const WRAP_AT: usize = 80;
-
 /// Escapes a key.
 ///
-/// A space in a key is escaped, and so is the first character when it is `#`,
-/// `!`, `=` or `:`, because any of those would otherwise be read back as a
-/// comment marker or a separator. That leading-character rule is the one people
-/// miss: `"a b"` and `" a"` both need it, and so does a key that starts with `=`.
+/// A space in a key is escaped, and so is any of `#`, `!`, `=`, `:`, wherever it
+/// appears. `java.util.Properties.store` escapes all four in both the key and
+/// the value (`saveConvert` with `escapeSpace`), not only in the first position:
+/// `a#b` is written `a\#b`. The escapes are not needed to read the entry back,
+/// because the separator is only special where it ends the key and a comment
+/// marker only starts a line, but they are what Java writes, and a reader that
+/// compares files or hashes them sees the difference.
 #[must_use]
 pub fn escape_key(key: &str) -> String {
     let mut out = String::with_capacity(key.len());
-    for (index, c) in key.chars().enumerate() {
-        let first = index == 0;
+    for c in key.chars() {
         match c {
             ' ' => out.push_str("\\ "),
-            '=' | ':' | '#' | '!' if first => {
-                out.push('\\');
-                out.push(c);
-            }
-            '=' | ':' => {
+            '=' | ':' | '#' | '!' => {
                 out.push('\\');
                 out.push(c);
             }
@@ -49,19 +38,27 @@ pub fn escape_key(key: &str) -> String {
 
 /// Escapes a value.
 ///
-/// Interior and trailing spaces are left as they stand. The **first** character
-/// is escaped when it is a space, which Java does too and which is not
-/// cosmetic: a reader drops the whitespace after the separator, so `k= one` and
-/// `k=one` both read back as `one`, and without this escape a value that starts
-/// with a space could not be written at all.
+/// The **first** character is escaped when it is a space, which Java does too
+/// and which is not cosmetic: a reader drops the whitespace after the separator,
+/// so `k= one` and `k=one` both read back as `one`, and without this escape a
+/// value that starts with a space could not be written at all. Interior and
+/// trailing spaces are left as they stand.
+///
+/// `#`, `!`, `=`, `:` are escaped wherever they appear, as they are in a key.
 #[must_use]
 pub fn escape_value(value: &str) -> String {
     let mut out = String::with_capacity(value.len());
     for (index, c) in value.chars().enumerate() {
         if index == 0 && c == ' ' {
             out.push_str("\\ ");
-        } else {
-            push_escaped(&mut out, c);
+            continue;
+        }
+        match c {
+            '=' | ':' | '#' | '!' => {
+                out.push('\\');
+                out.push(c);
+            }
+            _ => push_escaped(&mut out, c),
         }
     }
     out
@@ -130,28 +127,18 @@ fn write_comment(out: &mut String, comment: &str) {
     }
 }
 
-/// Writes one key and value, wrapping a long line the way Java does.
+/// Writes one key and value, on one line.
+///
+/// `java.util.Properties.store` writes `key + "=" + value` followed by a line
+/// separator and does not wrap. A long value is one long line, however long it
+/// is. Wrapping it at some column instead - which this used to do - splits the
+/// line at a column of its own choosing, and when that column falls inside a
+/// `\uXXXX` escape the escape is cut in half and the file no longer reads back.
+/// Java never emits such a split, so neither does this.
 fn write_entry(out: &mut String, key: &str, value: &str) {
-    let escaped_key = escape_key(key);
-    let escaped_value = escape_value(value);
-    let mut line = escaped_key;
-    line.push('=');
-    line.push_str(&escaped_value);
-
-    // The wrap counts characters of the escaped line, which are all ASCII, so
-    // the count is also the byte count.
-    let mut written = 0;
-    let mut chars = line.chars().peekable();
-    while let Some(c) = chars.next() {
-        // A continuation is a backslash and a newline; both count against the
-        // limit, which is why the check is against `WRAP_AT - 1`.
-        if written >= WRAP_AT - 1 && chars.peek().is_some() {
-            out.push_str("\\\n");
-            written = 0;
-        }
-        out.push(c);
-        written += 1;
-    }
+    out.push_str(&escape_key(key));
+    out.push('=');
+    out.push_str(&escape_value(value));
     out.push('\n');
 }
 
@@ -267,6 +254,36 @@ mod tests {
         // and unescaped it would make the key empty.
         assert_eq!(escape_key("=a"), "\\=a");
         round_trip(vec![("=a".to_string(), "one".to_string())]);
+    }
+
+    #[test]
+    fn comment_markers_and_separators_are_escaped_anywhere() {
+        // `java.util.Properties.store` escapes `#`, `!`, `=` and `:` in the key
+        // and in the value, at any position, not only at the front. This crate
+        // used to escape only a leading marker, which made its output differ
+        // from Java's for a key like `a#b` and for every value holding one.
+        assert_eq!(escape_key("a#b"), "a\\#b");
+        assert_eq!(escape_key("a!b"), "a\\!b");
+        assert_eq!(escape_value("a#b"), "a\\#b");
+        assert_eq!(escape_value("a!b"), "a\\!b");
+        assert_eq!(escape_value("a=b"), "a\\=b");
+        assert_eq!(escape_value("a:b"), "a\\:b");
+        assert_eq!(escape_value("#x"), "\\#x");
+        round_trip(vec![("a#b".to_string(), "a=b".to_string())]);
+        round_trip(vec![("a!b".to_string(), "a:b".to_string())]);
+    }
+
+    #[test]
+    fn a_long_value_is_one_line_and_reads_back() {
+        // Java does not wrap: `store` writes the escaped pair followed by a line
+        // separator, however long the line is. Wrapping at a fixed column split
+        // the line inside a `\uXXXX` escape and the entry no longer read back,
+        // so the line length is now left alone.
+        let long = "é".repeat(200);
+        let properties = Properties::from_pairs(vec![("k".to_string(), long.clone())]);
+        let text = properties.store(None);
+        assert_eq!(text.lines().count(), 1);
+        assert_eq!(parse_str(&text).unwrap(), vec![("k".to_string(), long)]);
     }
 
     #[test]
