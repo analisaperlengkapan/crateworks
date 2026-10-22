@@ -183,3 +183,64 @@ fn a_wrong_character_count_is_reported_as_such() {
         })
     );
 }
+
+/// The cases below were found by comparing against `python-stdnum` 2.2, which
+/// is an independent implementation of the same national rules.
+mod regressions {
+    use eu_vat::Vat;
+
+    /// A Slovenian weighted sum that leaves a remainder of one gives a check
+    /// digit of ten, and the authority writes that as a zero. Rejecting it, as
+    /// an earlier version did, refused numbers that are in use.
+    #[test]
+    fn a_slovenian_check_digit_of_ten_is_written_as_zero() {
+        for number in ["SI 48673820", "SI 56633360", "SI 68297530"] {
+            assert!(Vat::parse(number).is_ok(), "{number} was rejected");
+        }
+    }
+
+    /// Greece dropped its eight-digit form in 2014 and writes it with a leading
+    /// zero today, so an eight-digit input is the same number.
+    #[test]
+    fn an_eight_digit_greek_number_is_padded() {
+        let vat = Vat::parse("EL 94051189").expect("the eight-digit form is valid");
+        assert_eq!(vat.to_string(), "EL094051189");
+    }
+
+    /// The Dutch eleven-digit form omits the leading zero of the nine-digit
+    /// citizen service number and keeps the three-character suffix.
+    #[test]
+    fn an_eleven_digit_dutch_number_is_padded() {
+        for (input, canonical) in [
+            ("NL00449544B01", "NL000449544B01"),
+            ("NL68357370B01", "NL068357370B01"),
+        ] {
+            let vat = Vat::parse(input).expect("the eleven-digit form is valid");
+            assert_eq!(vat.to_string(), canonical, "{input}");
+        }
+    }
+
+    /// Belgium writes the old leading zero inside parentheses, and that is a
+    /// separator rather than part of the number.
+    #[test]
+    fn a_bracketed_belgian_zero_is_a_separator() {
+        let vat = Vat::parse("BE (0)468.561.072").expect("the bracketed zero is a separator");
+        assert_eq!(vat.to_string(), "BE0468561072");
+    }
+
+    /// The prefix is stripped once, so a second one means the input is not a
+    /// number the authority issues. Accepting `RO RO ...` would report a valid
+    /// number for a string no authority would issue.
+    #[test]
+    fn a_repeated_romanian_prefix_is_rejected() {
+        assert!(Vat::parse("RO RO 16621241").is_err());
+        assert!(Vat::parse("RO16621241").is_ok());
+    }
+
+    /// A comma is not one of the separators the authorities tolerate.
+    #[test]
+    fn a_comma_is_not_a_separator() {
+        assert!(Vat::parse("BE 0220,764.971").is_err());
+        assert!(Vat::parse("BE 0220.764.971").is_ok());
+    }
+}

@@ -331,10 +331,15 @@ pub fn guess_country(input: &str) -> Vec<Country> {
 }
 
 /// Strips separators and upper-cases the remainder.
+///
+/// The set matches the separators the national authorities tolerate: the
+/// whitespace, dash, dot, slash, colon and the parentheses that bracket the old
+/// Belgian leading zero. A comma is not among them, because a number written
+/// with one is not a number the authority would issue.
 fn normalize(input: &str) -> String {
     input
         .chars()
-        .filter(|c| !matches!(c, ' ' | '-' | '.' | '/' | ':' | ',' | '(' | ')' | '\u{a0}'))
+        .filter(|c| !matches!(c, ' ' | '-' | '.' | '/' | ':' | '(' | ')' | '\u{a0}'))
         .flat_map(char::to_uppercase)
         .collect()
 }

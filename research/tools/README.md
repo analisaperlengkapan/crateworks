@@ -13,6 +13,7 @@ APIs without a key. They need Python 3 and no external dependencies.
 | `revdeps.py` | **The most important one**: reverse dependencies and incumbent repo activity |
 | `incumbents.py` | Competitor detail for each candidate |
 | `verify2.py` | Check 30 further areas (transit, health, finance, and so on) |
+| `round8.py` | Round 8: the PyPI top list against crates.io. Prints the tables in `../rust-crate-gaps-round8.md`. Treats a 404 as `FREE` and a rate limit as an error, so the two are never confused |
 | `gen_hijri_table.py` | Regenerate the Umm al-Qura table and test fixtures for the `hijridate` crate. Needs `pip install hijridate`. Run from the repository root: `python3 research/tools/gen_hijri_table.py crates/hijridate` |
 | `namecheck.py` | **Run this before writing code**: is the crate name still free? `python3 namecheck.py iso20022 xmlkit` |
 

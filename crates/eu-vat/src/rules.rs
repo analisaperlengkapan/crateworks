@@ -27,10 +27,19 @@ pub(crate) fn canonicalize(country: Country, number: String) -> String {
         // The enterprise number was nine digits before 2008 and is written with
         // a leading zero today.
         Country::Belgium if number.len() == 9 => format!("0{number}"),
+        // The Greek number was eight digits before 2014 and is written with a
+        // leading zero today.
+        Country::Greece if number.len() == 8 => format!("0{number}"),
         // The Dutch number embeds a citizen service number, which is written
-        // without its leading zeros and padded back to nine for checking.
+        // without its leading zeros and padded back to nine for checking. The
+        // eleven-digit form is the old style, which omits the nine-digit part's
+        // leading zero and keeps the three-character suffix.
         Country::Netherlands if number.len() == 10 => {
             let (bsn, tail) = number.split_at(7);
+            format!("{bsn:0>9}{tail}")
+        }
+        Country::Netherlands if number.len() == 11 => {
+            let (bsn, tail) = number.split_at(8);
             format!("{bsn:0>9}{tail}")
         }
         _ => number,
@@ -724,7 +733,12 @@ fn portugal(n: &str) -> Result<()> {
 /// Romania: a company number of two to ten digits, or a thirteen-digit
 /// personal number. `stdnum.ro.cf`.
 fn romania(n: &str) -> Result<()> {
-    let digits = n.strip_prefix("RO").unwrap_or(n);
+    // `split` already removed the country prefix, so a second one here means the
+    // caller wrote `RO RO ...`, which is not a number the authority issues.
+    if n.starts_with("RO") {
+        return Err(Error::InvalidFormat);
+    }
+    let digits = n;
     match digits.len() {
         13 => romanian_personal_number(digits),
         2..=10 => {
@@ -864,10 +878,10 @@ fn slovenia(n: &str) -> Result<()> {
         return Err(Error::InvalidFormat);
     }
     let check = 11 - descending_weight_sum(&n[..7]).rem_euclid(11);
-    // A weighted sum divisible by eleven gives a two-digit check, which can
-    // never match the single character present, so that case is always a
-    // mismatch.
-    if n.as_bytes()[7] != char::from(b'0' + check as u8) as u8 {
+    // A remainder of one would give a two-digit check of ten, and the
+    // authority writes that as a zero rather than rejecting the number.
+    let check = if check == 10 { 0 } else { check };
+    if n.as_bytes()[7] != b'0' + check as u8 {
         return Err(Error::BadChecksum);
     }
     Ok(())
