@@ -9,3 +9,7 @@ __pycache__/
 
 # PDFs written by the examples in crates/pdfmake.
 *.pdf
+
+# Sparse-index responses cached by research/tools/stale.py. Local scratch, large,
+# and rebuildable from index.crates.io in seconds.
+research/tools/.cache/

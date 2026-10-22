@@ -214,3 +214,79 @@ fn username_token(xml: &str) -> wssec::ParsedUsernameToken {
         })
         .expect("a user name token")
 }
+
+/// Replays the SHA-1 and MD5 fixtures, one row per length from 0 to 1024 plus
+/// random lengths, with the digests Python's `hashlib` produced.
+///
+/// The hand-written digests were only checked against the published vectors and
+/// three block-boundary lengths. Walking every length is what actually pins the
+/// padding: the length field moves into a second block at 56 bytes, and a
+/// multiple of the block size needs a whole extra block for the padding alone.
+#[test]
+fn every_digest_length_matches_hashlib() {
+    let text = include_str!("fixtures/digest_lengths.tsv");
+    let mut compared = 0u32;
+    for line in text.lines().skip(1) {
+        let fields: Vec<&str> = line.split('\t').collect();
+        assert_eq!(fields.len(), 4, "malformed row: {line:?}");
+        let data = from_hex(fields[1]);
+        assert_eq!(fields[0].parse::<usize>().unwrap(), data.len());
+        assert_eq!(
+            wssec::digest::hex(&wssec::digest::sha1(&data)),
+            fields[2],
+            "sha1 of {} bytes",
+            data.len()
+        );
+        assert_eq!(
+            wssec::digest::hex(&wssec::digest::md5(&data)),
+            fields[3],
+            "md5 of {} bytes",
+            data.len()
+        );
+        compared += 1;
+    }
+    assert!(compared > 1_000, "only {compared} rows");
+}
+
+/// Replays the base64 fixtures, which cover every length to 129 and every single
+/// byte value, in both alphabets, with the output Python's `base64` produced.
+#[test]
+fn every_base64_case_matches_python() {
+    use wssec::base64::{Alphabet, decode, encode_with};
+    let text = include_str!("fixtures/base64.tsv");
+    let mut compared = 0u32;
+    for line in text.lines().skip(1) {
+        let fields: Vec<&str> = line.split('\t').collect();
+        assert_eq!(fields.len(), 4, "malformed row: {line:?}");
+        let data = from_hex(fields[0]);
+        let standard = encode_with(&data, Alphabet::Standard);
+        assert_eq!(
+            standard,
+            fields[1],
+            "standard encoding of {} bytes",
+            data.len()
+        );
+        let url_safe = encode_with(&data, Alphabet::UrlSafe);
+        assert_eq!(
+            url_safe,
+            fields[2],
+            "url-safe encoding of {} bytes",
+            data.len()
+        );
+        // Both alphabets decode back to the same bytes, padding or not.
+        assert_eq!(decode(&standard).unwrap(), data);
+        assert_eq!(decode(&url_safe).unwrap(), data);
+        assert_eq!(decode(fields[1]).unwrap(), data);
+        assert_eq!(decode(fields[2]).unwrap(), data);
+        compared += 1;
+    }
+    assert!(compared > 380, "only {compared} rows");
+}
+
+/// Reads the hex column of a fixture row.
+fn from_hex(text: &str) -> Vec<u8> {
+    assert!(text.len().is_multiple_of(2), "odd hex length: {text:?}");
+    (0..text.len() / 2)
+        .map(|i| u8::from_str_radix(&text[i * 2..i * 2 + 2], 16).expect("hex"))
+        .collect()
+}

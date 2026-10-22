@@ -16,6 +16,7 @@ APIs without a key. They need Python 3 and no external dependencies.
 | `round8.py` | Round 8: the PyPI top list against crates.io. Prints the tables in `../rust-crate-gaps-round8.md`. Treats a 404 as `FREE` and a rate limit as an error, so the two are never confused |
 | `gen_hijri_table.py` | Regenerate the Umm al-Qura table and test fixtures for the `hijridate` crate. Needs `pip install hijridate`. Run from the repository root: `python3 research/tools/gen_hijri_table.py crates/hijridate` |
 | `namecheck.py` | **Run this before writing code**: is the crate name still free? `python3 namecheck.py iso20022 xmlkit` |
+| `stale.py` | Round 12: **the abandoned incumbent, measured**. Pages the crates.io ranked list by recent downloads and reads each crate's newest live version from the sparse index, so "popular but nobody is maintaining it" becomes a scan rather than an anecdote. A yank is not a release, so a pulled version does not count as activity. `--github` adds an archived-repository check (needs `GITHUB_TOKEN`). Caches index reads under `.cache/` |
 
 ## Operational warnings
 

@@ -206,18 +206,6 @@ assert!(times.asr < times.maghrib);
 assert!(times.maghrib < times.isha);
 ```
 
-## What it does, and what it leaves to the caller
-
-The times are in UTC. A local clock is a timezone question, and this crate
-does not guess one from a longitude: a place can be an hour or more from its
-solar time, sometimes for political reasons. The caller adds the offset,
-which keeps a wrong local time the caller's decision rather than a surprise.
-
-The angle conventions come from the authorities that publish them, and the
-astronomy follows Meeus. The results are checked against the `adhan`
-JavaScript library, which is the implementation most prayer apps use, across
-thousands of date, location, method and school combinations.
-
 Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.

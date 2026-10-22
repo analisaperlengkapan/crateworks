@@ -76,26 +76,6 @@ The same care applies to `PasswordText`, which the profile sends in clear text.
 `zeep` writes it plainly and so does this crate; base64 would look plausible and
 fail against every real server.
 
-## What this crate does not do
-
-It does not sign messages, does not carry X.509 certificates, and does not talk
-to a hardware token. `Signature` and `EncryptedData` are the other half of
-WS-Security and need a certificate story this crate deliberately leaves alone.
-Nor does it generate a nonce or read a clock: a library that did would be
-untestable, and would hide the timestamp the caller has to record anyway.
-
-The digest helpers use SHA-1 and MD5 because the standards name them, and both
-are broken against collisions. That does not matter here, where the digest
-authenticates a shared secret to a server that already knows it and the input
-includes a nonce the attacker cannot choose. It would matter for a server that
-accepts a replayed token, which is a protocol concern: check the timestamp.
-
-`soap-client` in this workspace builds and reads SOAP envelopes, and its
-documentation says plainly that it does not implement WS-Security. This crate
-is that missing half. Almost every bank, government and ERP endpoint requires
-a `Security` header, and without one the request is rejected before the
-service ever looks at it.
-
 ## Example
 
 ```
@@ -122,6 +102,17 @@ assert!(!header.contains("secret"));
 The result is a header fragment. Pass it to `soap_client::Envelope` with
 `with_header_xml` and the two crates compose into a request that an
 enterprise service will accept.
+
+## How it is checked
+
+The digest and base64 code is written out here rather than pulled in, so it is
+checked against the references directly: SHA-1 and MD5 against Python's
+`hashlib` at every length from 0 to 1024 and at random lengths, and base64
+against Python's `base64` at every length to 129, in both alphabets, plus every
+single byte value. Lengths, not inputs, are where hand-written padding breaks -
+the length field moves into a second block at 56 bytes - so the fixture walks
+them all. The header fixtures come from `zeep`, the Python SOAP client, so the
+document structure is checked against something that talks to real services.
 
 ## What this crate does not do
 

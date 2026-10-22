@@ -57,49 +57,6 @@ Field contents are opaque strings. What a processing code or a response code
 There is also no transport, no MAC verification and no PIN block decryption:
 this crate frames messages and nothing more.
 
-An ISO 8583 message is a four-character message type indicator, one or two
-bitmaps saying which fields are present, and then those fields in ascending
-order. Each field has its own type, length and encoding, so the format only
-makes sense together with a specification that says how each of the 128 (or
-192) fields is laid out.
-
-## Example
-
-```
-use iso8583_msg::{Message, default_ascii};
-
-let spec = default_ascii();
-
-let mut msg = Message::new("0200").unwrap();
-msg.set(2, "4111111111111111").unwrap();
-msg.set(3, "000000").unwrap();
-msg.set(4, "000000010000").unwrap();
-
-let bytes = msg.encode(&spec).unwrap();
-assert_eq!(&bytes[..4], b"0200");
-
-let back = Message::decode(&bytes, &spec).unwrap();
-assert_eq!(back.get(2), Some("4111111111111111"));
-assert_eq!(back.get(4), Some("000000010000"));
-assert_eq!(back, msg);
-```
-
-## Specifications
-
-ISO 8583 does not standardise field lengths. Every switch publishes its own
-dialect, so a `Spec` is data rather than code: build one with `Spec::new`
-and describe each field you use. `default_ascii`, `default_bcd` and
-`default_ebcdic` are the usual starting points, and `FieldSpec` carries
-the same information as a field dictionary in a switch's interface
-specification.
-
-## Scope
-
-Only the framing is handled: message type indicator, bitmaps, field
-encoding and length prefixes. Field *contents* are treated as opaque
-strings, because what a processing code or a response code means is defined
-per switch. No business-rule validation is attempted.
-
 Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.

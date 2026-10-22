@@ -113,13 +113,6 @@ UTF-8.
 - Bytes are ISO-8859-1 unless the caller says otherwise. `parse_str` is there
   for text that has already been decoded.
 
-## How it is checked
-
-The results are compared against Python's `javaproperties` package, which
-replicates `java.util.Properties` and is itself tested against Java. That
-matters more than checking the parser against itself: several of these rules
-are counter-intuitive enough that a reasonable guess is wrong.
-
 Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
 Pesantren Cipansor and contributors.
