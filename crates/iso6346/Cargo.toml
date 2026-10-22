@@ -1,0 +1,18 @@
+[package]
+name = "iso6346"
+description = "Shipping container codes (ISO 6346): parse, validate and generate the check digit for BIC container numbers."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+keywords = ["iso6346", "container", "shipping", "bic", "validation"]
+categories = ["value-formatting"]
+readme = "README.md"
+
+[dependencies]
+
+[lints]
+workspace = true

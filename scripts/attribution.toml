@@ -48,3 +48,7 @@ marker = "python-zeep"
 [[upstream]]
 project = "pdfmake (JS) by Bartek Pampuch"
 marker = "bpampuch/pdfmake"
+
+[[upstream]]
+project = "container-validator (npm) by Sameer Shemna"
+marker = "sameershemna"

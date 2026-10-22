@@ -118,7 +118,8 @@ crate reproduces behaviour another ecosystem already defines, install that
 implementation, ask it for the answer, and record the answer as a fixture. The
 oracles used so far: `python-stdnum` (`eu-vat`), `pyiso8583` (`iso8583-msg`),
 `arabic-reshaper` (`arabic`), the official `factur-x` package, the JavaScript
-`adhan` package, `object-hash` npm v3, and Python `javaproperties`. An oracle is
+`adhan` package, `object-hash` npm v3, Python `javaproperties`, and the
+`container-validator` npm package (`iso6346`). An oracle is
 reference material for development; it is **never** a dependency of a crate and
 is never installed by CI.
 

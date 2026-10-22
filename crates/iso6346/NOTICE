@@ -1,0 +1,13 @@
+crateworks
+Copyright 2026 Yayasan Pesantren Cipansor and contributors
+
+This product includes software developed by Yayasan Pesantren Cipansor and
+contributors (https://github.com/cipansor/crateworks).
+
+The check-digit algorithm and the test fixtures are derived from the
+container-validator package by Sameer Shemna
+(https://github.com/sameershemna/Container-validator), which is distributed
+under the MIT licence. The algorithm itself is the one published in ISO 6346;
+this crate is an independent reimplementation for Rust.
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).

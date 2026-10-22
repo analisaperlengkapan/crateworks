@@ -136,6 +136,23 @@ from a WSDL. Those are deliberate omissions: the HTTP layer belongs to the
 caller's client, and WS-Security needs a certificate story that should not be
 guessed at.
 
+## 8. `iso6346`
+
+**Why.** A shipping container code carries a check digit, and the industry
+exchanges them in volume: the `container-validator` npm package is downloaded
+around twenty thousand times a month. crates.io has no crate for the standard at
+all - searching the name returns nothing - so the field is JavaScript and PHP.
+
+**Covers today.** Parsing a code with case and separators ignored, validating its
+check digit, generating the check digit for a new code, and reading back the
+owner code, category and serial. The category is typed, so `U`, `J` and `Z` are
+enum variants rather than a char the caller has to match.
+
+**Not covered.** Whether an owner code is registered with the BIC. That register
+is a dataset that changes, and a crate shipping a copy would be wrong within a
+month; the code can be well formed and still name an operator that does not
+exist.
+
 ## Publishing order
 
 `cargo package` resolves a `path` dependency against the registry, so a crate
@@ -167,7 +184,7 @@ python3 scripts/publish.py --publish  # upload, in order, stopping at the first 
 
 ## Verification
 
-The counts below are for the whole workspace, all 17 crates, and they drift as
+The counts below are for the whole workspace, all 20 crates, and they drift as
 crates are added; they are here as an order of magnitude, not as a contract.
 
 ```sh

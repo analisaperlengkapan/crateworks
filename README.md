@@ -42,6 +42,7 @@ rest depend only on `xmlkit` or `pdfa` from this same workspace.
 | --- | --- | --- |
 | [`stdnum-rs`](crates/stdnum-rs) | IBAN, ISBN, EAN/UPC, Luhn and national ID validation | Rust has only fragmented per-country crates and no shared entry point |
 | [`eu-vat`](crates/eu-vat) | EU VAT number validation, 27 member states plus Northern Ireland | The `vat` crate stopped in 2016 and nothing replaced it |
+| [`iso6346`](crates/iso6346) | Shipping container codes: parse, validate and generate the check digit | The npm `container-validator` is downloaded twenty thousand times a month and crates.io has no crate for the standard at all |
 
 ### Dates, calendars and text
 
