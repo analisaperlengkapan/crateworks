@@ -82,9 +82,44 @@ pub enum Rule {
         /// Weekday, 0 is Sunday.
         weekday: u8,
     },
+    /// A holiday that exists in one year only, such as a one-off jubilee or a
+    /// day moved for a national event.
+    Once {
+        /// The only year in which the holiday exists.
+        year: i32,
+        /// Month, 1-12.
+        month: u8,
+        /// Day, 1-31.
+        day: u8,
+    },
+    /// A rule that does not apply in some years, because a one-off date took
+    /// its place. The United Kingdom moved its early May bank holiday in 2020
+    /// rather than adding a second one.
+    ExceptYears {
+        /// The rule that normally applies.
+        base: &'static Rule,
+        /// Years in which it does not.
+        years: &'static [i32],
+    },
 }
 
 impl Rule {
+    /// Whether this rule is deliberately tied to particular years, so that
+    /// resolving it to nothing outside them is correct rather than a mistake.
+    #[must_use]
+    pub const fn is_year_restricted(&self) -> bool {
+        match self {
+            Self::Once { .. } | Self::ExceptYears { .. } => true,
+            Self::Fixed { .. }
+            | Self::EasterOffset(_)
+            | Self::NthWeekday { .. }
+            | Self::FixedUnlessWeekday { .. }
+            | Self::FixedOnWeekdayElseWeekdayOnOrAfter { .. }
+            | Self::WeekdayOnOrAfter { .. }
+            | Self::WeekdayOnOrBefore { .. } => false,
+        }
+    }
+
     /// Resolves this rule to the date on which the holiday *falls*, before any
     /// weekend substitution is applied.
     ///
@@ -145,6 +180,20 @@ impl Rule {
                 let date = Date::new(year, month, day)?;
                 let back = (date.weekday() as i64 - weekday as i64).rem_euclid(7) as i32;
                 date.add_days(-back)
+            }
+            Self::Once {
+                year: only,
+                month,
+                day,
+            } => (year == only)
+                .then(|| Date::new(year, month, day))
+                .flatten(),
+            Self::ExceptYears { base, years } => {
+                if years.contains(&year) {
+                    None
+                } else {
+                    base.resolve(year)
+                }
             }
         }
     }

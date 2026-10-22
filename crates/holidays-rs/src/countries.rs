@@ -594,10 +594,13 @@ static UNITED_KINGDOM: &[Holiday] = &[
     h("Easter Monday", Rule::EasterOffset(1)),
     h(
         "Early May Bank Holiday",
-        Rule::NthWeekday {
-            month: 5,
-            weekday: 1,
-            nth: 1,
+        Rule::ExceptYears {
+            base: &Rule::NthWeekday {
+                month: 5,
+                weekday: 1,
+                nth: 1,
+            },
+            years: &[2020],
         },
     ),
     h(
@@ -614,6 +617,33 @@ static UNITED_KINGDOM: &[Holiday] = &[
             month: 8,
             weekday: 1,
             nth: 5,
+        },
+    ),
+    // One-off bank holidays. 8 May 2020 was the moved early May bank holiday
+    // for the 75th anniversary of VE Day; 3 June 2022 was the Platinum Jubilee
+    // and 19 September 2022 the state funeral of Elizabeth II.
+    h(
+        "Early May Bank Holiday (VE Day)",
+        Rule::Once {
+            year: 2020,
+            month: 5,
+            day: 8,
+        },
+    ),
+    h(
+        "Platinum Jubilee of Elizabeth II",
+        Rule::Once {
+            year: 2022,
+            month: 6,
+            day: 3,
+        },
+    ),
+    h(
+        "State Funeral of Queen Elizabeth II",
+        Rule::Once {
+            year: 2022,
+            month: 9,
+            day: 19,
         },
     ),
 ];
@@ -1100,6 +1130,76 @@ mod tests {
         assert_eq!(cal.holiday_name(d(2026, 4, 6)), Some("Easter Monday"));
     }
 
+    /// The full England-and-Wales bank-holiday list, transcribed from
+    /// `python-holidays` with `subdiv="England"`. The crate reports the date a
+    /// holiday is *observed*, so a bank holiday that falls at a weekend appears
+    /// on its substitute date and not on the raw one; the reference lists both,
+    /// and only the observed set is compared here. The whole set is checked,
+    /// not a spot check, because the substitute dates are exactly what a bug in
+    /// the roll-forward logic moves.
+    #[test]
+    fn united_kingdom_bank_holidays_match_the_reference() {
+        let cal = Calendar::united_kingdom();
+        let expected: &[(i32, u8, u8, &str)] = &[
+            // 2020: the early May holiday was moved to 8 May for VE Day, and
+            // Boxing Day (a Saturday) rolls to Monday the 28th.
+            (2020, 1, 1, "New Year's Day"),
+            (2020, 4, 10, "Good Friday"),
+            (2020, 4, 13, "Easter Monday"),
+            (2020, 5, 8, "Early May Bank Holiday (VE Day)"),
+            (2020, 5, 25, "Spring Bank Holiday"),
+            (2020, 8, 31, "Summer Bank Holiday"),
+            (2020, 12, 25, "Christmas Day"),
+            (2020, 12, 28, "Boxing Day"),
+            // 2021: Christmas is a Saturday and Boxing Day a Sunday, so they
+            // roll to the 27th and the 28th.
+            (2021, 1, 1, "New Year's Day"),
+            (2021, 4, 2, "Good Friday"),
+            (2021, 4, 5, "Easter Monday"),
+            (2021, 5, 3, "Early May Bank Holiday"),
+            (2021, 5, 31, "Spring Bank Holiday"),
+            (2021, 8, 30, "Summer Bank Holiday"),
+            (2021, 12, 27, "Christmas Day"),
+            (2021, 12, 28, "Boxing Day"),
+            // 2022: New Year's Day is a Saturday; Christmas is a Sunday and
+            // Boxing Day the Monday, so Christmas takes the 26th and Boxing Day
+            // moves on to the 27th. The Jubilee and the state funeral are
+            // one-off bank holidays.
+            (2022, 1, 3, "New Year's Day"),
+            (2022, 4, 15, "Good Friday"),
+            (2022, 4, 18, "Easter Monday"),
+            (2022, 5, 2, "Early May Bank Holiday"),
+            (2022, 5, 30, "Spring Bank Holiday"),
+            (2022, 6, 3, "Platinum Jubilee of Elizabeth II"),
+            (2022, 8, 29, "Summer Bank Holiday"),
+            (2022, 9, 19, "State Funeral of Queen Elizabeth II"),
+            (2022, 12, 26, "Christmas Day"),
+            (2022, 12, 27, "Boxing Day"),
+            // 2026: Boxing Day is a Saturday and rolls to the 28th.
+            (2026, 1, 1, "New Year's Day"),
+            (2026, 4, 3, "Good Friday"),
+            (2026, 4, 6, "Easter Monday"),
+            (2026, 5, 4, "Early May Bank Holiday"),
+            (2026, 5, 25, "Spring Bank Holiday"),
+            (2026, 8, 31, "Summer Bank Holiday"),
+            (2026, 12, 25, "Christmas Day"),
+            (2026, 12, 28, "Boxing Day"),
+        ];
+        for year in [2020, 2021, 2022, 2026] {
+            let got: Vec<(i32, u8, u8, &str)> = cal
+                .holidays_in(year)
+                .into_iter()
+                .map(|(date, name)| (date.year, date.month, date.day, name))
+                .collect();
+            let want: Vec<(i32, u8, u8, &str)> = expected
+                .iter()
+                .copied()
+                .filter(|(y, _, _, _)| *y == year)
+                .collect();
+            assert_eq!(got, want, "United Kingdom {year}");
+        }
+    }
+
     #[test]
     fn germany_reunification_day() {
         let cal = Calendar::new(Country::Germany);
@@ -1360,17 +1460,22 @@ mod tests {
     #[test]
     fn every_country_resolves_a_full_year_without_panicking() {
         // Catches a rule that resolves to nothing, which would silently drop a
-        // holiday from the calendar rather than fail loudly.
+        // holiday from the calendar rather than fail loudly. A rule that is
+        // deliberately tied to a year (`Once`, `ExceptYears`) is expected to
+        // resolve to nothing outside it, and is checked in its own test.
         for &country in Country::ALL {
             let cal = Calendar::new(country);
             for year in [2024, 2025, 2026, 2027] {
                 for holiday in country.holidays() {
-                    assert!(
-                        holiday.rule.resolve(year).is_some(),
-                        "{}: {} does not resolve in {year}",
-                        country.name(),
-                        holiday.name
-                    );
+                    let resolves = holiday.rule.resolve(year).is_some();
+                    if !holiday.rule.is_year_restricted() {
+                        assert!(
+                            resolves,
+                            "{}: {} does not resolve in {year}",
+                            country.name(),
+                            holiday.name
+                        );
+                    }
                 }
                 let holidays = cal.holidays_in(year);
                 assert!(
@@ -1396,16 +1501,21 @@ mod tests {
     }
 
     #[test]
-    fn each_country_observes_at_least_as_many_days_as_it_has_rules() {
+    fn each_country_observes_every_rule_that_applies_in_that_year() {
         // A holiday can only be dropped from a year by a collision, and the
         // resolution moves the loser rather than discarding it, so the count
-        // must hold for every country and year.
+        // must hold. A rule tied to one year contributes only in that year.
         for &country in Country::ALL {
             let cal = Calendar::new(country);
             for year in [2024, 2025, 2026, 2027] {
+                let expected = country
+                    .holidays()
+                    .iter()
+                    .filter(|h| h.rule.resolve(year).is_some())
+                    .count();
                 assert_eq!(
                     cal.holidays_in(year).len(),
-                    country.holidays().len(),
+                    expected,
                     "{} lost a holiday in {year}",
                     country.name()
                 );

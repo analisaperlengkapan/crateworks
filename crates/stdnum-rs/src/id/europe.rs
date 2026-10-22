@@ -18,41 +18,51 @@ pub(super) mod spain {
         }
         let bytes = s.as_bytes();
         let check = bytes[8];
-        if !check.is_ascii_uppercase() {
+        // A personal number ends in a letter; a company number may end in a
+        // digit or in the letter standing for it.
+        if !check.is_ascii_uppercase() && !check.is_ascii_digit() {
             return Err(Error::InvalidCharacter(char::from(check)));
         }
-        // X, Y and Z mark a NIE, a number issued to foreigners. The letter is
-        // replaced by 0, 1 or 2 and the result is treated as an eight-digit DNI.
         let leading = bytes[0];
-        if matches!(leading, b'X' | b'Y' | b'Z') {
-            let prefix = u32::from(leading - b'X');
-            let digits = checksum::digits_only(&s[1..8])?;
-            // The body is a seven-digit number and the letter contributes a
-            // single digit, so the two are added rather than folded together.
-            let body = digits.iter().fold(0u32, |acc, &d| acc * 10 + u32::from(d));
-            let value = prefix * 10_000_000 + body;
+        // The check character of a personal number is a letter over the number
+        // taken modulo 23. A NIE writes X, Y or Z in front of eight digits, and
+        // the letter stands for 0, 1 or 2; a K, L or M number stands for no
+        // digit at all, so it is read as a zero. A plain DNI is the eight
+        // digits on their own.
+        let letter_check = |prefix: u32, body: &str| -> Result<()> {
+            let digits = checksum::digits_only(body)?;
+            let mut value = prefix;
+            for &d in &digits {
+                value = value * 10 + u32::from(d);
+            }
             if LETTERS[(value % 23) as usize] != check {
                 return Err(Error::BadChecksum);
             }
-            return Ok(());
-        }
-        if leading.is_ascii_alphabetic() {
-            // Any other leading letter is a legal-entity NIF, whose check
-            // character is a digit.
-            let digits = checksum::digits_only(&s[1..8])?;
-            let sum: u32 = digits.iter().map(|&d| u32::from(d)).sum();
-            let expected = (sum % 10) as u8;
-            if check != b'0' + expected {
-                return Err(Error::BadChecksum);
+            Ok(())
+        };
+        match leading {
+            b'X' | b'Y' | b'Z' => return letter_check(u32::from(leading - b'X'), &s[1..8]),
+            b'K' | b'L' | b'M' => return letter_check(0, &s[1..8]),
+            // A CIF, a legal entity's number. Its check character is a Luhn
+            // digit over the middle seven, written either as the digit or as
+            // the letter standing for it. Only certain letters may head one.
+            b'A'..=b'H' | b'J' | b'N' | b'P'..=b'S' | b'U'..=b'W' => {
+                let digits = checksum::digits_only(&s[1..8])?;
+                let Some(digit) = checksum::luhn_check_digit(&digits) else {
+                    return Err(Error::InvalidCharacter(char::from(check)));
+                };
+                let as_letter = b"JABCDEFGHI"[digit as usize];
+                if check != b'0' + digit && check != as_letter {
+                    return Err(Error::BadChecksum);
+                }
+                return Ok(());
             }
-            return Ok(());
+            _ if leading.is_ascii_alphabetic() => {
+                return Err(Error::InvalidCharacter(char::from(leading)));
+            }
+            _ => {}
         }
-        let digits = checksum::digits_only(&s[..8])?;
-        let value: u32 = digits.iter().fold(0u32, |acc, &d| acc * 10 + u32::from(d));
-        if LETTERS[(value % 23) as usize] != check {
-            return Err(Error::BadChecksum);
-        }
-        Ok(())
+        letter_check(0, &s[..8])
     }
 }
 
@@ -458,6 +468,29 @@ mod tests {
         assert_eq!(spain::validate_dni("54362315Z"), Err(Error::BadChecksum));
         // A NIE prefix is not a valid check letter on its own.
         assert!(spain::validate_dni("54362315").is_err());
+    }
+
+    /// A CIF is a legal entity's number, and its check character is the Luhn
+    /// digit over the middle seven. It may be written as that digit or as the
+    /// letter that stands for it, and only a fixed set of letters may head it.
+    /// These come from `stdnum.es.nif` and `stdnum.es.cif`.
+    #[test]
+    fn spanish_legal_entities_and_personal_numbers() {
+        for value in [
+            "B64717838",
+            "B6471783H",
+            "J99216582",
+            "A13585625",
+            "M1234567L",
+            "K1234567L",
+        ] {
+            assert!(spain::validate_dni(value).is_ok(), "{value}");
+        }
+        // A letter that may not head a CIF is not a Spanish number at all.
+        assert!(spain::validate_dni("O1234567L").is_err());
+        assert_eq!(spain::validate_dni("B64717839"), Err(Error::BadChecksum));
+        // The letter standing for the check digit must stand for the right one.
+        assert_eq!(spain::validate_dni("B6471783J"), Err(Error::BadChecksum));
     }
 
     #[test]

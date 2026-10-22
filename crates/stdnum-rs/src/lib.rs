@@ -145,6 +145,29 @@ pub(crate) mod checksum {
         sum % 10 == 0
     }
 
+    /// Returns the Luhn check digit for `digits`.
+    ///
+    /// `digits` is the payload *without* the check digit, ordered from left to
+    /// right. Returns `None` when a digit is not a digit.
+    pub(crate) fn luhn_check_digit(digits: &[u8]) -> Option<u8> {
+        if digits.iter().any(|d| *d > 9) {
+            return None;
+        }
+        let len = digits.len();
+        let mut sum = 0u32;
+        for (i, &d) in digits.iter().enumerate() {
+            // In the full number the check digit sits at distance zero from the
+            // right, so a payload digit is doubled when its distance is odd.
+            let double = (len - i) % 2 == 1;
+            let mut v = u32::from(d) * if double { 2 } else { 1 };
+            if v > 9 {
+                v -= 9;
+            }
+            sum += v;
+        }
+        Some(((10 - sum % 10) % 10) as u8)
+    }
+
     /// Converts ASCII digits to their numeric values.
     ///
     /// # Errors

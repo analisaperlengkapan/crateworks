@@ -3,10 +3,11 @@
 use crate::checksum;
 use crate::{Error, Result};
 
-/// An EAN-8, EAN-13, UPC-A or UPC-E barcode.
+/// An EAN-8, EAN-13, UPC-A, UPC-E or GTIN-14 barcode.
 ///
-/// All four use the same alternating 1/3 weighted check digit, and differ only
-/// in length: EAN-8 is 8 digits, UPC-E is 8, UPC-A is 12 and EAN-13 is 13.
+/// All of them use the same alternating 1/3 weighted check digit and differ
+/// only in length: EAN-8 is 8 digits, UPC-E is 8, UPC-A is 12, EAN-13 is 13
+/// and the shipping-case GTIN-14 is 14.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ean(String);
 
@@ -23,7 +24,7 @@ impl Ean {
             return Err(Error::Empty);
         }
         let digits = checksum::digits_only(&normalized)?;
-        if !matches!(digits.len(), 8 | 12 | 13) {
+        if !matches!(digits.len(), 8 | 12 | 13 | 14) {
             return Err(Error::WrongLength {
                 expected: 13,
                 found: digits.len(),
@@ -64,6 +65,12 @@ impl Ean {
     #[must_use]
     pub fn is_upca(&self) -> bool {
         self.0.len() == 12
+    }
+
+    /// Whether this is a 14-digit GTIN-14, the code on a shipping case.
+    #[must_use]
+    pub fn is_gtin14(&self) -> bool {
+        self.0.len() == 14
     }
 
     /// The GS1 prefix, which identifies the issuing member organisation. The
@@ -130,6 +137,19 @@ mod tests {
             Ean::parse("12345678901234567"),
             Err(Error::WrongLength { .. })
         ));
+    }
+
+    #[test]
+    fn accepts_known_gtin14() {
+        let e = Ean::parse("98412345678908").unwrap();
+        assert!(e.is_gtin14());
+        assert_eq!(e.len(), 14);
+        assert!(!e.is_ean13());
+    }
+
+    #[test]
+    fn rejects_gtin14_with_a_bad_check_digit() {
+        assert_eq!(Ean::parse("98412345678909"), Err(Error::BadChecksum));
     }
 
     #[test]

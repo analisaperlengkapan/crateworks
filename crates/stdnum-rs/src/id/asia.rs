@@ -217,39 +217,26 @@ pub(super) mod mexico {
                 return Err(Error::OutOfRange);
             }
         }
-        if chars.len() == 12 {
-            // The company form ends with the same check character as the
-            // personal form, but over eleven preceding characters, so it is
-            // left-padded with one blank before the weights are applied.
-            let blank = ALPHABET.iter().position(|a| *a == ' ').unwrap_or(0) as u32;
-            let mut sum = blank * 13;
-            for (i, c) in chars[..11].iter().enumerate() {
-                let Some(index) = ALPHABET.iter().position(|a| a == c) else {
-                    return Err(Error::InvalidCharacter(*c));
-                };
-                sum += index as u32 * (12 - i as u32);
-            }
-            let expected = ALPHABET[((11 - sum % 11) % 11) as usize];
-            if expected != chars[11] {
-                return Err(Error::BadChecksum);
-            }
-            return Ok(());
-        }
         // The ten-character form predates the homoclave, so it has no check
         // character to verify.
         if chars.len() == 10 {
             return Ok(());
         }
-        // The check character is computed over the first twelve characters.
+        // The check character is computed over twelve characters. A company
+        // number has only eleven, so it is padded on the left with a blank,
+        // which is itself a character in the alphabet.
+        let mut window = [' '; 12];
+        let offset = 12 - (chars.len() - 1);
+        window[offset..].copy_from_slice(&chars[..chars.len() - 1]);
         let mut sum = 0u32;
-        for (i, c) in chars[..12].iter().enumerate() {
+        for (i, c) in window.iter().enumerate() {
             let Some(index) = ALPHABET.iter().position(|a| a == c) else {
                 return Err(Error::InvalidCharacter(*c));
             };
             sum += index as u32 * (13 - i as u32);
         }
         let expected = ALPHABET[((11 - sum % 11) % 11) as usize];
-        if expected != chars[12] {
+        if expected != chars[chars.len() - 1] {
             return Err(Error::BadChecksum);
         }
         Ok(())
@@ -379,6 +366,16 @@ mod tests {
         // The twelve-character company form also carries a check character,
         // computed over one fewer character.
         assert!(mexico::validate_rfc("MAB9307148T4").is_ok());
+        // The company form is padded on the left with a blank before the
+        // weights are applied, which is not the same as starting the weights
+        // one position later.
+        assert!(mexico::validate_rfc("COMG-600703").is_ok());
+        assert!(mexico::validate_rfc("GODE 561231 GR8").is_ok());
+        // The strict mode of the reference rejects this one, and so do we.
+        assert_eq!(
+            mexico::validate_rfc("VACE-460910-SX6"),
+            Err(Error::BadChecksum)
+        );
         // A wrong check character on either form is rejected.
         assert_eq!(
             mexico::validate_rfc("GODE561231GR9"),

@@ -19,7 +19,9 @@ Country-specific weekend substitution is handled, including the United States
 rule where a Saturday holiday moves back to Friday and the United Kingdom rule
 where a weekend holiday moves forward to Monday.
 
-Covered: Indonesia, United States, United Kingdom, Germany, France.
+Covered: Indonesia, United States, United Kingdom, Germany, France,
+Netherlands, Spain, Italy, Portugal, Belgium, Austria, Poland, Sweden, Norway,
+Denmark, Finland, Ireland, Canada and New Zealand. `Country::ALL` lists them.
 
 The crate answers three questions:
 
@@ -52,8 +54,15 @@ assert_eq!((next.year, next.month, next.day), (2026, 8, 18));
 
 ## Scope
 
-Calendars cover *national* holidays. Regional and one-off observances are
-out of scope; add them with `Calendar::with_extra` when needed.
+Calendars cover *national* holidays, including one-off national bank holidays
+(`Rule::Once`, such as the United Kingdom's 2022 Platinum Jubilee) and a holiday
+that a one-off date replaced (`Rule::ExceptYears`, such as the early May bank
+holiday moved to 8 May 2020 for VE Day). Regional observances are out of scope;
+add them with `Calendar::with_extra` when needed.
+
+`holidays_in` reports the date a holiday is *observed*, not the date it falls.
+A bank holiday that lands at a weekend therefore appears on its substitute date
+and not on the raw one, which is the date a payroll or a calendar grid needs.
 
 Part of the [crateworks](https://github.com/cipansor/crateworks)
 workspace. Licensed under the Apache License, Version 2.0, copyright Yayasan
