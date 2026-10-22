@@ -9,6 +9,12 @@ name: Release
 # `workflow_dispatch` is there for a re-run after a partial release; it takes the
 # tag as an input. A crate whose version is already on crates.io is reported and
 # skipped rather than failing the run, so a second run finishes the rest.
+#
+# A push carrying several tags starts this workflow ONCE, for one of them, not
+# once per tag: `git push --tags` with seventeen tags produces a single run and
+# sixteen releases never appear. Push one tag at a time, or dispatch the rest by
+# hand. The step order is deliberate for the same reason - a wrong tag fails
+# before the toolchain is installed.
 on:
   push:
     # `*-v*` is the real tag shape. `v*` is here only so a mistaken bare

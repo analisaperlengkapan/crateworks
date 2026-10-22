@@ -207,6 +207,13 @@ tab (`workflow_dispatch`, with the tag as input) to finish a partial release.
 git tag xmlkit-v0.1.1 && git push origin xmlkit-v0.1.1
 ```
 
+Push the tags one at a time. A push carrying several tags starts the workflow
+once, for one of them, so `git push --tags` with seventeen tags yields a single
+run and sixteen releases that never appear. For a batch, push one tag and start
+the rest from the Actions tab (`workflow_dispatch`), which takes the tag as an
+input; a version already on crates.io is reported and skipped, so re-running is
+safe.
+
 There is no bare `v<version>` tag. One version cannot describe seventeen crates
 that may sit at seventeen versions, and reading `v0.1.1` as "release everything"
 publishes sixteen crates nobody asked for, each of which crates.io rejects
