@@ -4,105 +4,105 @@ version = 4
 
 [[package]]
 name = "adhan"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "arabic"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "ebics"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "xmlkit",
 ]
 
 [[package]]
 name = "eu-vat"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "factur-x"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "xmlkit",
 ]
 
 [[package]]
 name = "hijridate"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "holidays-rs"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "iso20022-rs"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "xmlkit",
 ]
 
 [[package]]
 name = "iso6346"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "iso8583-msg"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "javaproperties"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "mllp"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "object-hash"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "pades"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "pdfa",
 ]
 
 [[package]]
 name = "pdfa"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "xmlkit",
 ]
 
 [[package]]
 name = "pdfmake"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "soap-client"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "xmlkit",
 ]
 
 [[package]]
 name = "spreadsheet-formula"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "stdnum-rs"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "wssec"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "xmlkit",
 ]
 
 [[package]]
 name = "xmlkit"
-version = "0.1.1"
+version = "0.1.2"
