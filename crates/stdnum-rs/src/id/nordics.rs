@@ -15,29 +15,44 @@ pub(super) mod sweden {
         // is thirteen. The separator is normally a hyphen and a plus once the
         // holder has turned one hundred; a colon is also accepted. When the
         // separator is left out of a ten or twelve digit number it is inserted,
-        // because that is how the number is read out.
-        let mut cleaned: String = s.chars().filter(|c| !matches!(c, ':' | ' ')).collect();
-        let len = cleaned.chars().count();
-        if (len == 10 || len == 12) && !cleaned.ends_with(['-', '+']) {
-            let split = len - 4;
-            cleaned.insert(split, '-');
+        // because that is how the number is read out. Any other hyphen or plus
+        // inside the date and serial is punctuation rather than meaning, so it
+        // is dropped from the head before the length is judged.
+        let raw: Vec<char> = s.chars().filter(|c| !matches!(c, ':' | ' ')).collect();
+        if raw.len() < 5 {
+            return Err(Error::WrongLength {
+                expected: 11,
+                found: raw.len(),
+            });
         }
-        let chars: Vec<char> = cleaned.chars().collect();
-        let separator = match chars.len() {
-            11 | 13 => chars[chars.len() - 5],
-            found => {
-                return Err(Error::WrongLength {
-                    expected: 11,
-                    found,
-                });
-            }
+        let raw = if matches!(raw.len(), 10 | 12) && !matches!(raw[raw.len() - 5], '-' | '+') {
+            let mut inserted = raw;
+            inserted.insert(inserted.len() - 4, '-');
+            inserted
+        } else {
+            raw
         };
+        let len = raw.len();
+        let mut compact: Vec<char> = raw[..len - 5]
+            .iter()
+            .filter(|c| !matches!(c, '-' | '+'))
+            .copied()
+            .collect();
+        compact.extend_from_slice(&raw[len - 5..]);
+        let len = compact.len();
+        if !matches!(len, 11 | 13) {
+            return Err(Error::WrongLength {
+                expected: 11,
+                found: len,
+            });
+        }
+        let separator = compact[len - 5];
         if separator != '-' && separator != '+' {
             return Err(Error::InvalidCharacter(separator));
         }
         let mut digits = Vec::with_capacity(12);
-        for (i, c) in chars.iter().enumerate() {
-            if i == chars.len() - 5 {
+        for (i, c) in compact.iter().enumerate() {
+            if i == len - 5 {
                 continue;
             }
             match c.to_digit(10) {
@@ -227,6 +242,26 @@ mod tests {
             sweden::validate_personnummer("880320-0018"),
             Err(Error::BadChecksum)
         );
+    }
+
+    /// The separator belongs before the last four characters, and any other
+    /// hyphen or plus inside the date and serial is punctuation. An earlier
+    /// version only inserted a separator when it was missing at the very end,
+    /// so a number written `8803-20-0016` was refused.
+    #[test]
+    fn swedish_interior_separators_are_punctuation() {
+        for value in [
+            "8803-20-0016",
+            "880320-0016",
+            "8803200016",
+            "198803200016",
+            "880320+0016",
+            "88-03-20-0016",
+        ] {
+            assert!(sweden::validate_personnummer(value).is_ok(), "{value}");
+        }
+        // Too short to hold a separator and the last four.
+        assert!(sweden::validate_personnummer("880").is_err());
     }
 
     #[test]

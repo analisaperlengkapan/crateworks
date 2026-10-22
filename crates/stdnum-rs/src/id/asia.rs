@@ -143,8 +143,14 @@ pub(super) mod korea {
 pub(super) mod mexico {
     use super::*;
 
-    /// The alphabet used for the RFC check digit, in value order.
-    const ALPHABET: &[u8] = b"0123456789ABCDEFGHIJKLMN&OPQRSTUVWXYZ \xD1";
+    /// The alphabet used for the RFC check digit, in value order. The enye is a
+    /// separate entry after the blank, so the table is over characters rather
+    /// than bytes.
+    const ALPHABET: [char; 39] = [
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+        'I', 'J', 'K', 'L', 'M', 'N', '&', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y',
+        'Z', ' ', 'Ñ',
+    ];
 
     /// Validates a Mexican RFC.
     ///
@@ -155,18 +161,17 @@ pub(super) mod mexico {
     pub(in crate::id) fn validate_rfc(s: &str) -> Result<()> {
         // The RFC is written with dashes, underscores or spaces between its
         // parts, and none of them carry meaning.
-        let owned: String = s
+        let chars: Vec<char> = s
             .chars()
             .filter(|c| !matches!(c, '-' | '_' | ' '))
             .collect();
-        let s: &str = &owned;
         // Three shapes exist: a ten-character number assigned to a person
         // before the homoclave was added, a thirteen-character personal number,
         // and a twelve-character company number. All three begin with letters
         // and carry the same six digits of date, but the date starts after four
         // letters for a person and after three for a company.
-        let (letters, homoclave) = match s.len() {
-            10 | 13 => (4usize, s.len() - 10),
+        let (letters, homoclave) = match chars.len() {
+            10 | 13 => (4usize, chars.len() - 10),
             12 => (3usize, 3usize),
             found => {
                 return Err(Error::WrongLength {
@@ -175,97 +180,87 @@ pub(super) mod mexico {
                 });
             }
         };
-        let bytes = s.as_bytes();
         // The leading letters may include the ampersand and the enye, both of
         // which appear in real names.
-        let name_ok = |b: &u8| b.is_ascii_uppercase() || *b == b'&' || *b == 0xC3;
-        if !bytes[..letters].iter().all(name_ok) {
-            let bad = bytes
-                .iter()
-                .find(|b| !name_ok(b))
-                .copied()
-                .unwrap_or(bytes[0]);
-            return Err(Error::InvalidCharacter(char::from(bad)));
+        let name_ok = |c: &char| c.is_ascii_uppercase() || *c == '&' || *c == 'Ñ';
+        if let Some(bad) = chars[..letters].iter().find(|c| !name_ok(c)) {
+            return Err(Error::InvalidCharacter(*bad));
         }
-        if !bytes[letters..letters + 6].iter().all(u8::is_ascii_digit) {
-            let bad = bytes[letters..letters + 6]
-                .iter()
-                .find(|b| !b.is_ascii_digit())
-                .copied()
-                .unwrap_or(bytes[letters]);
-            return Err(Error::InvalidCharacter(char::from(bad)));
+        if let Some(bad) = chars[letters..letters + 6]
+            .iter()
+            .find(|c| !c.is_ascii_digit())
+        {
+            return Err(Error::InvalidCharacter(*bad));
         }
-        if !bytes[letters + 6..].iter().all(u8::is_ascii_alphanumeric) {
-            let bad = bytes[letters + 6..]
-                .iter()
-                .find(|b| !b.is_ascii_alphanumeric())
-                .copied()
-                .unwrap_or(bytes[letters + 6]);
-            return Err(Error::InvalidCharacter(char::from(bad)));
+        if let Some(bad) = chars[letters + 6..]
+            .iter()
+            .find(|c| !c.is_ascii_alphanumeric())
+        {
+            return Err(Error::InvalidCharacter(*bad));
         }
         let _ = homoclave;
         // The six digits are a date. The century is not stored, so it is taken
         // as 2000. Unlike the Indonesian NIK this is a real calendar check: a
         // date that does not exist is not a valid RFC.
-        let start = letters;
-        let year = 2000 + u32::from(bytes[start] - b'0') * 10 + u32::from(bytes[start + 1] - b'0');
-        let month = u32::from(bytes[start + 2] - b'0') * 10 + u32::from(bytes[start + 3] - b'0');
-        let day = u32::from(bytes[start + 4] - b'0') * 10 + u32::from(bytes[start + 5] - b'0');
+        let digit = |i: usize| chars[i] as u32 - '0' as u32;
+        let year = 2000 + digit(letters) * 10 + digit(letters + 1);
+        let month = digit(letters + 2) * 10 + digit(letters + 3);
+        let day = digit(letters + 4) * 10 + digit(letters + 5);
         if !checksum::is_real_date(year, month, day) {
             return Err(Error::OutOfRange);
         }
         // The four letters of a personal RFC are a name, and the tax office
         // refuses a short list of them because they read as profanity.
         if letters == 4 {
-            let name = &s[..4];
-            if RFC_NAME_BLACKLIST.contains(&name) {
+            let name: String = chars[..4].iter().collect();
+            if RFC_NAME_BLACKLIST.contains(&name.as_str()) {
                 return Err(Error::OutOfRange);
             }
         }
-        if s.len() == 12 {
+        if chars.len() == 12 {
             // The company form ends with the same check character as the
             // personal form, but over eleven preceding characters, so it is
             // left-padded with one blank before the weights are applied.
-            let blank = ALPHABET.iter().position(|a| *a == b' ').unwrap_or(0) as u32;
+            let blank = ALPHABET.iter().position(|a| *a == ' ').unwrap_or(0) as u32;
             let mut sum = blank * 13;
-            for (i, c) in bytes[..11].iter().enumerate() {
+            for (i, c) in chars[..11].iter().enumerate() {
                 let Some(index) = ALPHABET.iter().position(|a| a == c) else {
-                    return Err(Error::InvalidCharacter(char::from(*c)));
+                    return Err(Error::InvalidCharacter(*c));
                 };
                 sum += index as u32 * (12 - i as u32);
             }
             let expected = ALPHABET[((11 - sum % 11) % 11) as usize];
-            if expected != bytes[11] {
+            if expected != chars[11] {
                 return Err(Error::BadChecksum);
             }
             return Ok(());
         }
         // The ten-character form predates the homoclave, so it has no check
         // character to verify.
-        if s.len() == 10 {
+        if chars.len() == 10 {
             return Ok(());
         }
         // The check character is computed over the first twelve characters.
         let mut sum = 0u32;
-        for (i, c) in bytes[..12].iter().enumerate() {
+        for (i, c) in chars[..12].iter().enumerate() {
             let Some(index) = ALPHABET.iter().position(|a| a == c) else {
-                return Err(Error::InvalidCharacter(char::from(*c)));
+                return Err(Error::InvalidCharacter(*c));
             };
             sum += index as u32 * (13 - i as u32);
         }
         let expected = ALPHABET[((11 - sum % 11) % 11) as usize];
-        if expected != bytes[12] {
+        if expected != chars[12] {
             return Err(Error::BadChecksum);
         }
         Ok(())
     }
 
     /// Four-letter names the Mexican tax office does not issue.
-    const RFC_NAME_BLACKLIST: [&str; 42] = [
+    const RFC_NAME_BLACKLIST: [&str; 41] = [
         "BUEI", "BUEY", "CACA", "CACO", "CAGA", "CAGO", "CAKA", "CAKO", "COGE", "COJA", "COJE",
         "COJI", "COJO", "CULO", "FETO", "GUEY", "JOTO", "KACA", "KACO", "KAGA", "KAGO", "KAKA",
         "KOGE", "KOJO", "KULO", "MAME", "MAMO", "MEAR", "MEAS", "MEON", "MION", "MOCO", "MULA",
-        "PEDA", "PEDO", "PENE", "PUTA", "PUTO", "QULO", "RATA", "RUIN", "AÑA",
+        "PEDA", "PEDO", "PENE", "PUTA", "PUTO", "QULO", "RATA", "RUIN",
     ];
 }
 
@@ -398,5 +393,22 @@ mod tests {
             mexico::validate_rfc("GODE561331GR8"),
             Err(Error::OutOfRange)
         );
+    }
+
+    /// The enye is a character in the RFC name alphabet, not a byte of a
+    /// two-byte sequence. Reading the number byte by byte refused every name
+    /// that contains one.
+    #[test]
+    fn mexican_names_may_contain_an_enye() {
+        for value in [
+            "MUÑ110218LJ6",
+            "AÑE9902224Z4",
+            "BAÑ930616R66",
+            "NIÑ7409256U1",
+        ] {
+            assert!(mexico::validate_rfc(value).is_ok(), "{value}");
+        }
+        // The enye is only allowed in the name, not in the homoclave.
+        assert!(mexico::validate_rfc("GODE561231GÑ8").is_err());
     }
 }

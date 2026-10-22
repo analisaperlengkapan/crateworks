@@ -260,19 +260,32 @@ pub(super) mod italy {
                 found: s.len(),
             });
         }
-        let bytes = s.as_bytes();
+        let written = s.as_bytes();
         // Layout: six letters of name, two digits of year, one letter of month,
         // two digits of day, one letter and three digits of birthplace, one
-        // check letter. The birth-day digits run to 31 for men and to 71 for
-        // women, and the birthplace letter stands in for a municipality code,
-        // so neither is checked beyond its character class.
-        let shape_ok = bytes[..6].iter().all(u8::is_ascii_uppercase)
-            && bytes[6..8].iter().all(u8::is_ascii_digit)
-            && b"ABCDEHLMPRST".contains(&bytes[8])
-            && bytes[9..11].iter().all(u8::is_ascii_digit)
-            && bytes[11].is_ascii_uppercase()
-            && bytes[12..15].iter().all(u8::is_ascii_digit)
-            && bytes[15].is_ascii_uppercase();
+        // check letter. Under the omocodia scheme, when a plain number would
+        // collide with another, the digits of the year, day and birthplace are
+        // replaced by the letters L through V, standing for 0 through 9. The
+        // letters are decoded for the shape and date checks only; the check
+        // character is taken over the number as written.
+        let mut decoded: [u8; 16] = written
+            .try_into()
+            .map_err(|_| Error::InvalidCharacter('?'))?;
+        for slot in [6, 7, 9, 10, 12, 13, 14] {
+            if let Some(digit) = omocodia_digit(decoded[slot]) {
+                decoded[slot] = b'0' + digit;
+            }
+        }
+        // The birth-day digits run to 31 for men and to 71 for women, and the
+        // birthplace letter stands in for a municipality code, so neither is
+        // checked beyond its character class.
+        let shape_ok = decoded[..6].iter().all(u8::is_ascii_uppercase)
+            && decoded[6..8].iter().all(u8::is_ascii_digit)
+            && b"ABCDEHLMPRST".contains(&decoded[8])
+            && decoded[9..11].iter().all(u8::is_ascii_digit)
+            && decoded[11].is_ascii_uppercase()
+            && decoded[12..15].iter().all(u8::is_ascii_digit)
+            && decoded[15].is_ascii_uppercase();
         if !shape_ok {
             return Err(Error::OutOfRange);
         }
@@ -280,17 +293,37 @@ pub(super) mod italy {
         // within it, allowing for the forty added to a woman's day.
         let month = b"ABCDEHLMPRST"
             .iter()
-            .position(|m| *m == bytes[8])
+            .position(|m| *m == decoded[8])
             .map_or(0, |i| i as u32 + 1);
-        let day = (u32::from(bytes[9] - b'0') * 10 + u32::from(bytes[10] - b'0')) % 40;
+        let day = (u32::from(decoded[9] - b'0') * 10 + u32::from(decoded[10] - b'0')) % 40;
         if !checksum::is_plausible_day_month(day, month) {
             return Err(Error::OutOfRange);
         }
         let expected = check_char(&s[..15])?;
-        if expected != bytes[15] {
+        if expected != written[15] {
             return Err(Error::BadChecksum);
         }
         Ok(())
+    }
+
+    /// The digit an omocodia letter stands for, or `None` when the byte is not
+    /// one of the substitution letters.
+    ///
+    /// `stdnum.it.codicefiscale`.
+    fn omocodia_digit(b: u8) -> Option<u8> {
+        match b {
+            b'L' => Some(0),
+            b'M' => Some(1),
+            b'N' => Some(2),
+            b'P' => Some(3),
+            b'Q' => Some(4),
+            b'R' => Some(5),
+            b'S' => Some(6),
+            b'T' => Some(7),
+            b'U' => Some(8),
+            b'V' => Some(9),
+            _ => None,
+        }
     }
 
     /// The check letter for the first fifteen characters.
@@ -507,6 +540,27 @@ mod tests {
             Err(Error::BadChecksum)
         );
         assert!(italy::validate_codice_fiscale("RCCMNL83S18D969").is_err());
+    }
+
+    /// Under the omocodia scheme the year, day and birthplace digits may be
+    /// replaced by the letters L through V. An earlier version rejected every
+    /// such number with an out-of-range error.
+    #[test]
+    fn italian_omocodia_letters_are_accepted() {
+        for value in [
+            "RSSMRA45C12F20RX",
+            "RSSMRA45C12F2L5N",
+            "RSSMRA45C12F2LRI",
+            "RSSMRAQRCMNFNLRG",
+        ] {
+            assert!(italy::validate_codice_fiscale(value).is_ok(), "{value}");
+        }
+        // The check character is taken over the letters as written, so a
+        // number with a substituted digit still fails when it is wrong.
+        assert_eq!(
+            italy::validate_codice_fiscale("RCCMNL83S18D969X"),
+            Err(Error::BadChecksum)
+        );
     }
 
     #[test]

@@ -26,7 +26,7 @@ contributors, which in turn follows each authority's published specification.
 This is an independent reimplementation and shares no code with it; see
 [`NOTICE`](https://github.com/cipansor/crateworks/blob/main/crates/stdnum-rs/NOTICE).
 
-`tests/fixtures/stdnum_vectors.tsv` holds 8,710 numbers labelled by that
+`tests/fixtures/stdnum_vectors.tsv` holds 8,719 numbers labelled by that
 reference: every number in its own documentation plus each single-digit
 substitution of a valid number, the last character dropped and a character
 appended. `tests/readme.rs` replays the file, so a change that makes this crate
