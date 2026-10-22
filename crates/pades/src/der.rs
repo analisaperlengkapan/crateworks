@@ -289,7 +289,7 @@ impl<'a> Reader<'a> {
     ///
     /// # Errors
     ///
-    /// Whatever [`Reader::next`] returns, and [`Error::UnexpectedTag`] when the
+    /// Whatever [`Reader::read`] returns, and [`Error::UnexpectedTag`] when the
     /// tag is not the expected one.
     pub fn expect(&mut self, tag: u8) -> Result<Element<'a>> {
         let element = self.read()?;
