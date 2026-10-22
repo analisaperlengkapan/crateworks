@@ -119,6 +119,17 @@ so the JavaScript library is the reference rather than the Python one. And in th
 polar cases the reference returns nothing rather than a number, which is why the
 API here returns `Option`.
 
+The Python port has a second defect, found while re-running the comparison over
+twelve methods, fifteen cities and seven dates. Its minute rounding calls Python's
+`round` on `second / 60`, which rounds a half to the even integer, so a time that
+lands on exactly thirty seconds comes out a minute earlier than the JavaScript
+`Math.round` would give. That is 1,023 of the 12,600 comparisons, every one of
+them exactly one minute low. The crate follows the JavaScript library, and
+`tests/reference.rs` replays 2,520 of its rows so the difference cannot creep back.
+
+`tests/fixtures/adhan_js_*.tsv` also covers the three high-latitude rules, the
+sunnah times and the qibla, none of which the earlier grid reached.
+
 Given a Gregorian date, a latitude and a longitude, this computes Fajr,
 sunrise, Dhuhr, Asr, Maghrib and Isha. It is the sort of arithmetic that
 every prayer app, mosque schedule and Ramadan calendar needs, and that
