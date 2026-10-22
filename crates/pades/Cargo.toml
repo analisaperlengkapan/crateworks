@@ -1,0 +1,19 @@
+[package]
+name = "pades"
+description = "PAdES PDF signatures: read a signed document, check what it covers, and report how far its long-term validation reaches."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+keywords = ["pades", "pdf", "signature", "cades", "ltv"]
+categories = ["parser-implementations", "cryptography", "encoding"]
+readme = "README.md"
+
+[dependencies]
+pdfa.workspace = true
+
+[lints]
+workspace = true

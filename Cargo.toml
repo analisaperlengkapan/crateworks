@@ -20,6 +20,7 @@ members = [
     "crates/mllp",
     "crates/ebics",
     "crates/pdfmake",
+    "crates/pades",
 ]
 
 [workspace.package]
@@ -33,6 +34,7 @@ authors = ["Yayasan Pesantren Cipansor and contributors"]
 
 [workspace.dependencies]
 xmlkit = { version = "0.1.1", path = "crates/xmlkit" }
+pdfa = { version = "0.1.1", path = "crates/pdfa" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

@@ -1,0 +1,13 @@
+crateworks
+Copyright 2026 Yayasan Pesantren Cipansor and contributors
+
+This product includes software developed by Yayasan Pesantren Cipansor and
+contributors (https://github.com/cipansor/crateworks).
+
+The signature structures were checked against documents produced by pyHanko by
+Matthias Valvekens and contributors (https://github.com/MatthiasValvekens/pyHanko),
+which is distributed under the MIT licence, and against ETSI EN 319 142-1
+(PAdES baseline profiles) and RFC 5652 (CMS). This crate is an independent
+implementation for Rust.
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).

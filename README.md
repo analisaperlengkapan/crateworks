@@ -19,8 +19,8 @@ Every crate here follows the same rules:
 
 ## Crates
 
-Nineteen crates, published independently. Most have no dependencies at all; the
-rest depend only on `xmlkit` from this same workspace.
+Twenty crates, published independently. Most have no dependencies at all; the
+rest depend only on `xmlkit` or `pdfa` from this same workspace.
 
 ### XML and the document stacks built on it
 
@@ -34,6 +34,7 @@ rest depend only on `xmlkit` from this same workspace.
 | [`factur-x`](crates/factur-x) | Factur-X and ZUGFeRD e-invoices, EN 16931 in CII and UBL | PyPI `factur-x` is downloaded hundreds of thousands of times a month; the Rust crate in the area has a few thousand downloads |
 | [`pdfa`](crates/pdfa) | PDF/A conformance, XMP metadata and the Factur-X container | The other missing half: the EN 16931 XML has to travel inside a PDF/A-3 document, and the Rust PDF writers have no notion of conformance |
 | [`pdfmake`](crates/pdfmake) | Declarative PDF generation: text, columns, lists, tables, page numbers | The JavaScript `pdfmake` model has no Rust equivalent; the Rust PDF crates are low-level writers or full layout engines, nothing in between |
+| [`pades`](crates/pades) | PAdES signature verification: coverage, integrity, signer, LTV level | Three Rust crates produce PAdES signatures and none of them verifies one; a verifier needs the opposite of what a signer does |
 
 ### Validation
 

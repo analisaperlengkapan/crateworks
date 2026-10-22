@@ -5,7 +5,12 @@ under `crates/pdfa/tests/fixtures/`. `reportlab` draws the page, `pyhanko` signs
 it. Neither is ever a dependency of a crate here; both are development tools.
 
     pip install pyhanko reportlab cryptography
-    python3 research/tools/gen_pades_corpus.py crates/pdfa/tests/fixtures
+    python3 research/tools/gen_pades_corpus.py \
+        crates/pdfa/tests/fixtures crates/pades/tests/fixtures
+
+Both directories are written because `pdfa` tests the reader against the corpus
+and `pades` tests the verifier against the same documents; a shared corpus means
+the two can never drift apart.
 
 It writes, for each level, a signed document plus a `.json` label recording what
 `pyhanko` reports about it. The labels are the fixture: a test asserts on the
@@ -168,10 +173,15 @@ def append_byte(data: bytes) -> bytes:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
+    if len(argv) < 2:
         print(__doc__)
         return 2
-    out = pathlib.Path(argv[1])
+    for directory in argv[1:]:
+        write_corpus(pathlib.Path(directory))
+    return 0
+
+
+def write_corpus(out: pathlib.Path) -> None:
     out.mkdir(parents=True, exist_ok=True)
 
     key, cert, root = make_identity(out)
@@ -196,7 +206,6 @@ def main(argv: list[str]) -> int:
     # The key is regenerated on every run, so it is not committed.
     for generated in (key, cert):
         generated.unlink()
-    return 0
 
 
 if __name__ == "__main__":

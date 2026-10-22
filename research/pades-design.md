@@ -1,8 +1,13 @@
 # `pades`: design for a PAdES verification crate
 
-Status: design, not yet implemented. Written after probing real signed documents
-rather than from the specification alone. Every structure quoted below was
-produced by `pyhanko` and read back with `pdfa`.
+Status: **implemented** as `crates/pades`, verification only, RSA only. The crate
+follows this document, and where the implementation had to choose, the choice is
+noted here rather than left in the code. The three open questions at the end are
+still open; the answers taken for now are stated there.
+
+Written after probing real signed documents rather than from the specification
+alone. Every structure quoted below was produced by `pyhanko` and read back with
+`pdfa`.
 
 ## What was measured before designing
 
@@ -350,3 +355,30 @@ The method this workspace already uses, with `pyhanko` as the oracle:
 3. **Is verification-only the right first release**, with signing a later one?
    Round 8 argued yes because `pdf_signer` and `underskrift` already produce
    signatures and `pdfluent-sign` (235 downloads) is the only pure verifier.
+
+## What the implementation chose, pending those answers
+
+1. **No change to `pdfa`.** `pades` depends on it directly, and its public API
+   was enough. Extracting `pdfcore` is still the cleaner layering and can be done
+   later without changing `pades`'s own API.
+2. **RSA only.** An ECDSA or EdDSA key is reported as `key-unsupported` with the
+   key's own identifier, so a caller sees which key was not checked rather than a
+   silent pass. Adding ECDSA is a new module behind the same report.
+3. **Verification only.** Nothing in the crate signs, and the README says so.
+
+Two things the implementation added that this document did not foresee:
+
+- **`Integrity::NotChecked`** became load-bearing. A signature with no
+  `messageDigest` attribute, or one whose CMS cannot be read, reports
+  `NotChecked` and a finding, rather than being absent from the list. A caller
+  that treats "no error" as "verified" is the failure mode this exists to
+  prevent.
+- **The DSS count is a count of DER values, not of streams.** `/Certs` is an
+  array of streams, and each stream holds one or more certificates concatenated
+  with no separator. Counting streams undercounts a real DSS.
+
+A third thing was found by the tests rather than by design: pyHanko writes **no**
+`signingTime` for a PAdES signature, because ETSI expects the time to come from
+an RFC 3161 timestamp. A test that demanded the attribute would have been
+asserting something the profile forbids, so the report carries it as optional and
+the level comes from the timestamp instead.

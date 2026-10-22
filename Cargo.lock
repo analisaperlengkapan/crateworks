@@ -60,6 +60,13 @@ name = "object-hash"
 version = "0.1.1"
 
 [[package]]
+name = "pades"
+version = "0.1.1"
+dependencies = [
+ "pdfa",
+]
+
+[[package]]
 name = "pdfa"
 version = "0.1.1"
 dependencies = [
