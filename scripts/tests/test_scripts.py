@@ -23,6 +23,7 @@ def load(name: str):
 
 publish = load("publish")
 release_notes = load("release_notes")
+check_token = load("check_token")
 
 
 class RepoUrl(unittest.TestCase):
@@ -154,6 +155,47 @@ class Grouping(unittest.TestCase):
         ]
         grouped = release_notes.group(commits)
         self.assertEqual(sum(len(v) for v in grouped.values()), len(commits))
+
+
+class TokenCheck(unittest.TestCase):
+    """`check_token` tells a usable token from a rejected one by the body.
+
+    Both answers are HTTP 403, so a status-code check would call a bad token
+    good. These pin the distinction.
+    """
+
+    def test_a_web_session_answer_means_the_token_is_usable(self):
+        ok, _ = check_token.classify(
+            403, '{"errors":[{"detail":"this action can only be performed on the crates.io website"}]}'
+        )
+        self.assertTrue(ok)
+
+    def test_authentication_failure_means_the_token_is_not(self):
+        ok, _ = check_token.classify(403, '{"errors":[{"detail":"authentication failed"}]}')
+        self.assertFalse(ok)
+
+    def test_ok_status_is_usable(self):
+        ok, _ = check_token.classify(200, "{}")
+        self.assertTrue(ok)
+
+    def test_an_unknown_answer_is_not_treated_as_success(self):
+        ok, message = check_token.classify(500, "gateway blew up")
+        self.assertFalse(ok)
+        self.assertIn("500", message)
+
+
+class NoSecretsInOutput(unittest.TestCase):
+    """The scripts are run in CI, where stdout is public."""
+
+    def test_check_token_never_prints_the_token(self):
+        token = "cio_SECRET_VALUE_aaaaaaaaaaaaaaaaaaaa"
+        source = (SCRIPTS / "check_token.py").read_text()
+        for pattern in ("print(token", "print(f\"{token}", "repr(token)"):
+            with self.subTest(pattern=pattern):
+                self.assertNotIn(pattern, source)
+        # The classifier returns a message, never the credential it was given.
+        _, message = check_token.classify(403, '{"errors":[{"detail":"authentication failed"}]}')
+        self.assertNotIn(token, message)
 
 
 if __name__ == "__main__":

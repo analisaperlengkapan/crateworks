@@ -10,6 +10,7 @@ crate. `check_attribution.py` and `check_actions_pinned.py` run in CI, on the
 | `attribution.toml` | Data for the above: the upstream projects and the marker that identifies each |
 | `check_actions_pinned.py` | Fails when a workflow uses an action by a mutable tag or branch instead of a commit SHA (run in CI) |
 | `publish.py` | Works out the order the crates can be published in, and checks or runs it |
+| `check_token.py` | Checks that the crates.io token in `CARGO_REGISTRY_TOKEN` is one the registry accepts (used by the release workflow) |
 | `release_notes.py` | Builds release notes for one crate from the commits that touched it (used by the release workflow) |
 | `fuzz/` | Generators for the fuzz corpora in `crates/*/tests/fixtures/` |
 | `tests/` | Tests for the scripts above (run in CI) |
@@ -24,6 +25,28 @@ breaks a build, so a test is the only thing that catches a regression.
 ```sh
 python3 -m unittest discover -s scripts/tests -v
 ```
+
+## check_token.py
+
+Checks the crates.io token in `CARGO_REGISTRY_TOKEN` before a release uploads
+anything. `cargo publish` reports a bad token only at the upload, after the dry
+run, so the release workflow calls this first and fails in seconds instead.
+
+```sh
+CARGO_REGISTRY_TOKEN=<token> python3 scripts/check_token.py
+```
+
+It asks `/api/v1/me` and reads the **body**, not the status code. That endpoint
+answers `403` for an authenticated token too, because it is a web-session
+endpoint:
+
+| Body | Meaning |
+| --- | --- |
+| `this action can only be performed on the crates.io website` | the token is usable |
+| `authentication failed` | the token is missing, invalid or expired |
+
+A status-code check would call a rejected token good, since both are `403`. The
+token is never printed.
 
 ## check_actions_pinned.py
 

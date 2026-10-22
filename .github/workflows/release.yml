@@ -56,6 +56,14 @@ jobs:
       - name: Check the tag names one crate
         run: python3 scripts/publish.py --check-tag "$RELEASE_TAG"
 
+      # Checked before the toolchain is installed, so a missing or expired
+      # secret fails in seconds instead of after the build, at the upload. The
+      # token is a repository secret; this step never prints it.
+      - name: Check the crates.io token
+        run: python3 scripts/check_token.py
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
       # A crate that credits an upstream project in its code must name it in
       # NOTICE. No compiler catches that, and a release is the last moment to.
       - run: python3 scripts/check_attribution.py
