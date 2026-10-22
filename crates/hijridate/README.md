@@ -51,6 +51,13 @@ derived from a formula the way the Gregorian one can. Umm al-Qura is the
 calendar Saudi Arabia publishes from actual sighting data, and it is what
 most software uses as the reference.
 
+`tests/fixtures/hijridate_vectors.tsv` holds 7,872 rows produced by that
+package: both directions of the conversion for every month in the tabulated
+range, the month lengths, whether each day exists, and the weekday. The
+`reference` test replays it. The conversions, the month lengths and the
+tabulated-versus-arithmetic boundary all agree row for row, so the test is a
+regression guard rather than a bug hunt.
+
 ## Scope
 
 The table covers Hijri years 1343 to 1500 (Gregorian 1924-08-01 to
