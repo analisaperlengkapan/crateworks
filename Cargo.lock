@@ -11,6 +11,13 @@ name = "arabic"
 version = "0.1.1"
 
 [[package]]
+name = "ebics"
+version = "0.1.1"
+dependencies = [
+ "xmlkit",
+]
+
+[[package]]
 name = "eu-vat"
 version = "0.1.1"
 

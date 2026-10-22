@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ebicsKeyManagementResponse xmlns="urn:org:ebics:H004" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Revision="1" Version="H004">
+  <header authenticate="true">
+    <static/>
+    <mutable>
+      <ReturnCode>000000</ReturnCode>
+      <ReportText>[EBICS_OK] OK</ReportText>
+    </mutable>
+  </header>
+  <body>
+    <DataTransfer>
+      <DataEncryptionInfo authenticate="true">
+        <EncryptionPubKeyDigest Algorithm="http://www.w3.org/2001/04/xmlenc#sha256" Version="E002">eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHg=</EncryptionPubKeyDigest>
+        <TransactionKey>PjSGgG20LgFaqBXk2XjVuedCFQ9ScGQSNerDDlZGWamXWCTO/dJOBoUQWCzVSNhMWnznUtp9S4XH42yLORjW7LloaWUrzKoXa19rmjMfO566myhUQi2n4vhEbhxpZr6xPgjW7p1TWC1sYwiusDVx699O34zHJ8yUgdZcHtkisXs=</TransactionKey>
+      </DataEncryptionInfo>
+      <OrderData>fF7GKEcYvzEiLUMxEF6e9BB+LhwczBBCGWH9bSn7H0AQ+tKNIxxJ7M6Htbe0YoaWz1SoL7PE2Tvw2t4SNq4pmBLEPiyT3qaBWs16s4rjehNvAw9HpgvQWC+nh4xXqqQFcaODmScJamXWI9GUE6NxzHdOI6ndumhZLMsHyo+QIJE=</OrderData>
+    </DataTransfer>
+    <ReturnCode authenticate="true">000000</ReturnCode>
+    <TimestampBankParameter authenticate="true">2016-08-10T16:16:17.512Z</TimestampBankParameter>
+  </body>
+</ebicsKeyManagementResponse>
