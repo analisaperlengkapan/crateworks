@@ -41,11 +41,19 @@ Uploading needs a crates.io token; see the "Authenticating" section of
 `scripts/README.md`. Run the dry run first, then upload with `--publish` (it
 asks for confirmation; `--yes` skips the prompt for CI).
 
-A release is a tag: `.github/workflows/release.yml` runs on `v*`, checks the tag
-against every manifest, publishes in dependency order, and needs the
-`CARGO_REGISTRY_TOKEN` repository secret. It can also be started by hand to
-finish a partial release; a version already on crates.io is skipped, not failed.
-See the "Releasing" section of `scripts/README.md`.
+A release is a tag naming one crate, `<crate>-v<version>`, for example
+`xmlkit-v0.1.1`. `.github/workflows/release.yml` runs on `*-v*`, checks that the
+tag names a real crate at the version in its manifest, publishes just that crate
+in dependency order, and needs the `CARGO_REGISTRY_TOKEN` repository secret. It
+can also be started by hand, with the tag as input, to finish a partial release;
+a version already on crates.io is skipped, not failed.
+
+There is deliberately no bare `v<version>` tag. The crates version
+independently, so one version cannot describe all of them, and reading `v0.1.1`
+as "release everything" is what would publish sixteen crates nobody asked for -
+each of which crates.io then rejects because the version already exists.
+`publish.py` refuses a bare version tag rather than guessing. See the "Releasing"
+section of `scripts/README.md`.
 
 Cargo lives at `$HOME/.cargo/bin` in this environment. `rust-toolchain.toml`
 pins `stable`; edition is 2024 and `rust-version` is 1.88.

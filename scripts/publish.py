@@ -26,10 +26,18 @@ stops at the first failure, because a published version cannot be overwritten an
 there is no point continuing past a broken crate.
 
 Usage:
-    python3 scripts/publish.py                 # check every crate
-    python3 scripts/publish.py --strict        # check, and fail if any is blocked
-    python3 scripts/publish.py --publish       # upload, in order, stop on error
-    python3 scripts/publish.py --publish --yes # same, no confirmation prompt
+    python3 scripts/publish.py                     # check every crate
+    python3 scripts/publish.py --strict            # check, and fail if any is blocked
+    python3 scripts/publish.py --crate xmlkit      # check one crate
+    python3 scripts/publish.py --tag xmlkit-v0.1.1 # the crate a release tag names
+    python3 scripts/publish.py --publish           # upload, in order, stop on error
+    python3 scripts/publish.py --publish --yes     # same, no confirmation prompt
+
+Releases are per crate, because the crates version independently: a tag is
+`<crate>-v<version>` and publishes exactly that crate. There is deliberately no
+bare `v<version>` tag - one tag cannot describe seventeen crates that may sit at
+seventeen versions, and reading it as "all of them" publishes sixteen crates
+nobody asked for. `crates_from_tag` refuses it.
 
 A rate limit from crates.io is waited out and retried rather than reported as a
 broken crate: the 429 names the moment to retry and that time is honoured, since
@@ -56,6 +64,39 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+
+# A release tag names one crate and one version: `xmlkit-v0.1.1`. The crates here
+# version independently, so there is deliberately no bare `v<version>` tag - one
+# tag cannot describe seventeen crates that may sit at seventeen versions.
+TAG_PATTERN = re.compile(r"^(?P<crate>[A-Za-z0-9_-]+)-v(?P<version>[0-9][^/]*)$")
+
+
+class ReleaseError(Exception):
+    """A request that cannot be carried out: a bad tag, or an unknown crate."""
+
+
+def crates_from_tag(tag: str) -> tuple[str, str]:
+    """Return (crate, version) named by a `<crate>-v<version>` release tag.
+
+    A bare `v<version>` tag is refused rather than interpreted. It would be
+    ambiguous - it cannot say which crate it means, and treating it as "all of
+    them" is exactly the behaviour that publishes sixteen crates nobody asked
+    for, each of which crates.io then rejects because the version already
+    exists. Failing loudly is the only safe reading.
+    """
+    if tag.startswith("v"):
+        raise ReleaseError(
+            f"`{tag}` is a bare version tag, which this repository does not use. "
+            "The crates version independently, so a release is named per crate: "
+            "`<crate>-v<version>`, for example `xmlkit-v0.1.1`."
+        )
+    match = TAG_PATTERN.match(tag)
+    if not match:
+        raise ReleaseError(
+            f"`{tag}` is not a release tag. Name the crate and the version: "
+            "`<crate>-v<version>`, for example `xmlkit-v0.1.1`."
+        )
+    return match.group("crate"), match.group("version")
 
 # "no matching package named `xmlkit` found"
 MISSING_DEP = re.compile(r"no matching package named `([^`]+)` found")
@@ -109,9 +150,8 @@ def rate_limit_wait(output: str) -> float:
     return max(65.0, when.replace(tzinfo=timezone.utc).timestamp() - time.time() + 5)
 
 
-
-def load_manifests() -> tuple[list[str], dict[str, list[str]]]:
-    """Return (member dirs, member name -> workspace member deps)."""
+def load_manifests() -> tuple[list[str], dict[str, list[str]], dict[str, dict]]:
+    """Return (member names, member name -> workspace member deps, name -> manifest)."""
     workspace = tomllib.loads((ROOT / "Cargo.toml").read_text())
     members = [m for m in workspace["workspace"]["members"] if m.startswith("crates/")]
 
@@ -124,16 +164,25 @@ def load_manifests() -> tuple[list[str], dict[str, list[str]]]:
         names[name] = member
 
     deps: dict[str, list[str]] = {}
+    by_name: dict[str, dict] = {}
     for member, parsed in manifests.items():
         name = parsed["package"]["name"]
+        by_name[name] = parsed
         deps[name] = [
             dep for dep in parsed.get("dependencies", {}) if dep in names
         ]
-    return [manifests[m]["package"]["name"] for m in members], deps
+    return [manifests[m]["package"]["name"] for m in members], deps, by_name
 
 
 def topo_order(crates: list[str], deps: dict[str, list[str]]) -> list[str]:
-    """Order crates so every crate follows the ones it depends on."""
+    """Order crates so every crate follows the ones it depends on.
+
+    Dependencies outside `crates` are ignored: a partial release selects one
+    crate, and a dependency that is not being released here must not stall the
+    ordering. If that dependency is genuinely unpublished, `cargo publish`
+    reports it as blocked when the crate is attempted.
+    """
+    within = set(crates)
     ordered: list[str] = []
     placed: set[str] = set()
     while len(ordered) < len(crates):
@@ -141,13 +190,48 @@ def topo_order(crates: list[str], deps: dict[str, list[str]]) -> list[str]:
         for crate in crates:
             if crate in placed:
                 continue
-            if all(dep in placed for dep in deps[crate]):
+            if all(dep in placed for dep in deps[crate] if dep in within):
                 ordered.append(crate)
                 placed.add(crate)
                 progressed = True
         if not progressed:
             raise SystemExit(f"dependency cycle among: {sorted(set(crates) - placed)}")
     return ordered
+
+
+def version_of(manifest: dict) -> str:
+    """The version a manifest declares, following `version.workspace = true`.
+
+    tomllib reads that key as `{'workspace': True}`, a dict, so it cannot be
+    compared against a version string as it stands.
+    """
+    field = manifest["package"]["version"]
+    if isinstance(field, str):
+        return field
+    workspace = tomllib.loads((ROOT / "Cargo.toml").read_text())
+    return workspace["workspace"]["package"]["version"]
+
+
+def release_selection(
+    tag: str, crates: list[str], manifests: dict[str, dict]
+) -> list[str]:
+    """The crates a tag asks to release, checked against the manifests.
+
+    One crate per tag, and the version in the tag has to be the version in that
+    crate's manifest: the tag is what a reader will trust, so a disagreement has
+    to stop the release rather than publish something the tag does not name.
+    """
+    crate, tag_version = crates_from_tag(tag)
+    if crate not in manifests:
+        known = ", ".join(sorted(crates))
+        raise ReleaseError(f"`{tag}` names `{crate}`, which is not a crate here. Known: {known}")
+    manifest_version = version_of(manifests[crate])
+    if manifest_version != tag_version:
+        raise ReleaseError(
+            f"`{tag}` says {crate} is {tag_version}, but its manifest says "
+            f"{manifest_version}. Update the manifest, or move the tag."
+        )
+    return [crate]
 
 
 def dirty_files() -> list[str]:
@@ -277,10 +361,58 @@ def main() -> int:
         metavar="SECONDS",
         help="wait this long between uploads (crates.io allows 1 per minute)",
     )
+    parser.add_argument(
+        "--tag",
+        metavar="TAG",
+        help="release only the crate named by a `<crate>-v<version>` tag",
+    )
+    parser.add_argument(
+        "--check-tag",
+        metavar="TAG",
+        help="validate a release tag and exit, without touching cargo",
+    )
+    parser.add_argument(
+        "--crate",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help="release only this crate; repeatable",
+    )
     args = parser.parse_args()
 
-    crates, deps = load_manifests()
-    order = topo_order(crates, deps)
+    crates, deps, manifests = load_manifests()
+    selected = list(crates)
+
+    if args.check_tag is not None:
+        try:
+            crate, version = crates_from_tag(args.check_tag)
+            release_selection(args.check_tag, crates, manifests)
+        except ReleaseError as error:
+            print(f"error: {error}", file=sys.stderr)
+            return 1
+        print(f"{args.check_tag}: {crate} {version}, matches its manifest")
+        return 0
+
+    if args.tag is not None and args.crate:
+        print("--tag and --crate cannot be combined", file=sys.stderr)
+        return 1
+    if args.tag is not None:
+        try:
+            selected = release_selection(args.tag, crates, manifests)
+        except ReleaseError as error:
+            print(f"error: {error}", file=sys.stderr)
+            return 1
+    elif args.crate:
+        unknown = [name for name in args.crate if name not in manifests]
+        if unknown:
+            print(
+                f"error: not a crate here: {', '.join(unknown)}",
+                file=sys.stderr,
+            )
+            return 1
+        selected = [name for name in crates if name in set(args.crate)]
+
+    order = topo_order(selected, deps)
 
     if not args.publish:
         dirty = dirty_by_crate(dirty_files(), crates)
@@ -296,7 +428,8 @@ def main() -> int:
             print(file=sys.stderr)
 
     if args.publish:
-        print(f"About to upload {len(order)} crates to crates.io, in this order:\n")
+        noun = "crate" if len(order) == 1 else "crates"
+        print(f"About to upload {len(order)} {noun} to crates.io, in this order:\n")
         for index, crate in enumerate(order, 1):
             waiting = f"  (needs {', '.join(deps[crate])})" if deps[crate] else ""
             print(f"  {index:2}. {crate}{waiting}")

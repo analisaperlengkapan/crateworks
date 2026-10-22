@@ -10,6 +10,7 @@ crate. `check_attribution.py` and `check_actions_pinned.py` run in CI, on the
 | `attribution.toml` | Data for the above: the upstream projects and the marker that identifies each |
 | `check_actions_pinned.py` | Fails when a workflow uses an action by a mutable tag or branch instead of a commit SHA (run in CI) |
 | `publish.py` | Works out the order the crates can be published in, and checks or runs it |
+| `release_notes.py` | Builds release notes for one crate from the commits that touched it (used by the release workflow) |
 | `fuzz/` | Generators for the fuzz corpora in `crates/*/tests/fixtures/` |
 
 ## check_actions_pinned.py
@@ -142,6 +143,33 @@ The `uncommitted` check is scoped to each crate because cargo's is: a changed
 file at the repository root does not stop `cargo publish -p xmlkit`, but one
 under `crates/xmlkit/` does.
 
+## release_notes.py
+
+Builds the release notes for one crate. The release workflow runs it and passes
+the result to `gh release create`, but it is also useful on its own to see what a
+tag would announce before pushing it.
+
+```sh
+python3 scripts/release_notes.py --tag xmlkit-v0.1.1
+python3 scripts/release_notes.py --tag xmlkit-v0.1.1 --out notes.md
+```
+
+The notes cover one crate, because a release does. Only commits that touched
+`crates/<crate>/` are listed, so a release for `xmlkit` does not describe the
+other sixteen crates. The range starts at the previous tag of the *same* crate,
+not at the previous tag overall, so a crate that skipped a release does not
+repeat notes it already published; with no earlier tag for the crate this is its
+first release and the crate's whole history is used.
+
+Commit subjects are grouped by conventional-commit type (`feat`, `fix`, `docs`,
+and so on). A subject that does not follow the convention is not dropped - it
+lands under "Other changes" - so nothing silently disappears from the notes.
+
+Full history is required: the range comes from `git log` and the previous tag
+from `git tag`, and a shallow clone would silently produce an empty range rather
+than fail. The script checks for a shallow clone and stops, and the workflow
+checks out with `fetch-depth: 0` for the same reason.
+
 ## Rate limiting
 
 crates.io limits how many *new* crates an account may publish in a short window,
@@ -170,19 +198,39 @@ which is why this script exists for the dry run.
 
 ## Releasing
 
-`.github/workflows/release.yml` publishes every crate. It runs on a `v*` tag, or
-by hand from the Actions tab (`workflow_dispatch`) to finish a partial release.
+Releases are per crate, because the crates version independently.
+`.github/workflows/release.yml` publishes one crate per tag. The tag is
+`<crate>-v<version>`, and it runs on any `*-v*` tag or by hand from the Actions
+tab (`workflow_dispatch`, with the tag as input) to finish a partial release.
 
 ```sh
-git tag v0.1.0 && git push origin v0.1.0
+git tag xmlkit-v0.1.1 && git push origin xmlkit-v0.1.1
 ```
 
-The workflow checks the tag against every manifest, runs the attribution check,
-dry-runs the whole workspace, publishes in dependency order with `--publish
---yes`, and then confirms each version answers HTTP 200 from the crates.io API.
-It needs one repository secret, `CARGO_REGISTRY_TOKEN`, a crates.io API token
-with publish scope. Without it the publish step fails at the first upload.
+There is no bare `v<version>` tag. One version cannot describe seventeen crates
+that may sit at seventeen versions, and reading `v0.1.1` as "release everything"
+publishes sixteen crates nobody asked for, each of which crates.io rejects
+because the version already exists. `publish.py` refuses such a tag rather than
+guessing, so a mistaken `git tag v0.1.1` fails the check step instead of
+uploading anything.
 
-Bump every manifest and tag the same version. A version number cannot be reused
-or deleted, so a wrong upload has to be followed by a new version, not a fix.
+The workflow checks that the tag names a real crate at the version in its
+manifest, runs the attribution check, dry-runs that crate, publishes it with
+`--publish --yes`, and then confirms the version answers HTTP 200 from the
+crates.io API. It needs one repository secret, `CARGO_REGISTRY_TOKEN`, a
+crates.io API token with publish scope. Without it the publish step fails at the
+first upload.
+
+Bump the crate's manifest and tag the same version. A version number cannot be
+reused or deleted, so a wrong upload has to be followed by a new version, not a
+fix.
+
+`--tag` also works locally, which is the way to see what a tag would release
+without pushing it:
+
+```sh
+python3 scripts/publish.py --check-tag xmlkit-v0.1.1   # validate the tag alone
+python3 scripts/publish.py --tag xmlkit-v0.1.1         # dry-run that crate
+python3 scripts/publish.py --crate xmlkit              # dry-run by name
+```
 

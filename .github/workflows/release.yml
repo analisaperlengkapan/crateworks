@@ -1,103 +1,122 @@
 name: Release
 
-# Tag-driven: pushing `v0.1.1` publishes every crate at the version in its
-# manifest. `workflow_dispatch` is there for a re-run after a partial release;
-# a crate whose version is already on crates.io is reported and skipped rather
-# than failing the run, so a second run finishes the rest.
+# Tag-driven, one crate per tag: pushing `xmlkit-v0.1.1` publishes xmlkit at
+# 0.1.1 and nothing else. The crates version independently, so there is no bare
+# `v<version>` tag - it could not say which crate it meant. A mistaken `v0.1.1`
+# still starts this workflow (see the filter below) so that it fails with an
+# explanation rather than matching nothing and looking like success.
+#
+# `workflow_dispatch` is there for a re-run after a partial release; it takes the
+# tag as an input. A crate whose version is already on crates.io is reported and
+# skipped rather than failing the run, so a second run finishes the rest.
 on:
   push:
-    tags: ["v*"]
+    # `*-v*` is the real tag shape. `v*` is here only so a mistaken bare
+    # `v0.1.1` tag starts the workflow and fails at the check below with an
+    # explanation, instead of matching nothing and looking like success.
+    tags: ["*-v*", "v*"]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish, e.g. xmlkit-v0.1.1"
+        required: true
 
 env:
   CARGO_TERM_COLOR: always
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
-# Publishing is an upload, not a repository write: the release token comes from
-# a secret, so the GITHUB_TOKEN itself stays read-only.
+# The crates.io upload uses a secret token, not GITHUB_TOKEN. `contents: write`
+# is for the GitHub release at the end, which is created with the built-in token.
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   publish:
     name: publish to crates.io
     runs-on: ubuntu-latest
     steps:
+      # Full history, not the default shallow clone: the release notes are built
+      # from `git log` over the crate's directory and from its previous tag, and
+      # a shallow checkout would silently produce an empty range.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1
-      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          fetch-depth: 0
 
-      # The tag and the manifests have to agree, or the release publishes a
-      # version nobody asked for. `v0.1.1` is the tag; the crates carry 0.1.1.
-      #
-      # The version lives in `[workspace.package]` and each crate inherits it as
-      # `version.workspace = true`, which tomllib reads as `{'workspace': True}` -
-      # a dict, not a string. Resolve the workspace value first; comparing the raw
-      # field against the tag would fail on every crate.
-      - name: Check the tag matches the manifests
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          python3 - "$GITHUB_REF_NAME" <<'PY'
-          import glob, sys, tomllib
-
-          tag = sys.argv[1].removeprefix("v")
-          workspace = tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]
-          default = workspace["version"]
-
-          def version_of(manifest):
-              field = tomllib.load(open(manifest, "rb"))["package"]["version"]
-              return field if isinstance(field, str) else default
-
-          wrong = [
-              (m, version_of(m))
-              for m in sorted(glob.glob("crates/*/Cargo.toml"))
-              if version_of(m) != tag
-          ]
-          for manifest, version in wrong:
-              print(f"::error file={manifest}::version {version} does not match tag {tag}")
-          sys.exit(1 if wrong else 0)
-          PY
+      # The tag names one crate and one version, and the version has to be the
+      # one in that crate's manifest - the tag is what a reader trusts, so a
+      # disagreement stops the release instead of publishing something the tag
+      # does not name. A bare `v<version>` tag is refused here too, so a manual
+      # dispatch cannot fall back to releasing everything.
+      - name: Check the tag names one crate
+        run: python3 scripts/publish.py --check-tag "$RELEASE_TAG"
 
       # A crate that credits an upstream project in its code must name it in
       # NOTICE. No compiler catches that, and a release is the last moment to.
       - run: python3 scripts/check_attribution.py
 
       # Dry-run first: this catches a manifest that will not package before
-      # anything is uploaded, and an upload cannot be undone. No `--strict`:
-      # on a fresh version every crate that depends on another crate here is
-      # legitimately "blocked" until that dependency is uploaded, and --strict
-      # would fail the release before it started.
-      - run: python3 scripts/publish.py
+      # anything is uploaded, and an upload cannot be undone. No `--strict`: a
+      # crate that depends on another here is legitimately "blocked" until that
+      # dependency is uploaded, and --strict would fail the release before it
+      # started.
+      - run: python3 scripts/publish.py --tag "$RELEASE_TAG"
+
+      # Notes are generated from the commits that touched this crate only, so a
+      # release for one crate does not list the other sixteen. `--tag` selects
+      # both the crate and the version, the same way the publish steps did.
+      - name: Generate the release notes
+        run: python3 scripts/release_notes.py --tag "$RELEASE_TAG" --out notes.md
 
       # `--yes` skips the interactive confirmation, which no runner can answer.
       # The token is a crates.io API token with publish scope, stored as a
       # repository secret; `cargo publish` reads it from CARGO_REGISTRY_TOKEN.
       - name: Publish
-        run: python3 scripts/publish.py --publish --yes
+        run: python3 scripts/publish.py --publish --yes --tag "$RELEASE_TAG"
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
       # docs.rs builds asynchronously after the upload, so this only waits for
-      # the version to appear in the index, not for the docs to be live. The
-      # version is resolved through `[workspace.package]` for the same reason as
-      # the tag check above: `version.workspace = true` parses as a dict.
-      - name: Confirm the crates are in the index
+      # the version to appear in the index, not for the docs to be live. The tag
+      # is read through the same parser the release used, so this cannot end up
+      # checking a different crate than the one just uploaded.
+      - name: Confirm the crate is in the index
         run: |
           python3 - <<'PY'
-          import glob, tomllib, urllib.request
+          import importlib.util, os, urllib.error, urllib.request
 
-          default = tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"]
+          spec = importlib.util.spec_from_file_location("publish", "scripts/publish.py")
+          publish = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(publish)
 
-          missing = []
-          for manifest in sorted(glob.glob("crates/*/Cargo.toml")):
-              package = tomllib.load(open(manifest, "rb"))["package"]
-              field = package["version"]
-              name = package["name"]
-              version = field if isinstance(field, str) else default
-              url = f"https://crates.io/api/v1/crates/{name}/{version}"
+          crate, version = publish.crates_from_tag(os.environ["RELEASE_TAG"])
+          _, _, manifests = publish.load_manifests()
+          declared = publish.version_of(manifests[crate])
+          if declared != version:
+              raise SystemExit(f"{crate} manifest says {declared}, tag says {version}")
+
+          # urlopen raises on 4xx rather than returning a status, so the absent
+          # case is an exception, not a code to compare.
+          url = f"https://crates.io/api/v1/crates/{crate}/{version}"
+          try:
               code = urllib.request.urlopen(url).status
-              print(f"{name} {version} -> HTTP {code}")
-              if code != 200:
-                  missing.append(f"{name} {version}")
-          if missing:
-              raise SystemExit("not in the crates.io index: " + ", ".join(missing))
+          except urllib.error.HTTPError as error:
+              code = error.code
+          print(f"{crate} {version} -> HTTP {code}")
+          if code != 200:
+              raise SystemExit(f"{crate} {version} is not in the crates.io index")
           PY
+
+      # Idempotent, so a re-run after a partial release updates the notes instead
+      # of failing because the release already exists.
+      - name: Create or update the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --notes-file notes.md
+          else
+            gh release create "$RELEASE_TAG" \
+              --title "$RELEASE_TAG" \
+              --notes-file notes.md \
+              --verify-tag
+          fi
