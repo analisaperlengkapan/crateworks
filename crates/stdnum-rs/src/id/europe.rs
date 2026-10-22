@@ -207,7 +207,7 @@ pub(super) mod france {
         // Luhn check; their digits must instead sum to a multiple of five.
         if s.starts_with("356000000") && s != "35600000000048" {
             let sum: u32 = digits.iter().map(|&d| u32::from(d)).sum();
-            if sum % 5 != 0 {
+            if !sum.is_multiple_of(5) {
                 return Err(Error::BadChecksum);
             }
         } else if !checksum::luhn_matches(&digits[..13], digits[13]) {
@@ -489,7 +489,7 @@ mod tests {
         // Another La Poste establishment whose digits sum to a multiple of five.
         let candidate = "35600000000010";
         let sum: u32 = candidate.bytes().map(|b| u32::from(b - b'0')).sum();
-        if sum % 5 == 0 {
+        if sum.is_multiple_of(5) {
             assert!(france::validate_siret(candidate).is_ok(), "{candidate}");
         }
     }

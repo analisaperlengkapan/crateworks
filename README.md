@@ -16,7 +16,7 @@ Every crate here follows the same rules:
 
 ## Crates
 
-Sixteen crates, published independently. Most have no dependencies at all; the
+Seventeen crates, published independently. Most have no dependencies at all; the
 rest depend only on `xmlkit` from this same workspace.
 
 ### XML and the document stacks built on it
@@ -54,6 +54,7 @@ rest depend only on `xmlkit` from this same workspace.
 | [`iso8583-msg`](crates/iso8583-msg) | ISO 8583 card transaction messages | PyPI `pyiso8583` is downloaded 400,000 times a month; the Rust crates are all abandoned |
 | [`javaproperties`](crates/javaproperties) | Java `.properties`: escapes, continuations, ISO-8859-1 default | npm `properties` is downloaded 300,000 times a week; the Rust `java-properties` has not moved since 2023 |
 | [`object-hash`](crates/object-hash) | A stable hash of a structured value, order-independent | npm `object-hash` is downloaded over 40 million times a week; the name is free and the only Rust equivalent has 58 recent downloads |
+| [`mllp`](crates/mllp) | MLLP framing for HL7 v2 messages, with a streaming decoder | PyPI `hl7apy` is downloaded 758,000 times a month; the Rust HL7 crates are leaderless and none validates |
 
 ## Building
 
@@ -63,7 +64,11 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all -- --check
 ```
 
-The minimum supported Rust version is 1.85 and the crates use edition 2024.
+The minimum supported Rust version is 1.99 and the crates use edition 2024.
+`rust-version` is a floor, not the toolchain used to build: CI checks the
+workspace both on current stable and on 1.99, so the floor cannot drift away
+from the code the way it did when it read 1.85 while the crates used let-chains
+that need 1.88.
 
 ## Using a single crate
 

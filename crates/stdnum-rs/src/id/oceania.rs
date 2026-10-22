@@ -61,7 +61,7 @@ pub(super) mod australia {
             .zip(&WEIGHTS[offset..])
             .map(|(&d, w)| u32::from(d) * w)
             .sum();
-        if sum % 11 != 0 {
+        if !sum.is_multiple_of(11) {
             return Err(Error::BadChecksum);
         }
         Ok(())

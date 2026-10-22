@@ -59,7 +59,7 @@ pub(crate) fn call(name: &str, args: &[Arg]) -> Result<Value, Error> {
             }
             values.sort_by(f64::total_cmp);
             let mid = values.len() / 2;
-            let median = if values.len() % 2 == 0 {
+            let median = if values.len().is_multiple_of(2) {
                 f64::midpoint(values[mid - 1], values[mid])
             } else {
                 values[mid]

@@ -151,7 +151,7 @@ fn hex(bytes: &[u8; 8]) -> String {
 
 /// Parses sixteen hexadecimal digits into eight bytes.
 fn parse_hex(field: u8, text: &str) -> Result<Vec<u8>> {
-    if text.len() % 2 != 0 {
+    if !text.len().is_multiple_of(2) {
         return Err(Error::InvalidValue {
             field,
             reason: "bitmap has an odd number of digits",

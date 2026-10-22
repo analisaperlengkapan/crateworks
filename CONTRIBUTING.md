@@ -33,11 +33,19 @@ Run the same checks CI runs:
 ```sh
 cargo fmt --all
 cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
+cargo test --workspace --all-targets
+cargo test --workspace --doc
 ```
 
-All three must pass. `-D warnings` means a warning is a build failure, so a
-clean run locally is required.
+All of them must pass. `-D warnings` means a warning is a build failure, so a
+clean run locally is required. The `--doc` run matters as much as the others:
+`--all-targets` does **not** include doctests, so a broken example in a README
+or a doc comment would slip through without it.
+
+If you use a feature newer than the declared minimum (`rust-version` in
+`Cargo.toml`, currently 1.99), raise that field in the same change. CI compiles
+the workspace against the declared floor, so a stale floor fails the `msrv` job
+rather than shipping as a false promise.
 
 If your change adds a workspace dependency between crates, the publish order
 changes with it. `python3 scripts/publish.py` works the order out from the

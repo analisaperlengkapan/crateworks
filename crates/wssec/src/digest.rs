@@ -34,7 +34,7 @@ pub fn sha1(data: &[u8]) -> [u8; 20] {
     message.extend_from_slice(&bit_len.to_be_bytes());
 
     let mut w = [0u32; 80];
-    for block in message.chunks_exact(64) {
+    for block in message.as_chunks::<64>().0 {
         for (i, word) in w.iter_mut().take(16).enumerate() {
             *word = u32::from_be_bytes([
                 block[i * 4],
@@ -173,7 +173,7 @@ pub fn md5(data: &[u8]) -> [u8; 16] {
     }
     message.extend_from_slice(&bit_len.to_le_bytes());
 
-    for block in message.chunks_exact(64) {
+    for block in message.as_chunks::<64>().0 {
         let mut m = [0u32; 16];
         for (i, word) in m.iter_mut().enumerate() {
             *word = u32::from_le_bytes([

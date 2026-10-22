@@ -38,7 +38,16 @@ python3 scripts/publish.py
 ```
 
 Cargo lives at `$HOME/.cargo/bin` in this environment. `rust-toolchain.toml`
-pins `stable`; edition is 2024 and `rust-version` is 1.85.
+pins `stable`; edition is 2024 and `rust-version` is 1.99.
+
+`rust-version` is a **floor**, not the toolchain CI builds with. CI runs two
+jobs: one on current stable, one that installs 1.99 and runs `cargo check
+--workspace --all-targets` with `-D warnings`. The second job exists because the
+floor was once wrong for months: it read 1.85 while `pdfa`, `iso20022-rs` and
+`soap-client` used let-chains, which need 1.88. Nothing caught it because no job
+ever compiled against the declared minimum. If you raise the floor deliberately,
+raise it in `Cargo.toml` and in the `msrv` job's `toolchain:` input together, or
+the job will pass while the claim is false.
 
 ## Non-negotiable standards
 
@@ -97,6 +106,29 @@ means what you think it means. This has cost two separate debugging rounds.
 
 ## Known traps
 
+- **A newer clippy can fail an untouched crate.** `-D warnings` turns every new
+  lint into a build failure, so a green build on one toolchain says nothing about
+  the next. A clippy bump to 1.99 produced 17 failures across nine crates, none of
+  which had changed: `manual_is_multiple_of` (`x % 2 == 0` becomes
+  `x.is_multiple_of(2)`), `chunks_exact_to_as_chunks` (a constant chunk size
+  becomes `as_chunks::<64>().0`), and `collapsible_if` (a nested `if let` becomes
+  a let-chain). The fix is to satisfy the lint, not to add an `allow`; the repo's
+  five existing allows are the ceiling, not a precedent.
+- **`rust-toolchain.toml` outranks the toolchain you select.** `rustup` reads the
+  file in the working directory, so `rustup run 1.99.0` or a CI job whose action
+  installs 1.99 still compiles with `stable` unless `RUSTUP_TOOLCHAIN` is set
+  (that variable beats the file) or the action uses `override: true`. This is why
+  the MSRV job sets both: without them the job would pass while testing the wrong
+  compiler, which is exactly how a `rust-version` of 1.85 survived in a tree that
+  needed 1.88.
+- **The toolchain is wiped when the sandbox restarts.** `$HOME/.cargo` and
+  `$HOME/.rustup` disappear; `target/` survives. Reinstall rustup, or install to a
+  directory that is not under `$HOME` (for example
+  `CARGO_HOME=/workspace/.toolchain/cargo RUSTUP_HOME=/workspace/.toolchain/rustup`)
+  to keep it across restarts. `pip` packages are wiped too.
+- **`cargo clippy` prints nothing on a cached build.** If a lint seems to have
+  vanished, `touch crates/*/src/lib.rs` (or `find crates -name '*.rs' -exec touch {} +`)
+  to force a rebuild before believing the result.
 - **`xmlkit` name matching.** `Element::child` and `children_named` match the
   full name including the prefix, so `child(el, "IssueDateTime")` does **not**
   find `ram:IssueDateTime`. Match on the local name. `Element::text()`

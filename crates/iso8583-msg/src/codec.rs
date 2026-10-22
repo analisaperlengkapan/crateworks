@@ -138,7 +138,7 @@ pub(crate) fn decode_data(field: u8, bytes: &[u8], spec: &FieldSpec) -> Result<S
 
 /// Applies the field's padding until the value fills whole units.
 fn pad_nibbles(field: u8, value: &str, spec: &FieldSpec) -> Result<String> {
-    if value.len() % 2 == 0 {
+    if value.len().is_multiple_of(2) {
         return Ok(value.to_string());
     }
     match spec.padding {

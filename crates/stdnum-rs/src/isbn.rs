@@ -70,7 +70,7 @@ impl Isbn {
             // Weights run from 10 down to 1.
             sum += value * (10 - i as u32);
         }
-        Ok(sum % 11 == 0)
+        Ok(sum.is_multiple_of(11))
     }
 
     /// The normalised identifier.

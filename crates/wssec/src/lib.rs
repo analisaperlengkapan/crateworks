@@ -205,10 +205,10 @@ fn find_security(element: &xmlkit::Element) -> Option<&xmlkit::Element> {
         return Some(element);
     }
     for node in &element.children {
-        if let xmlkit::Node::Element(child) = node {
-            if let Some(found) = find_security(child) {
-                return Some(found);
-            }
+        if let xmlkit::Node::Element(child) = node
+            && let Some(found) = find_security(child)
+        {
+            return Some(found);
         }
     }
     None

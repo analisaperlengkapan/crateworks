@@ -24,7 +24,7 @@ pub(crate) fn digest(data: &[u8]) -> [u8; 20] {
     }
     message.extend_from_slice(&bit_length.to_be_bytes());
 
-    for block in message.chunks_exact(64) {
+    for block in message.as_chunks::<64>().0 {
         let mut words = [0u32; 80];
         for (index, word) in words.iter_mut().take(16).enumerate() {
             let start = index * 4;

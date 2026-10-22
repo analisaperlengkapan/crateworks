@@ -217,7 +217,8 @@ pub(crate) mod checksum {
         if day < 1 || !(1..=12).contains(&month) {
             return false;
         }
-        let leap = (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+        let leap =
+            (year.is_multiple_of(4) && !year.is_multiple_of(100)) || year.is_multiple_of(400);
         let max = match month {
             2 if leap => 29,
             2 => 28,
@@ -287,7 +288,14 @@ pub(crate) mod checksum {
         let sum: u32 = payload
             .iter()
             .enumerate()
-            .map(|(i, &d)| u32::from(d) * if (len - 1 - i) % 2 == 0 { 3 } else { 1 })
+            .map(|(i, &d)| {
+                u32::from(d)
+                    * if (len - 1 - i).is_multiple_of(2) {
+                        3
+                    } else {
+                        1
+                    }
+            })
             .sum();
         ((10 - (sum % 10)) % 10) as u8
     }

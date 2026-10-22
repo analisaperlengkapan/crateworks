@@ -150,7 +150,7 @@ resolving the dependency rather than in building it.
 2. `iso20022-rs`, `soap-client`, `wssec`, `factur-x`, `pdfa` (each depends on `xmlkit`)
 3. Everything else is independent and can go in any order: `holidays-rs`,
    `hijridate`, `stdnum-rs`, `spreadsheet-formula`, `eu-vat`, `iso8583-msg`,
-   `arabic`, `adhan`, `object-hash`, `javaproperties`.
+   `arabic`, `adhan`, `object-hash`, `javaproperties`, `mllp`.
 
 The other rule is that a published version cannot be overwritten. `0.1.0` is
 spent the moment it is uploaded, so a mistake in the first upload of a crate
@@ -167,8 +167,15 @@ python3 scripts/publish.py --publish  # upload, in order, stopping at the first 
 
 ## Verification
 
+The counts below are for the whole workspace, all 17 crates, and they drift as
+crates are added; they are here as an order of magnitude, not as a contract.
+
 ```sh
-cargo test --workspace --all-targets      # 218 unit tests, 6 README tests, 6 doctests
+cargo test --workspace --all-targets      # 592 unit and README tests
+cargo test --workspace --doc              # 39 doctests, not covered by --all-targets
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all -- --check
 ```
+
+`rust-version` is 1.99 and CI has a second job that compiles the workspace on
+exactly that toolchain, so the floor is checked rather than asserted.

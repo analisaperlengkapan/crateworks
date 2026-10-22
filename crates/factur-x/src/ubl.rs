@@ -95,13 +95,13 @@ fn encode_note(note: &Note) -> String {
 
 /// Reads a note back, splitting off a leading subject code if there is one.
 fn decode_note(text: &str) -> Note {
-    if let Some(rest) = text.strip_prefix('#') {
-        if let Some((subject, body)) = rest.split_once('#') {
-            return Note {
-                text: body.to_string(),
-                subject_code: Some(subject.to_string()),
-            };
-        }
+    if let Some(rest) = text.strip_prefix('#')
+        && let Some((subject, body)) = rest.split_once('#')
+    {
+        return Note {
+            text: body.to_string(),
+            subject_code: Some(subject.to_string()),
+        };
     }
     Note {
         text: text.to_string(),
