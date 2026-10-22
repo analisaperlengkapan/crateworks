@@ -37,6 +37,10 @@ Publishing order and readiness, without uploading anything:
 python3 scripts/publish.py
 ```
 
+Uploading needs a crates.io token, which is not stored in this repository or in
+CI; see the "Authenticating" section of `scripts/README.md`. Run the dry run
+first, then upload with `--publish` (it asks for confirmation).
+
 Cargo lives at `$HOME/.cargo/bin` in this environment. `rust-toolchain.toml`
 pins `stable`; edition is 2024 and `rust-version` is 1.88.
 
@@ -179,8 +183,10 @@ means what you think it means. This has cost two separate debugging rounds.
   `research/tools/namecheck.py` before writing code, not after.
 - **crates.io category names must be in the live list**, which is not the same as
   an intuitive guess. Fetch
-  `https://crates.io/api/v1/categories?page=N&per_page=100` (it paginates at 10
-  per page) rather than trusting a hardcoded set.
+  `https://crates.io/api/v1/categories?per_page=100` and compare against the
+  `slug` field, not the display name (`parser-implementations` is the slug for
+  "Parser implementations"). Without `per_page` it returns 10 per page and the
+  list runs to 58, so a single default page looks complete when it is not.
 
 ## Boundaries
 

@@ -80,6 +80,25 @@ it.
 The script derives the order from the manifests, so it cannot go stale the way a
 hand-written list does: if a crate gains a workspace dependency, it moves.
 
+### Authenticating
+
+The dry run needs no credentials. Uploading does, and there is no token in this
+repository or in CI — publishing is done by hand from a machine that has one.
+
+```sh
+cargo login          # paste the token once; cargo stores it in $CARGO_HOME/credentials.toml
+```
+
+Or pass it per command without storing it:
+
+```sh
+CARGO_REGISTRY_TOKEN=<token> python3 scripts/publish.py --publish
+```
+
+crates.io tokens are scoped: a token needs `publish-new` for a crate that does
+not exist yet and `publish-update` for a later version. For this workspace's
+first release the token needs both.
+
 ```sh
 python3 scripts/publish.py            # dry-run every crate, upload nothing
 python3 scripts/publish.py --strict   # same, but exit 1 if anything is blocked
