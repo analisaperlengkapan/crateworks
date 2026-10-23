@@ -50,18 +50,27 @@ a version already on crates.io is skipped, not failed.
 
 There is deliberately no bare `v<version>` tag. The crates version
 independently, so one version cannot describe all of them, and reading `v0.1.1`
-as "release everything" is what would publish sixteen crates nobody asked for -
+as "release everything" is what would publish every crate nobody asked for -
 each of which crates.io then rejects because the version already exists.
 `publish.py` refuses a bare version tag rather than guessing. See the "Releasing"
 section of `scripts/README.md`.
 
 **Push tags one at a time.** A single `git push` carrying several tags starts the
 workflow once, not once per tag: one push is one event, and the run is named after
-one of the tags. `git push origin --tags` with seventeen tags therefore produced a
-single run and sixteen releases that silently never appeared. Push each tag on its
-own, or push one and start the rest from the Actions tab (`workflow_dispatch`,
-which takes the tag as an input). A re-run is safe: a version already on
-crates.io is reported and skipped rather than failing.
+one of the tags. `git push origin --tags` with the seventeen tags that existed
+then therefore produced a single run and sixteen releases that silently never
+appeared. Push each tag on its own, or push one and start the rest from the
+Actions tab (`workflow_dispatch`, which takes the tag as an input). A re-run is
+safe: a version already on crates.io is reported and skipped rather than failing.
+
+**A crate published before the workflow existed still needs its tag.** The tag is
+what the release page, the notes range and a reader's trust hang on, so a crate
+that is on crates.io with no tag is not finished. Tag the commit the published
+version came from, not `HEAD`: the tarball on crates.io records it in
+`.cargo_vcs_info.json` as `sha1`, and the manifest there must say the published
+version or `--check-tag` rejects it. Pushing that tag re-runs the release for a
+version that already exists, which the workflow reports and skips, and it creates
+the missing GitHub release.
 
 Anything that turns a git remote into a URL must strip the userinfo. This
 repository pushes with `https://x-access-token:$GITHUB_TOKEN@github.com/...`, so

@@ -11,8 +11,8 @@ name: Release
 # skipped rather than failing the run, so a second run finishes the rest.
 #
 # A push carrying several tags starts this workflow ONCE, for one of them, not
-# once per tag: `git push --tags` with seventeen tags produces a single run and
-# sixteen releases never appear. Push one tag at a time, or dispatch the rest by
+# once per tag: `git push --tags` with seventeen tags produced a single run and
+# sixteen releases never appeared. Push one tag at a time, or dispatch the rest by
 # hand. The step order is deliberate for the same reason - a wrong tag fails
 # before the toolchain is installed.
 on:
@@ -76,7 +76,7 @@ jobs:
       - run: python3 scripts/publish.py --tag "$RELEASE_TAG"
 
       # Notes are generated from the commits that touched this crate only, so a
-      # release for one crate does not list the other sixteen. `--tag` selects
+      # release for one crate does not list the other crates. `--tag` selects
       # both the crate and the version, the same way the publish steps did.
       - name: Generate the release notes
         run: python3 scripts/release_notes.py --tag "$RELEASE_TAG" --out notes.md

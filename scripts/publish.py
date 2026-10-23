@@ -35,9 +35,9 @@ Usage:
 
 Releases are per crate, because the crates version independently: a tag is
 `<crate>-v<version>` and publishes exactly that crate. There is deliberately no
-bare `v<version>` tag - one tag cannot describe seventeen crates that may sit at
-seventeen versions, and reading it as "all of them" publishes sixteen crates
-nobody asked for. `crates_from_tag` refuses it.
+bare `v<version>` tag - one tag cannot describe every crate here, which may sit
+at many versions, and reading it as "all of them" publishes crates nobody asked
+for. `crates_from_tag` refuses it.
 
 A rate limit from crates.io is waited out and retried rather than reported as a
 broken crate: the 429 names the moment to retry and that time is honoured, since
@@ -67,7 +67,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # A release tag names one crate and one version: `xmlkit-v0.1.1`. The crates here
 # version independently, so there is deliberately no bare `v<version>` tag - one
-# tag cannot describe seventeen crates that may sit at seventeen versions.
+# tag cannot describe every crate here, which may sit at many versions.
 TAG_PATTERN = re.compile(r"^(?P<crate>[A-Za-z0-9_-]+)-v(?P<version>[0-9][^/]*)$")
 
 
@@ -80,7 +80,7 @@ def crates_from_tag(tag: str) -> tuple[str, str]:
 
     A bare `v<version>` tag is refused rather than interpreted. It would be
     ambiguous - it cannot say which crate it means, and treating it as "all of
-    them" is exactly the behaviour that publishes sixteen crates nobody asked
+    them" is exactly the behaviour that publishes crates nobody asked
     for, each of which crates.io then rejects because the version already
     exists. Failing loudly is the only safe reading.
     """

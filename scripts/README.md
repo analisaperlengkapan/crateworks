@@ -191,7 +191,7 @@ python3 scripts/release_notes.py --tag xmlkit-v0.1.1 --out notes.md
 
 The notes cover one crate, because a release does. Only commits that touched
 `crates/<crate>/` are listed, so a release for `xmlkit` does not describe the
-other sixteen crates. The range starts at the previous tag of the *same* crate,
+other crates. The range starts at the previous tag of the *same* crate,
 not at the previous tag overall, so a crate that skipped a release does not
 repeat notes it already published; with no earlier tag for the crate this is its
 first release and the crate's whole history is used.
@@ -243,17 +243,17 @@ git tag xmlkit-v0.1.1 && git push origin xmlkit-v0.1.1
 ```
 
 Push the tags one at a time. A push carrying several tags starts the workflow
-once, for one of them, so `git push --tags` with seventeen tags yields a single
-run and sixteen releases that never appear. For a batch, push one tag and start
-the rest from the Actions tab (`workflow_dispatch`), which takes the tag as an
-input; a version already on crates.io is reported and skipped, so re-running is
-safe.
+once, for one of them, so `git push --tags` with the seventeen tags that existed
+then yielded a single run and sixteen releases that never appeared. For a batch,
+push one tag and start the rest from the Actions tab (`workflow_dispatch`), which
+takes the tag as an input; a version already on crates.io is reported and skipped,
+so re-running is safe.
 
-There is no bare `v<version>` tag. One version cannot describe seventeen crates
-that may sit at seventeen versions, and reading `v0.1.1` as "release everything"
-publishes sixteen crates nobody asked for, each of which crates.io rejects
-because the version already exists. `publish.py` refuses such a tag rather than
-guessing, so a mistaken `git tag v0.1.1` fails the check step instead of
+There is no bare `v<version>` tag. One version cannot describe every crate here,
+which may sit at many different versions, and reading `v0.1.1` as "release
+everything" publishes every crate nobody asked for, each of which crates.io
+rejects because the version already exists. `publish.py` refuses such a tag rather
+than guessing, so a mistaken `git tag v0.1.1` fails the check step instead of
 uploading anything.
 
 The workflow checks that the tag names a real crate at the version in its
