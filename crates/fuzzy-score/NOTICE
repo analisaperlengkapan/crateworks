@@ -1,0 +1,15 @@
+crateworks
+Copyright 2026 Yayasan Pesantren Cipansor and contributors
+
+This product includes software developed by Yayasan Pesantren Cipansor and
+contributors (https://github.com/cipansor/crateworks).
+
+The scores computed here reproduce those of fuzzywuzzy by SeatGeek and
+contributors (https://github.com/seatgeek/fuzzywuzzy), which is distributed
+under the MIT licence. The crate is an independent reimplementation in Rust and
+shares no code with it; the upstream test suite was transcribed so that a
+divergence from the reference shows up as a failing test. The algorithm itself
+comes from CPython's difflib, which is distributed under the Python Software
+Foundation Licence.
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).

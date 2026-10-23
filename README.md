@@ -63,6 +63,12 @@ the rest depend only on `xmlkit` or `pdfa` from this same workspace.
 | [`object-hash`](crates/object-hash) | A stable hash of a structured value, order-independent | npm `object-hash` is downloaded over 40 million times a week; the name is free and the only Rust equivalent has 58 recent downloads |
 | [`mllp`](crates/mllp) | MLLP framing for HL7 v2 messages, with a streaming decoder | PyPI `hl7apy` is downloaded 758,000 times a month; the Rust HL7 crates are leaderless and none validates |
 
+### Search and matching
+
+| Crate | What it does | Why it exists |
+| --- | --- | --- |
+| [`fuzzy-score`](crates/fuzzy-score) | Fuzzy string matching with the same scores as Python's `fuzzywuzzy` | The Rust `fuzzywuzzy` port on crates.io (225,000 downloads in the last 90 days, last released 2020) disagrees with the reference on 26-80% of pure-ASCII inputs and panics on 92% of non-ASCII ones, so a Python service cannot move to it without the ranking changing |
+
 ## Building
 
 ```sh

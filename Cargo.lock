@@ -29,6 +29,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "fuzzy-score"
+version = "0.1.4"
+
+[[package]]
 name = "hijridate"
 version = "0.1.4"
 

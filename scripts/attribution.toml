@@ -52,3 +52,7 @@ marker = "bpampuch/pdfmake"
 [[upstream]]
 project = "container-validator (npm) by Sameer Shemna"
 marker = "sameershemna"
+
+[[upstream]]
+project = "fuzzywuzzy by SeatGeek"
+marker = "seatgeek/fuzzywuzzy"

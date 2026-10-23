@@ -21,6 +21,7 @@ members = [
     "crates/ebics",
     "crates/iso6346",
     "crates/pdfmake",
+    "crates/fuzzy-score",
     "crates/pades",
 ]
 

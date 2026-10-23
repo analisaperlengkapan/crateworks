@@ -1,0 +1,18 @@
+[package]
+name = "fuzzy-score"
+description = "Fuzzy string matching scores compatible with Python's fuzzywuzzy: ratio, partial, token sort, token set and WRatio, plus extract and dedupe."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+keywords = ["fuzzy", "fuzzywuzzy", "string-similarity", "matching", "dedupe"]
+categories = ["text-processing"]
+readme = "README.md"
+
+[dependencies]
+
+[lints]
+workspace = true
