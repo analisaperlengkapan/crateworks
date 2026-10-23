@@ -101,6 +101,81 @@ pub enum Rule {
         /// Years in which it does not.
         years: &'static [i32],
     },
+    /// A holiday that begins in a given year and applies from then on.
+    ///
+    /// Juneteenth became a United States federal holiday in 2021 and Saint
+    /// Brigid's Day an Irish public holiday in 2023. Before those years the
+    /// date is an ordinary working day, so resolving it would invent a day off.
+    Since {
+        /// The first year in which the holiday applies, inclusive.
+        year: i32,
+        /// The rule that applies from that year on.
+        base: &'static Rule,
+    },
+    /// A holiday that stops applying after a given year.
+    ///
+    /// Denmark abolished Great Prayer Day after 2023, so it resolves to nothing
+    /// from 2024 on.
+    Until {
+        /// The last year in which the holiday applies, inclusive.
+        year: i32,
+        /// The rule that applies up to and including that year.
+        base: &'static Rule,
+    },
+    /// A fixed date that recurs only in some years, selected by the year's
+    /// remainder.
+    ///
+    /// The Netherlands observes Liberation Day on 5 May only every fifth year,
+    /// which is a property of the year rather than of the date.
+    EveryNYears {
+        /// The interval in years. The holiday applies when the year is a
+        /// multiple of this.
+        step: u32,
+        /// Month, 1-12.
+        month: u8,
+        /// Day, 1-31.
+        day: u8,
+    },
+    /// A holiday whose dates are published as a table rather than computed.
+    ///
+    /// New Zealand's Matariki follows an official calendar that is set by
+    /// advisory group rather than by a formula, so a formula would be a guess.
+    /// A year absent from the table has no occurrence.
+    Table {
+        /// The year, month and day of each occurrence.
+        dates: &'static [(i32, u8, u8)],
+    },
+    /// A holiday that only gained a substitute day from a given year.
+    ///
+    /// New Zealand has Mondayised Waitangi Day and Anzac Day only since 2014,
+    /// when the Holidays (Full Recognition of Waitangi Day and ANZAC Day)
+    /// Amendment Act came into force. Before that a weekend occurrence was
+    /// simply lost, so applying the country style would invent a day off.
+    ///
+    /// Mondayisation moves the holiday to the following Monday even when that
+    /// Monday is already a holiday, which is what `shared` records: Anzac Day
+    /// 2038 falls on a Sunday and shares Monday 26 April with Easter Monday.
+    ObservedFrom {
+        /// The first year in which a weekend occurrence is moved.
+        year: i32,
+        /// Whether the moved date may coincide with another holiday.
+        shared: bool,
+        /// The rule for the date the holiday falls on.
+        base: &'static Rule,
+    },
+    /// A rule that applies only within an inclusive range of years.
+    ///
+    /// Italy's Republic Day was a movable first Sunday in June from 1977 to
+    /// 2000 and a fixed 2 June either side of that, so the two rules are
+    /// separated by the years they cover.
+    Between {
+        /// First year the rule applies, inclusive.
+        from: i32,
+        /// Last year the rule applies, inclusive.
+        to: i32,
+        /// The rule that applies within the range.
+        base: &'static Rule,
+    },
 }
 
 impl Rule {
@@ -109,14 +184,21 @@ impl Rule {
     #[must_use]
     pub const fn is_year_restricted(&self) -> bool {
         match self {
-            Self::Once { .. } | Self::ExceptYears { .. } => true,
+            Self::Once { .. }
+            | Self::ExceptYears { .. }
+            | Self::Since { .. }
+            | Self::Until { .. }
+            | Self::EveryNYears { .. }
+            | Self::Table { .. }
+            | Self::Between { .. } => true,
             Self::Fixed { .. }
             | Self::EasterOffset(_)
             | Self::NthWeekday { .. }
             | Self::FixedUnlessWeekday { .. }
             | Self::FixedOnWeekdayElseWeekdayOnOrAfter { .. }
             | Self::WeekdayOnOrAfter { .. }
-            | Self::WeekdayOnOrBefore { .. } => false,
+            | Self::WeekdayOnOrBefore { .. }
+            | Self::ObservedFrom { .. } => false,
         }
     }
 
@@ -195,7 +277,65 @@ impl Rule {
                     base.resolve(year)
                 }
             }
+            Self::Since { year: first, base } => {
+                if year >= first {
+                    base.resolve(year)
+                } else {
+                    None
+                }
+            }
+            Self::Until { year: last, base } => {
+                if year <= last {
+                    base.resolve(year)
+                } else {
+                    None
+                }
+            }
+            Self::EveryNYears { step, month, day } => {
+                if step > 0 && year.rem_euclid(step as i32) == 0 {
+                    Date::new(year, month, day)
+                } else {
+                    None
+                }
+            }
+            Self::Table { dates } => dates
+                .iter()
+                .find(|(y, _, _)| *y == year)
+                .and_then(|(y, m, d)| Date::new(*y, *m, *d)),
+            Self::ObservedFrom { base, .. } => base.resolve(year),
+            Self::Between { from, to, base } => {
+                if (from..=to).contains(&year) {
+                    base.resolve(year)
+                } else {
+                    None
+                }
+            }
         }
+    }
+
+    /// Whether a weekend occurrence of this holiday moves to a substitute day
+    /// in `year`.
+    ///
+    /// Almost every rule does, because the country style decides that. The
+    /// exception is [`Rule::ObservedFrom`], which models a holiday that only
+    /// gained a substitute day from a given year.
+    #[must_use]
+    pub const fn substitutes_in(&self, year: i32) -> bool {
+        match self {
+            Self::ObservedFrom { year: first, .. } => year >= *first,
+            _ => true,
+        }
+    }
+
+    /// Whether a substitute date may coincide with another holiday.
+    ///
+    /// Most substitutes move to the next free day, because two holidays on one
+    /// date is what the collision rule exists to avoid. Mondayisation is the
+    /// exception: New Zealand's Anzac Day 2038 falls on a Sunday and moves to
+    /// Monday 26 April even though Easter Monday is already there.
+    #[must_use]
+    pub const fn substitute_may_share(&self) -> bool {
+        matches!(self, Self::ObservedFrom { shared: true, .. })
     }
 }
 
@@ -338,5 +478,52 @@ mod tests {
         };
         let d = crossing.resolve(2026).unwrap();
         assert_eq!((d.month, d.day), (4, 27));
+    }
+
+    #[test]
+    fn since_until_and_between_bound_a_rule() {
+        const EPIPHANY: Rule = Rule::Fixed { month: 1, day: 6 };
+        let since = Rule::Since {
+            year: 2011,
+            base: &EPIPHANY,
+        };
+        assert!(since.resolve(2010).is_none());
+        assert!(since.resolve(2011).is_some());
+        assert!(since.is_year_restricted());
+
+        let until = Rule::Until {
+            year: 2004,
+            base: &EPIPHANY,
+        };
+        assert!(until.resolve(2004).is_some());
+        assert!(until.resolve(2005).is_none());
+
+        let between = Rule::Between {
+            from: 1977,
+            to: 2000,
+            base: &EPIPHANY,
+        };
+        assert!(between.resolve(1976).is_none());
+        assert!(between.resolve(1977).is_some());
+        assert!(between.resolve(2000).is_some());
+        assert!(between.resolve(2001).is_none());
+    }
+
+    #[test]
+    fn observed_from_defers_substitution_until_a_year() {
+        let anzac = Rule::ObservedFrom {
+            year: 2014,
+            shared: true,
+            base: &Rule::Fixed { month: 4, day: 25 },
+        };
+        // The date it falls on is unaffected.
+        assert_eq!(
+            anzac.resolve(2013).unwrap(),
+            Date::new(2013, 4, 25).unwrap()
+        );
+        assert!(!anzac.substitutes_in(2013));
+        assert!(anzac.substitutes_in(2014));
+        assert!(anzac.substitute_may_share());
+        assert!(!Rule::Fixed { month: 4, day: 25 }.substitute_may_share());
     }
 }

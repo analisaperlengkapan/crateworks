@@ -362,22 +362,70 @@ impl Calendar {
     /// the next year's list, so it is not returned here.
     #[must_use]
     pub fn holidays_in(&self, year: i32) -> Vec<(Date, &'static str)> {
-        let mut falls: Vec<(Date, &'static str)> = self
+        // The next year is resolved too, because its 1 January can be observed
+        // on 31 December of this one when that is a Saturday, which is what the
+        // United States does. Dates observed outside `year` are dropped below.
+        let mut falls: Vec<(Date, &'static str, bool, bool)> = self
             .country
             .holidays()
             .iter()
-            .filter_map(|h| h.rule.resolve(year).map(|d| (d, h.name)))
+            .flat_map(|h| {
+                [year, year + 1].into_iter().filter_map(move |y| {
+                    h.rule.resolve(y).map(|d| {
+                        (
+                            d,
+                            h.name,
+                            h.rule.substitutes_in(y),
+                            h.rule.substitute_may_share(),
+                        )
+                    })
+                })
+            })
             .collect();
         // Earliest falling date first, so the holiday that keeps its slot is
         // the one that actually falls earlier.
         falls.sort_unstable();
 
         let style = self.country.substitute_style();
-        let mut taken: Vec<Date> = Vec::with_capacity(falls.len());
-        let mut out: Vec<(Date, &'static str)> = Vec::with_capacity(falls.len());
-        for (date, name) in falls {
+        // A country with no substitution keeps every holiday on the date it
+        // falls, even when two share a date, so the collision rule does not
+        // apply at all.
+        if style == SubstituteStyle::None {
+            let mut out: Vec<(Date, &'static str)> = falls
+                .into_iter()
+                .filter(|(d, _, _, _)| d.year == year)
+                .map(|(d, name, _, _)| (d, name))
+                .collect();
+            out.sort_unstable();
+            out.dedup();
+            return out;
+        }
+
+        // A holiday that falls on a weekday keeps its date; only a weekend
+        // holiday moves, and it moves to the next free day. The weekday
+        // holidays must therefore be placed first: in the United Kingdom in
+        // 2022 Boxing Day fell on a Monday and kept the 26th, so Christmas Day
+        // (a Sunday) rolled past it to the 27th rather than taking the 26th.
+        let mut weekday: Vec<(Date, &'static str)> = Vec::new();
+        let mut weekend: Vec<(Date, &'static str, bool)> = Vec::new();
+        for (date, name, substitutes, may_share) in falls {
+            if substitutes && date.is_weekend() {
+                weekend.push((date, name, may_share));
+            } else {
+                weekday.push((date, name));
+            }
+        }
+        let mut taken: Vec<Date> = Vec::with_capacity(weekday.len() + weekend.len());
+        let mut out: Vec<(Date, &'static str)> = Vec::with_capacity(weekday.len() + weekend.len());
+        for (date, name) in weekday {
+            taken.push(date);
+            if date.year == year {
+                out.push((date, name));
+            }
+        }
+        for (date, name, may_share) in weekend {
             let mut observed = style.apply(date);
-            while taken.contains(&observed) {
+            while !may_share && taken.contains(&observed) {
                 let Some(next) = observed.add_days(1) else {
                     break;
                 };
@@ -389,6 +437,7 @@ impl Calendar {
             }
         }
         out.sort_unstable();
+        out.dedup();
         out
     }
 
@@ -521,7 +570,20 @@ const fn h(name: &'static str, rule: Rule) -> Holiday {
 /// [`Calendar::with_extra`] once the government decree is published.
 static INDONESIA: &[Holiday] = &[
     h("New Year's Day", Rule::Fixed { month: 1, day: 1 }),
-    h("Labour Day", Rule::Fixed { month: 5, day: 1 }),
+    h(
+        "Labour Day",
+        Rule::Since {
+            year: 2014,
+            base: &Rule::Fixed { month: 5, day: 1 },
+        },
+    ),
+    h(
+        "Pancasila Day",
+        Rule::Since {
+            year: 2016,
+            base: &Rule::Fixed { month: 6, day: 1 },
+        },
+    ),
     h("Independence Day", Rule::Fixed { month: 8, day: 17 }),
     h("Christmas Day", Rule::Fixed { month: 12, day: 25 }),
     h("Good Friday", Rule::EasterOffset(-2)),
@@ -529,9 +591,18 @@ static INDONESIA: &[Holiday] = &[
 ];
 
 /// United States federal holidays.
+///
+/// Juneteenth became a federal holiday on 17 June 2021, so the date is an
+/// ordinary working day before then.
 static UNITED_STATES: &[Holiday] = &[
     h("New Year's Day", Rule::Fixed { month: 1, day: 1 }),
-    h("Juneteenth", Rule::Fixed { month: 6, day: 19 }),
+    h(
+        "Juneteenth",
+        Rule::Since {
+            year: 2021,
+            base: &Rule::Fixed { month: 6, day: 19 },
+        },
+    ),
     h("Independence Day", Rule::Fixed { month: 7, day: 4 }),
     h("Veterans Day", Rule::Fixed { month: 11, day: 11 }),
     h("Christmas Day", Rule::Fixed { month: 12, day: 25 }),
@@ -605,10 +676,15 @@ static UNITED_KINGDOM: &[Holiday] = &[
     ),
     h(
         "Spring Bank Holiday",
-        Rule::NthWeekday {
-            month: 5,
-            weekday: 1,
-            nth: 5,
+        // Moved from the last Monday in May into early June in the jubilee
+        // years, so the jubilee day could be a separate bank holiday.
+        Rule::ExceptYears {
+            base: &Rule::NthWeekday {
+                month: 5,
+                weekday: 1,
+                nth: 5,
+            },
+            years: &[2002, 2012, 2022],
         },
     ),
     h(
@@ -646,6 +722,86 @@ static UNITED_KINGDOM: &[Holiday] = &[
             day: 19,
         },
     ),
+    h(
+        "Spring Bank Holiday (Golden Jubilee)",
+        Rule::Once {
+            year: 2002,
+            month: 6,
+            day: 4,
+        },
+    ),
+    h(
+        "Spring Bank Holiday (Diamond Jubilee)",
+        Rule::Once {
+            year: 2012,
+            month: 6,
+            day: 4,
+        },
+    ),
+    h(
+        "Spring Bank Holiday (Platinum Jubilee)",
+        Rule::Once {
+            year: 2022,
+            month: 6,
+            day: 2,
+        },
+    ),
+    h(
+        "Silver Jubilee of Elizabeth II",
+        Rule::Once {
+            year: 1977,
+            month: 6,
+            day: 7,
+        },
+    ),
+    h(
+        "Wedding of Charles and Diana",
+        Rule::Once {
+            year: 1981,
+            month: 7,
+            day: 29,
+        },
+    ),
+    h(
+        "Millennium Celebrations",
+        Rule::Once {
+            year: 1999,
+            month: 12,
+            day: 31,
+        },
+    ),
+    h(
+        "Golden Jubilee of Elizabeth II",
+        Rule::Once {
+            year: 2002,
+            month: 6,
+            day: 3,
+        },
+    ),
+    h(
+        "Wedding of William and Catherine",
+        Rule::Once {
+            year: 2011,
+            month: 4,
+            day: 29,
+        },
+    ),
+    h(
+        "Diamond Jubilee of Elizabeth II",
+        Rule::Once {
+            year: 2012,
+            month: 6,
+            day: 5,
+        },
+    ),
+    h(
+        "Coronation of Charles III",
+        Rule::Once {
+            year: 2023,
+            month: 5,
+            day: 8,
+        },
+    ),
 ];
 
 /// German national holidays. Regional holidays such as Epiphany and Corpus
@@ -656,6 +812,15 @@ static GERMANY: &[Holiday] = &[
     h(
         "Tag der Deutschen Einheit",
         Rule::Fixed { month: 10, day: 3 },
+    ),
+    // A one-off national holiday for the 500th anniversary of the Reformation.
+    h(
+        "Reformationstag",
+        Rule::Once {
+            year: 2017,
+            month: 10,
+            day: 31,
+        },
     ),
     h("Erster Weihnachtstag", Rule::Fixed { month: 12, day: 25 }),
     h("Zweiter Weihnachtstag", Rule::Fixed { month: 12, day: 26 }),
@@ -677,24 +842,54 @@ static FRANCE: &[Holiday] = &[
     h("Noël", Rule::Fixed { month: 12, day: 25 }),
     h("Lundi de Pâques", Rule::EasterOffset(1)),
     h("Ascension", Rule::EasterOffset(39)),
-    h("Lundi de Pentecôte", Rule::EasterOffset(50)),
+    // Whit Monday was worked as a solidarity day from 2005 to 2007.
+    h(
+        "Lundi de Pentecôte",
+        Rule::ExceptYears {
+            base: &Rule::EasterOffset(50),
+            years: &[2005, 2006, 2007],
+        },
+    ),
 ];
 
 /// Dutch national holidays. King's Day moves to 26 April when the 27th is a
-/// Sunday. Liberation Day is a national holiday only every five years, so it
-/// is left to [`Calendar::with_extra`].
+/// Sunday. Liberation Day is a public holiday only every fifth year, which is
+/// what [`Rule::EveryNYears`] expresses.
 static NETHERLANDS: &[Holiday] = &[
     h("Nieuwjaarsdag", Rule::Fixed { month: 1, day: 1 }),
     h("Goede Vrijdag", Rule::EasterOffset(-2)),
     h("Eerste Paasdag", Rule::EasterOffset(0)),
     h("Tweede Paasdag", Rule::EasterOffset(1)),
     h(
+        "Koninginnedag",
+        Rule::Until {
+            year: 2013,
+            base: &Rule::FixedUnlessWeekday {
+                month: 4,
+                day: 30,
+                weekday: 0,
+                then_day: 29,
+            },
+        },
+    ),
+    h(
         "Koningsdag",
-        Rule::FixedUnlessWeekday {
-            month: 4,
-            day: 27,
-            weekday: 0,
-            then_day: 26,
+        Rule::Since {
+            year: 2014,
+            base: &Rule::FixedUnlessWeekday {
+                month: 4,
+                day: 27,
+                weekday: 0,
+                then_day: 26,
+            },
+        },
+    ),
+    h(
+        "Bevrijdingsdag",
+        Rule::EveryNYears {
+            step: 5,
+            month: 5,
+            day: 5,
         },
     ),
     h("Hemelvaartsdag", Rule::EasterOffset(39)),
@@ -729,7 +924,50 @@ static ITALY: &[Holiday] = &[
     h("Lunedì dell'Angelo", Rule::EasterOffset(1)),
     h("Festa della Liberazione", Rule::Fixed { month: 4, day: 25 }),
     h("Festa dei Lavoratori", Rule::Fixed { month: 5, day: 1 }),
-    h("Festa della Repubblica", Rule::Fixed { month: 6, day: 2 }),
+    h(
+        "Festa della Repubblica",
+        // Established in 1947, movable to the first Sunday in June from 1977 to
+        // 2000, and fixed to 2 June again from 2001.
+        Rule::Between {
+            from: 1947,
+            to: 1976,
+            base: &Rule::Fixed { month: 6, day: 2 },
+        },
+    ),
+    h(
+        "Festa della Repubblica",
+        Rule::Between {
+            from: 1977,
+            to: 2000,
+            base: &Rule::NthWeekday {
+                month: 6,
+                weekday: 0,
+                nth: 1,
+            },
+        },
+    ),
+    h(
+        "Festa della Repubblica",
+        Rule::Since {
+            year: 2001,
+            base: &Rule::Fixed { month: 6, day: 2 },
+        },
+    ),
+    h(
+        "Anniversario dell'Unità d'Italia",
+        Rule::Once {
+            year: 2011,
+            month: 3,
+            day: 17,
+        },
+    ),
+    h(
+        "Festa nazionale di San Francesco d'Assisi, patrono d'Italia",
+        Rule::Since {
+            year: 2026,
+            base: &Rule::Fixed { month: 10, day: 4 },
+        },
+    ),
     h("Ferragosto", Rule::Fixed { month: 8, day: 15 }),
     h("Tutti i Santi", Rule::Fixed { month: 11, day: 1 }),
     h("Immacolata Concezione", Rule::Fixed { month: 12, day: 8 }),
@@ -738,13 +976,22 @@ static ITALY: &[Holiday] = &[
 ];
 
 /// Portuguese national holidays. Municipal holidays are not included.
+///
+/// Four holidays were suspended from 2013 to 2015 as an austerity measure and
+/// restored in 2016, which is what [`Rule::ExceptYears`] records.
 static PORTUGAL: &[Holiday] = &[
     h("Ano Novo", Rule::Fixed { month: 1, day: 1 }),
     h("Sexta-feira Santa", Rule::EasterOffset(-2)),
     h("Páscoa", Rule::EasterOffset(0)),
     h("Dia da Liberdade", Rule::Fixed { month: 4, day: 25 }),
     h("Dia do Trabalhador", Rule::Fixed { month: 5, day: 1 }),
-    h("Corpo de Deus", Rule::EasterOffset(60)),
+    h(
+        "Corpo de Deus",
+        Rule::ExceptYears {
+            base: &Rule::EasterOffset(60),
+            years: &[2013, 2014, 2015],
+        },
+    ),
     h("Dia de Portugal", Rule::Fixed { month: 6, day: 10 }),
     h(
         "Assunção de Nossa Senhora",
@@ -752,12 +999,24 @@ static PORTUGAL: &[Holiday] = &[
     ),
     h(
         "Implantação da República",
-        Rule::Fixed { month: 10, day: 5 },
+        Rule::ExceptYears {
+            base: &Rule::Fixed { month: 10, day: 5 },
+            years: &[2013, 2014, 2015],
+        },
     ),
-    h("Todos os Santos", Rule::Fixed { month: 11, day: 1 }),
+    h(
+        "Todos os Santos",
+        Rule::ExceptYears {
+            base: &Rule::Fixed { month: 11, day: 1 },
+            years: &[2013, 2014, 2015],
+        },
+    ),
     h(
         "Restauração da Independência",
-        Rule::Fixed { month: 12, day: 1 },
+        Rule::ExceptYears {
+            base: &Rule::Fixed { month: 12, day: 1 },
+            years: &[2013, 2014, 2015],
+        },
     ),
     h("Imaculada Conceição", Rule::Fixed { month: 12, day: 8 }),
     h("Natal", Rule::Fixed { month: 12, day: 25 }),
@@ -804,7 +1063,13 @@ static AUSTRIA: &[Holiday] = &[
 /// working-day queries already treat as non-working.
 static POLAND: &[Holiday] = &[
     h("Nowy Rok", Rule::Fixed { month: 1, day: 1 }),
-    h("Święto Trzech Króli", Rule::Fixed { month: 1, day: 6 }),
+    h(
+        "Święto Trzech Króli",
+        Rule::Since {
+            year: 2011,
+            base: &Rule::Fixed { month: 1, day: 6 },
+        },
+    ),
     h("Wielkanoc", Rule::EasterOffset(0)),
     h("Poniedziałek Wielkanocny", Rule::EasterOffset(1)),
     h("Święto Pracy", Rule::Fixed { month: 5, day: 1 }),
@@ -828,6 +1093,21 @@ static POLAND: &[Holiday] = &[
         "Drugi dzień Bożego Narodzenia",
         Rule::Fixed { month: 12, day: 26 },
     ),
+    h(
+        "Wigilia Bożego Narodzenia",
+        Rule::Since {
+            year: 2025,
+            base: &Rule::Fixed { month: 12, day: 24 },
+        },
+    ),
+    h(
+        "Narodowe Święto Niepodległości - 100-lecie",
+        Rule::Once {
+            year: 2018,
+            month: 11,
+            day: 12,
+        },
+    ),
 ];
 
 /// Swedish public holidays. Midsummer Day and All Saints' Day are the
@@ -841,7 +1121,21 @@ static SWEDEN: &[Holiday] = &[
     h("Första maj", Rule::Fixed { month: 5, day: 1 }),
     h("Kristi himmelsfärdsdag", Rule::EasterOffset(39)),
     h("Pingstdagen", Rule::EasterOffset(49)),
-    h("Nationaldagen", Rule::Fixed { month: 6, day: 6 }),
+    h(
+        "Nationaldagen",
+        Rule::Since {
+            year: 2005,
+            base: &Rule::Fixed { month: 6, day: 6 },
+        },
+    ),
+    // Whit Monday was a public holiday until it was replaced by National Day.
+    h(
+        "Annandag pingst",
+        Rule::Until {
+            year: 2004,
+            base: &Rule::EasterOffset(50),
+        },
+    ),
     h(
         "Midsommardagen",
         Rule::WeekdayOnOrAfter {
@@ -878,14 +1172,21 @@ static NORWAY: &[Holiday] = &[
     h("Andre juledag", Rule::Fixed { month: 12, day: 26 }),
 ];
 
-/// Danish public holidays. Great Prayer Day was abolished from 2024, so it is
-/// no longer included.
+/// Danish public holidays. Great Prayer Day was abolished after 2023, so it is
+/// kept until then and resolves to nothing from 2024 on.
 static DENMARK: &[Holiday] = &[
     h("Nytårsdag", Rule::Fixed { month: 1, day: 1 }),
     h("Skærtorsdag", Rule::EasterOffset(-3)),
     h("Langfredag", Rule::EasterOffset(-2)),
     h("Påskedag", Rule::EasterOffset(0)),
     h("Anden påskedag", Rule::EasterOffset(1)),
+    h(
+        "Store bededag",
+        Rule::Until {
+            year: 2023,
+            base: &Rule::EasterOffset(26),
+        },
+    ),
     h("Kristi himmelfartsdag", Rule::EasterOffset(39)),
     h("Pinsedag", Rule::EasterOffset(49)),
     h("Anden pinsedag", Rule::EasterOffset(50)),
@@ -894,6 +1195,10 @@ static DENMARK: &[Holiday] = &[
 ];
 
 /// Finnish public holidays.
+///
+/// Midsummer Eve and Christmas Eve are de facto public holidays: they are not
+/// in the Act on Public Holidays but every collective agreement treats them as
+/// days off, which is how the reference package models them too.
 static FINLAND: &[Holiday] = &[
     h("Uudenvuodenpäivä", Rule::Fixed { month: 1, day: 1 }),
     h("Loppiainen", Rule::Fixed { month: 1, day: 6 }),
@@ -903,6 +1208,14 @@ static FINLAND: &[Holiday] = &[
     h("Vappu", Rule::Fixed { month: 5, day: 1 }),
     h("Helatorstai", Rule::EasterOffset(39)),
     h("Helluntaipäivä", Rule::EasterOffset(49)),
+    h(
+        "Juhannusaatto",
+        Rule::WeekdayOnOrAfter {
+            month: 6,
+            day: 19,
+            weekday: 5,
+        },
+    ),
     h(
         "Juhannuspäivä",
         Rule::WeekdayOnOrAfter {
@@ -920,21 +1233,26 @@ static FINLAND: &[Holiday] = &[
         },
     ),
     h("Itsenäisyyspäivä", Rule::Fixed { month: 12, day: 6 }),
+    h("Jouluaatto", Rule::Fixed { month: 12, day: 24 }),
     h("Joulupäivä", Rule::Fixed { month: 12, day: 25 }),
     h("Tapaninpäivä", Rule::Fixed { month: 12, day: 26 }),
 ];
 
 /// Irish public holidays. Saint Brigid's Day is 1 February when that is a
-/// Friday and the first Monday in February otherwise.
+/// Friday and the first Monday in February otherwise; it was introduced in
+/// 2023, so it resolves to nothing before then.
 static IRELAND: &[Holiday] = &[
     h("New Year's Day", Rule::Fixed { month: 1, day: 1 }),
     h(
         "Saint Brigid's Day",
-        Rule::FixedOnWeekdayElseWeekdayOnOrAfter {
-            month: 2,
-            day: 1,
-            on_weekday: 5,
-            weekday: 1,
+        Rule::Since {
+            year: 2023,
+            base: &Rule::FixedOnWeekdayElseWeekdayOnOrAfter {
+                month: 2,
+                day: 1,
+                on_weekday: 5,
+                weekday: 1,
+            },
         },
     ),
     h("Saint Patrick's Day", Rule::Fixed { month: 3, day: 17 }),
@@ -973,6 +1291,32 @@ static IRELAND: &[Holiday] = &[
     ),
     h("Christmas Day", Rule::Fixed { month: 12, day: 25 }),
     h("Saint Stephen's Day", Rule::Fixed { month: 12, day: 26 }),
+    // One-off public holidays declared by the Oireachtas, transcribed from the
+    // reference package rather than derived from a rule.
+    h(
+        "Millennium Celebrations",
+        Rule::Once {
+            year: 1999,
+            month: 12,
+            day: 31,
+        },
+    ),
+    h(
+        "National Day of Mourning",
+        Rule::Once {
+            year: 2011,
+            month: 9,
+            day: 14,
+        },
+    ),
+    h(
+        "Day of Remembrance and Recognition",
+        Rule::Once {
+            year: 2022,
+            month: 3,
+            day: 18,
+        },
+    ),
 ];
 
 /// Canadian federal holidays. Provincial holidays such as Family Day and
@@ -1000,7 +1344,10 @@ static CANADA: &[Holiday] = &[
     ),
     h(
         "National Day for Truth and Reconciliation",
-        Rule::Fixed { month: 9, day: 30 },
+        Rule::Since {
+            year: 2021,
+            base: &Rule::Fixed { month: 9, day: 30 },
+        },
     ),
     h(
         "Thanksgiving",
@@ -1016,21 +1363,42 @@ static CANADA: &[Holiday] = &[
 ];
 
 /// New Zealand public holidays. Regional anniversary days are not included.
-/// Matariki is set by an official yearly schedule rather than a formula, so it
-/// is added per year with [`Calendar::with_extra`].
+/// Matariki follows an official calendar set by the Matariki Advisory Group
+/// rather than a formula, so it is transcribed into [`MATARIKI_DATES`] instead
+/// of being computed; a formula would be a guess that looks precise.
 static NEW_ZEALAND: &[Holiday] = &[
     h("New Year's Day", Rule::Fixed { month: 1, day: 1 }),
     h("Day after New Year's Day", Rule::Fixed { month: 1, day: 2 }),
-    h("Waitangi Day", Rule::Fixed { month: 2, day: 6 }),
+    h(
+        "Waitangi Day",
+        Rule::ObservedFrom {
+            year: 2014,
+            shared: false,
+            base: &Rule::Fixed { month: 2, day: 6 },
+        },
+    ),
     h("Good Friday", Rule::EasterOffset(-2)),
     h("Easter Monday", Rule::EasterOffset(1)),
-    h("ANZAC Day", Rule::Fixed { month: 4, day: 25 }),
+    h(
+        "ANZAC Day",
+        Rule::ObservedFrom {
+            year: 2014,
+            shared: true,
+            base: &Rule::Fixed { month: 4, day: 25 },
+        },
+    ),
     h(
         "King's Birthday",
         Rule::NthWeekday {
             month: 6,
             weekday: 1,
             nth: 1,
+        },
+    ),
+    h(
+        "Matariki",
+        Rule::Table {
+            dates: MATARIKI_DATES,
         },
     ),
     h(
@@ -1041,8 +1409,53 @@ static NEW_ZEALAND: &[Holiday] = &[
             nth: 4,
         },
     ),
+    h(
+        "Queen Elizabeth II Memorial Day",
+        Rule::Once {
+            year: 2022,
+            month: 9,
+            day: 26,
+        },
+    ),
     h("Christmas Day", Rule::Fixed { month: 12, day: 25 }),
     h("Boxing Day", Rule::Fixed { month: 12, day: 26 }),
+];
+
+/// The official Matariki dates, 2022 to 2052, as published by the New Zealand
+/// government. Matariki is a public holiday from 2022; the dates are fixed by
+/// statute from the advisory group's calendar, which is why they are a table.
+static MATARIKI_DATES: &[(i32, u8, u8)] = &[
+    (2022, 6, 24),
+    (2023, 7, 14),
+    (2024, 6, 28),
+    (2025, 6, 20),
+    (2026, 7, 10),
+    (2027, 6, 25),
+    (2028, 7, 14),
+    (2029, 7, 6),
+    (2030, 6, 21),
+    (2031, 7, 11),
+    (2032, 7, 2),
+    (2033, 6, 24),
+    (2034, 7, 7),
+    (2035, 6, 29),
+    (2036, 7, 18),
+    (2037, 7, 10),
+    (2038, 6, 25),
+    (2039, 7, 15),
+    (2040, 7, 6),
+    (2041, 7, 19),
+    (2042, 7, 11),
+    (2043, 7, 3),
+    (2044, 6, 24),
+    (2045, 7, 7),
+    (2046, 6, 29),
+    (2047, 7, 19),
+    (2048, 7, 3),
+    (2049, 6, 25),
+    (2050, 7, 15),
+    (2051, 6, 30),
+    (2052, 6, 21),
 ];
 
 #[cfg(test)]
@@ -1110,8 +1523,8 @@ mod tests {
     #[test]
     fn united_kingdom_weekend_holiday_moves_to_monday() {
         let cal = Calendar::united_kingdom();
-        // 25 December 2022 was a Sunday, so both Christmas and Boxing Day roll
-        // forward: Christmas to the 26th and Boxing Day to the 27th.
+        // 25 December 2022 was a Sunday and 26 December a Monday, so Boxing
+        // Day keeps the Monday and Christmas Day is observed on the Tuesday.
         let names: Vec<&str> = cal
             .holidays_in(2022)
             .into_iter()
@@ -1119,8 +1532,8 @@ mod tests {
             .collect();
         assert!(names.contains(&"Christmas Day"));
         assert!(names.contains(&"Boxing Day"));
-        assert_eq!(cal.holiday_name(d(2022, 12, 26)), Some("Christmas Day"));
-        assert_eq!(cal.holiday_name(d(2022, 12, 27)), Some("Boxing Day"));
+        assert_eq!(cal.holiday_name(d(2022, 12, 26)), Some("Boxing Day"));
+        assert_eq!(cal.holiday_name(d(2022, 12, 27)), Some("Christmas Day"));
     }
 
     #[test]
@@ -1161,20 +1574,20 @@ mod tests {
             (2021, 8, 30, "Summer Bank Holiday"),
             (2021, 12, 27, "Christmas Day"),
             (2021, 12, 28, "Boxing Day"),
-            // 2022: New Year's Day is a Saturday; Christmas is a Sunday and
-            // Boxing Day the Monday, so Christmas takes the 26th and Boxing Day
-            // moves on to the 27th. The Jubilee and the state funeral are
-            // one-off bank holidays.
+            // 2022: New Year's Day is a Saturday; the spring bank holiday moved
+            // to 2 June for the Platinum Jubilee, which is why both appear.
+            // Christmas is a Sunday and Boxing Day the Monday, so Boxing Day
+            // keeps the 26th and Christmas Day is observed on the 27th.
             (2022, 1, 3, "New Year's Day"),
             (2022, 4, 15, "Good Friday"),
             (2022, 4, 18, "Easter Monday"),
             (2022, 5, 2, "Early May Bank Holiday"),
-            (2022, 5, 30, "Spring Bank Holiday"),
+            (2022, 6, 2, "Spring Bank Holiday (Platinum Jubilee)"),
             (2022, 6, 3, "Platinum Jubilee of Elizabeth II"),
             (2022, 8, 29, "Summer Bank Holiday"),
             (2022, 9, 19, "State Funeral of Queen Elizabeth II"),
-            (2022, 12, 26, "Christmas Day"),
-            (2022, 12, 27, "Boxing Day"),
+            (2022, 12, 26, "Boxing Day"),
+            (2022, 12, 27, "Christmas Day"),
             // 2026: Boxing Day is a Saturday and rolls to the 28th.
             (2026, 1, 1, "New Year's Day"),
             (2026, 4, 3, "Good Friday"),
@@ -1502,23 +1915,29 @@ mod tests {
 
     #[test]
     fn each_country_observes_every_rule_that_applies_in_that_year() {
-        // A holiday can only be dropped from a year by a collision, and the
-        // resolution moves the loser rather than discarding it, so the count
-        // must hold. A rule tied to one year contributes only in that year.
+        // No holiday may silently vanish. A rule that resolves in a year must
+        // appear in that year's list or, when a substitution pushes it over the
+        // year boundary, in the next year's; a rule tied to particular years
+        // contributes only in those years.
         for &country in Country::ALL {
             let cal = Calendar::new(country);
             for year in [2024, 2025, 2026, 2027] {
-                let expected = country
-                    .holidays()
-                    .iter()
-                    .filter(|h| h.rule.resolve(year).is_some())
-                    .count();
-                assert_eq!(
-                    cal.holidays_in(year).len(),
-                    expected,
-                    "{} lost a holiday in {year}",
-                    country.name()
-                );
+                let names: Vec<&str> = cal
+                    .holidays_in(year)
+                    .into_iter()
+                    .chain(cal.holidays_in(year + 1))
+                    .map(|(_, name)| name)
+                    .collect();
+                for holiday in country.holidays() {
+                    if holiday.rule.resolve(year).is_some() {
+                        assert!(
+                            names.contains(&holiday.name),
+                            "{} lost {} in {year}",
+                            country.name(),
+                            holiday.name
+                        );
+                    }
+                }
             }
         }
     }
