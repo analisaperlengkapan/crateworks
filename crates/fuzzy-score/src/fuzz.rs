@@ -76,9 +76,9 @@ fn char_slice(s: &str, start: usize, end: usize) -> String {
 /// Port of `fuzzywuzzy.fuzz.ratio`.
 ///
 /// The number of matching characters over the total length, as a percentage:
-/// `2 * matches / (len(a) + len(b))`, where the matches come from
-/// [`SequenceMatcher`]. Two equal strings score 100, and an empty string scores
-/// 100 only against another empty string.
+/// `2 * matches / (len(a) + len(b))`, where the matches come from Python's
+/// `difflib.SequenceMatcher`. Two equal strings score 100, and an empty string
+/// scores 100 only against another empty string.
 pub fn ratio(a: &str, b: &str) -> u8 {
     if a == b {
         return 100;
